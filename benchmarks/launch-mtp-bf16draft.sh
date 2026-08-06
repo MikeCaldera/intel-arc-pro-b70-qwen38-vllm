@@ -1,26 +1,31 @@
 #!/usr/bin/env bash
-# A15c — native INT4 target + BF16-unquantized MTP draft patch
+# B70 vLLM MTP server launch — native INT4 target + BF16-unquantized MTP draft.
+# Self-contained: uses the patches from this repo (../patches/).
+#
+# Usage: bash benchmarks/launch-mtp-bf16draft.sh /path/to/model [PORT]
+#
+# Prereqs: Arc Pro B60/B70, Docker, B70 drivers + oneAPI runtime, the
+# MTP-preserved GPTQ model from llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4
 set -euo pipefail
-LOG=/home/sergio/B70-DOCS/results/vllm-native-mtp-bf16draft-serve.log
-MODEL_DIR=/mnt/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4
-PATCH_V4=/home/sergio/B70-DOCS/scripts/tmp/vllm-xpu-int4-patch/patch_xpu_int4_moe_v4.py
-PATCH_MTP=/home/sergio/B70-DOCS/scripts/tmp/vllm-xpu-int4-patch/patch_mtp_bf16_draft.py
+
+MODEL_DIR="${1:-/mnt/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4}"
+PORT="${2:-8000}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+PATCH_V4="${REPO_ROOT}/patches/patch_xpu_int4_moe_v4.py"
+PATCH_MTP="${REPO_ROOT}/patches/patch_mtp_bf16_draft.py"
 SPEC_FILE=/tmp/b70-spec-mtp.json
+LOG="${LOG:-/tmp/vllm-mtp-serve.log}"
+
 printf '%s\n' '{"method":"mtp","num_speculative_tokens":1}' > "$SPEC_FILE"
 
-echo 230000000 | sudo -n tee /sys/class/hwmon/hwmon4/power1_cap >/dev/null
-systemctl --user stop llama-profile.service 2>/dev/null || true
-sudo -n docker rm -f b70vllm 2>/dev/null || true
-pkill -9 -f llama-server 2>/dev/null || true
-sleep 16
-pkill -9 -f llama-server 2>/dev/null || true
-sleep 5
-VRAM=$(sudo -n cat /sys/kernel/debug/dri/0000:0b:00.0/tile0/vram_mm | grep visible_avail | grep -oP '\d+' | head -1)
-echo "VRAM=$VRAM"
+# optional: set power cap to MoE sweet spot (150W). Uncomment to enable:
+# echo 150000000 | sudo tee /sys/class/hwmon/hwmon4/power1_cap >/dev/null
+
 RENDER_GID=$(stat -c "%g" /dev/dri/render* | head -n1)
 : > "$LOG"
 
-CID=$(sudo -n docker run -d --name b70vllm -p 8001:8000 \
+CID=$(sudo docker run -d --name b70vllm -p ${PORT}:8000 \
   --device /dev/dri --group-add "${RENDER_GID}" \
   -v /dev/dri:/dev/dri:ro \
   -v "${MODEL_DIR}:/model:ro" \
@@ -31,33 +36,31 @@ CID=$(sudo -n docker run -d --name b70vllm -p 8001:8000 \
   -e ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE \
   -e ZE_AFFINITY_MASK=0 \
   -e VLLM_XPU_ENABLE_XPU_GRAPH=1 \
-  -e LD_LIBRARY_PATH=/opt/venv/lib:/opt/intel/oneapi/2025.3/lib \
   -e PYTORCH_ALLOC_CONF=expandable_segments:True \
   --entrypoint bash intel/vllm:0.21.0-xpu-int4moe \
   -lc 'set -e; python /patch_v4.py; python /patch_mtp.py; SPEC=$(cat /spec.json); echo SPEC=$SPEC; exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 16384 --gpu-memory-utilization 0.92 --port 8000 --cudagraph-capture-sizes 1 2 4 8 16 32 --max-num-seqs 1 --max-num-batched-tokens 8192 --served-model-name Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 --language-model-only --speculative-config "$SPEC"')
 
 echo "CID=$CID"
-sudo -n docker logs -f b70vllm >>"$LOG" 2>&1 &
+echo "Logs: $LOG  (tail -f $LOG)"
+echo "Wait for 'Application startup complete', then test:"
+echo "  curl http://localhost:${PORT}/v1/models"
+
+sudo docker logs -f b70vllm >>"$LOG" 2>&1 &
 LPID=$!
 for i in $(seq 1 55); do
   sleep 15
-  if curl -s -m 3 http://127.0.0.1:8001/v1/models 2>/dev/null | grep -q '"id"'; then
-    echo "UP after $((i*15))s"
-    grep -E 'speculative_config|non-default args|B70|KeyError|ERROR|Graph capturing|native int4|MTP draft' "$LOG" | tail -50
-    # keep log follower alive so post-startup crashes get captured
+  if curl -s -m 3 http://127.0.0.1:${PORT}/v1/models 2>/dev/null | grep -q '"id"'; then
+    echo "UP after $((i*15))s — MTP spec decode active. Look for '[B70] GDN XPU: spec decode active' in logs."
     exit 0
   fi
-  ST=$(sudo -n docker inspect -f '{{.State.Status}} {{.State.ExitCode}}' b70vllm 2>/dev/null || echo gone)
+  ST=$(sudo docker inspect -f '{{.State.Status}} {{.State.ExitCode}}' b70vllm 2>/dev/null || echo gone)
   echo "t=$((i*15))s status=$ST"
   if [[ "$ST" == exited* ]] || [[ "$ST" == gone* ]]; then
-    echo DEAD
-    grep -E 'KeyError|Error|error:|AssertionError|RuntimeError|B70|Traceback' "$LOG" | tail -60
-    tail -50 "$LOG"
-    kill $LPID 2>/dev/null || true
+    echo "FAILED — last 30 log lines:"
+    tail -30 "$LOG"
     exit 1
   fi
 done
-echo TIMEOUT
-tail -50 "$LOG"
-kill $LPID 2>/dev/null || true
+echo "TIMEOUT"
+tail -30 "$LOG"
 exit 1

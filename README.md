@@ -125,6 +125,23 @@ XPU. Not slow, *absent*. **llama.cpp is the only working dense path** (Q4_K_M
 - Ubuntu 24.04/26.04, Docker, oneAPI 2026.0 drivers
 - We test on: B70 + Ryzen 7 5700X3D, 30 GB RAM
 
+## On the localmaxxing leaderboard
+
+Three submissions **APPROVED and live** (2026-08-06):
+
+| Submission | Decode | Prefill | Status |
+|------------|-------:|--------:|--------|
+| **vLLM MTP (this repo)** | **132.9 t/s** | **7,535 t/s** | ✅ APPROVED |
+| llama.cpp MoE Q4_K_XL | 69 t/s | 1,498 t/s | ✅ APPROVED |
+| llama.cpp dense 27B Q4_K_M | 23 t/s | 1,007 t/s | ✅ APPROVED |
+
+The vLLM MTP result is the standout — **highest decode t/s for this model on
+the B70 on the leaderboard**, with full patch disclosure in the notes
+(reproducibility matters; the 4 patches are in this repo).
+
+Submission payloads: `submissions/`. Schema + instructions:
+`docs/localmaxxing-submission-schema.md`.
+
 ## Why open
 
 The patches are derivative work — they build on Intel's open `xpu_kernels`,

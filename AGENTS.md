@@ -82,7 +82,7 @@ tar -xzf lmx-linux-amd64.tar.gz && sudo mv lmx /usr/local/bin/
 lmx --version  # v0.1.30+ recommended
 ```
 
-## 4. Reproducing the headline result (vLLM MTP, 126 t/s)
+## 4. Reproducing the headline result (vLLM MTP, 133 t/s)
 
 The full sequence — model download → patch → serve → bench.
 
@@ -129,7 +129,7 @@ Full graph capture + startup takes ~3-4 min.
 python3 benchmarks/b70-vllm-reddit-bench-v2.py \
   http://localhost:8000/v1/chat/completions \
   Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 /tmp/result.json "b70-mtp"
-# Expect: tg32 ~123-127 t/s, pp2048 ~7.2K t/s
+# Expect: tg32 ~133 t/s, pp2048 ~7.5K t/s (with --max-num-batched-tokens 8192)
 ```
 
 For the full prefill × gen grid:
@@ -238,6 +238,30 @@ localmaxxing values reproducibility, and the patches are open in this repo.
 Suggested notes: *"vLLM 0.21 XPU + 4 in-container patches (see
 github.com/SergiioB/intel-arc-pro-b70-inference-cookbook). MTP speculative,
 1 layer, num_spec=1. Single-stream. KL audit vs eager pending."*
+
+## Long-context scaling (128K)
+
+How does MTP hold up as context fills? Tested with a context-scaling sweep
+(4K → 128K prompts, gen=64, single-stream, MTP on, 150W).
+
+**VRAM fit:** model 19.79 GiB + KV cache 7.75 GiB available → **349,869 tokens**
+of KV headroom. MoE's tiny 3B-active attention makes KV nearly free. 128K fits
+with 213K to spare. No OOM.
+
+| Context | Prefill t/s | Decode t/s | TTFT |
+|--------:|------------:|-----------:|-----:|
+| 4K | 5,423 | 120.9 | 714ms |
+| 10K | 7,098 | 107.5 | 1.4s |
+| 20K | 7,325 (peak) | 116.0 | 2.6s |
+| 40K | 5,877 | 100.0 | 6.6s |
+| 65K | 4,418 | 104.7 | 14.3s |
+| **128K** | 3,064 | 92.5 | **40s** |
+
+**What degrades:** decode mildly (-24%, 4K→128K, still 92 t/s at full context);
+prefill harder past 20K (O(n²) attention, peaks 7.3K → 3,064 at 128K).
+
+**Guidance:** ≤32K interactive (TTFT <7s); 65K+ batch/RAG (128K TTFT=40s).
+Launch at 128K: `bash benchmarks/launch-mtp-128k.sh /path/to/model`.
 
 ## 8. Known gaps & open work
 

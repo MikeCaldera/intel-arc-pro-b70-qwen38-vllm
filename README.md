@@ -12,7 +12,7 @@
 ## The headline
 
 After a 19-run benchmark campaign, here's what one Intel Arc Pro B70 (32 GB,
-Battlemage, ~$600) actually does on Qwen3.6-35B-A3B (MoE):
+Battlemage, ~€1,100 / ~$1,200) actually does on Qwen3.6-35B-A3B (MoE):
 
 | Metric | vLLM XPU + MTP | llama.cpp SYCL | vLLM advantage |
 |--------|---------------:|---------------:|---------------:|
@@ -120,7 +120,7 @@ XPU. Not slow, *absent*. **llama.cpp is the only working dense path** (Q4_K_M
 
 ## Hardware this targets
 
-- **Intel Arc Pro B70** (Battlemage, Xe2): 32 GB GDDR6, 608 GB/s, 256 XMX engines, ~$600
+- **Intel Arc Pro B70** (Battlemage, Xe2): 32 GB GDDR6, 608 GB/s, 256 XMX engines, ~€1,100 / ~$1,200
 - **Intel Arc Pro B60** (same arch, 16 GB): should work with smaller models / lower ctx
 - Ubuntu 24.04/26.04, Docker, oneAPI 2026.0 drivers
 - We test on: B70 + Ryzen 7 5700X3D, 30 GB RAM

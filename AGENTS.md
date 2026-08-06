@@ -108,6 +108,12 @@ CDN=$(curl -sI -L -o /dev/null -w '%{url_effective}' \
 bash benchmarks/launch-mtp-bf16draft.sh /path/to/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 8000
 ```
 
+**Critical flag — `--max-num-batched-tokens 8192`:** MTP caps
+`max_num_scheduled_tokens` to 2048 by default, which **chunks prefill** on any
+prompt >2048 tokens and costs 21-28% prefill throughput. Setting it to 8192
+clears the cap (verified: p4k prefill 6,626 → 8,484 t/s; p8k → 8,718 t/s).
+Without this flag you lose the long-prompt prefill advantage.
+
 The launch script:
 1. Sets speculative config `{"method":"mtp","num_speculative_tokens":1}`
 2. Runs `patch_xpu_int4_moe_v4.py` + `patch_mtp_bf16_draft.py` in-container

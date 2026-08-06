@@ -1,11 +1,11 @@
 # Intel Arc Pro B60 / B70 Inference Cookbook 🚀
 
 > Open recipes, engine patches, and benchmark harnesses for running LLMs on
-> Intel Arc Pro B-series (Battlemage / Xe2) GPUs — **MoE 35B at 126 t/s decode
-> and 7.5K t/s prefill, single-stream, one card.**
+> Intel Arc Pro B-series (Battlemage / Xe2) GPUs — **MoE 35B at 133 t/s decode
+> and 8.7K t/s prefill, single-stream, one card.**
 
-[![Benchmark](https://img.shields.io/badge/MoE%20decode-126%20t%2Fs-10b981)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
-[![Prefill](https://img.shields.io/badge/MoE%20prefill-7.5K%20t%2Fs-0ea5e9)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
+[![Benchmark](https://img.shields.io/badge/MoE%20decode-133%20t%2Fs-10b981)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
+[![Prefill](https://img.shields.io/badge/MoE%20prefill-8.7K%20t%2Fs-0ea5e9)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Open Source](https://img.shields.io/badge/open%20source-yes%20please-22c55e)](#why-open)
 
@@ -16,14 +16,14 @@ Battlemage, ~$600) actually does on Qwen3.6-35B-A3B (MoE):
 
 | Metric | vLLM XPU + MTP | llama.cpp SYCL | vLLM advantage |
 |--------|---------------:|---------------:|---------------:|
-| **Decode (p2k/g128)** | **126 t/s** | 69 t/s | **1.8×** |
-| **Prefill (p2k)** | **6,217 t/s** | 1,498 t/s | **4.2×** |
+| **Decode (short/g32)** | **133 t/s** | 74 t/s | **1.8×** |
+| **Prefill (p8k)** | **8,718 t/s** | 1,662 t/s | **5.2×** |
 | **Decode (p8k/g512)** | **114 t/s** | 58 t/s | **1.96×** |
 | Power | 150W | 150W | (same) |
 | Temp | 58°C | 58°C | (same) |
 
 And vs our previous best (Run 16, Triton path: 58 t/s decode / 5.3K prefill):
-**2.17× decode jump, +40% prefill** — from four targeted in-container patches.
+**2.17× decode jump, +40% prefill** — from four targeted in-container patches plus a batched-tokens cap fix.
 
 Full methodology + all grids: **[vLLM vs llama.cpp — The Full MoE + Dense Showdown](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)**.
 

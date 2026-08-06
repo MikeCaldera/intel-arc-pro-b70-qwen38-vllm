@@ -1,0 +1,6 @@
+*.log
+__pycache__/
+*.pyc
+/tmp/
+results/private/
+.env

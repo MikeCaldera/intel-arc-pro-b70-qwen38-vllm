@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
-# B70 vLLM MTP server launch @128K context — native INT4 + BF16 MTP draft.
-# Variant of launch-mtp-bf16draft.sh for long-context (max-model-len 131072).
-# Usage: bash benchmarks/launch-mtp-128k.sh /path/to/model [PORT]
+# A15c — native INT4 target + BF16-unquantized MTP draft patch
 set -euo pipefail
-MODEL_DIR="${1:-/mnt/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4}"
-PORT="${2:-8000}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-PATCH_V4="${REPO_ROOT}/patches/patch_xpu_int4_moe_v4.py"
-PATCH_MTP="${REPO_ROOT}/patches/patch_mtp_bf16_draft.py"
+LOG=/home/sergio/B70-DOCS/results/vllm-mtp-128k-serve.log
+MODEL_DIR=/mnt/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4
+PATCH_V4=/home/sergio/B70-DOCS/scripts/tmp/vllm-xpu-int4-patch/patch_xpu_int4_moe_v4.py
+PATCH_MTP=/home/sergio/B70-DOCS/scripts/tmp/vllm-xpu-int4-patch/patch_mtp_bf16_draft.py
 SPEC_FILE=/tmp/b70-spec-mtp.json
-LOG="${LOG:-/tmp/vllm-mtp-128k-serve.log}"
 printf '%s\n' '{"method":"mtp","num_speculative_tokens":1}' > "$SPEC_FILE"
 
 echo 230000000 | sudo -n tee /sys/class/hwmon/hwmon4/power1_cap >/dev/null
@@ -39,7 +34,7 @@ CID=$(sudo -n docker run -d --name b70vllm -p 8001:8000 \
   -e LD_LIBRARY_PATH=/opt/venv/lib:/opt/intel/oneapi/2025.3/lib \
   -e PYTORCH_ALLOC_CONF=expandable_segments:True \
   --entrypoint bash intel/vllm:0.21.0-xpu-int4moe \
-  -lc 'set -e; python /patch_v4.py; python /patch_mtp.py; SPEC=$(cat /spec.json); echo SPEC=$SPEC; exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 131072 --gpu-memory-utilization 0.90 --port 8000 --cudagraph-capture-sizes 1 2 4 8 16 32 --max-num-seqs 1 --max-num-batched-tokens 8192 --served-model-name Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 --language-model-only --speculative-config "$SPEC"')
+  -lc 'set -e; python /patch_v4.py; python /patch_mtp.py; SPEC=$(cat /spec.json); echo SPEC=$SPEC; exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 131072 --gpu-memory-utilization 0.90 --port 8000 --cudagraph-capture-sizes 1 2 4 8 16 32 --max-num-seqs 1 --max-num-batched-tokens 8192 --enable-prefix-caching --served-model-name Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 --language-model-only --speculative-config "$SPEC"')
 
 echo "CID=$CID"
 sudo -n docker logs -f b70vllm >>"$LOG" 2>&1 &

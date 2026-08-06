@@ -27,6 +27,28 @@ And vs our previous best (Run 16, Triton path: 58 t/s decode / 5.3K prefill):
 
 Full methodology + all grids: **[vLLM vs llama.cpp — The Full MoE + Dense Showdown](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)**.
 
+## Concurrency (multi-user throughput)
+
+Single-stream is one thing — serving many users at once is where vLLM's
+continuous batching shines. Native int4 v4 (no MTP), @180W, max-num-seqs=64:
+
+| Concurrent users | Wall-agg tok/s | Avg per-user decode |
+|-----------------:|---------------:|--------------------:|
+| 1 | 64 | 64.9 t/s |
+| 4 | 225 | 58.2 t/s |
+| 8 | 424 | 54.7 t/s |
+| **16** | **694** | 45.9 t/s |
+
+That's **694 tokens/sec aggregate** across 16 concurrent users — each still
+getting ~46 t/s. Compare: a single user gets 64-73 t/s; 16 users get ~11× more
+total throughput with graceful per-user degradation. The "145 t/s" community
+claim sits comfortably in this multi-user band (≈C10 aggregate). Community
+dual-B70 runs hit [912 tok/s at 50 concurrent users](https://github.com/PMZFX/intel-arc-pro-b70-benchmarks).
+
+*Note: this is the no-MTP path (Run 17/19). With MTP unlocked (Run 18+),
+per-user decode is ~1.8× higher, so the aggregate ceiling rises proportionally —
+a C16 + MTP sweep is pending.*
+
 ## What's in this repo
 
 ```

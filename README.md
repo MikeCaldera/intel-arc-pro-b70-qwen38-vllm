@@ -49,6 +49,28 @@ dual-B70 runs hit [912 tok/s at 50 concurrent users](https://github.com/PMZFX/in
 per-user decode is ~1.8× higher, so the aggregate ceiling rises proportionally —
 a C16 + MTP sweep is pending.*
 
+## Model reference
+
+The vLLM path uses a specific checkpoint — not the stock Qwen release:
+
+| Property | Value |
+|----------|-------|
+| **Architecture** | Qwen3.6-35B-A3B (MoE: 256 experts, 8 active + 1 shared, 3B active params) |
+| **HF repo** | [`llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4`](https://huggingface.co/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4) |
+| **Base model** | Qwen/Qwen3.6-35B-A3B (BF16, Apache 2.0) |
+| **Post-train** | Heretic (uncensored/abliterated) + Native MTP-Preserved |
+| **Quantization** | GPTQ-Int4, group_size=128, symmetric, desc_act=false |
+| **Quant tool** | GPTQModel 7.1.0-dev ([github.com/modelcloud/gptqmodel](https://github.com/modelcloud/gptqmodel)) |
+| **MTP layer** | 1 layer, preserved at BF16 (not quantized) |
+| **Size** | 21 GB (6 safetensors shards) |
+
+The llama.cpp path uses Unsloth Dynamic GGUF quants of the same architecture:
+[`Qwen3.6-35B-A3B-UD-Q4_K_XL`](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF)
+(21 GB) and Q5_K_M (25 GB).
+
+For a detailed KL-divergence comparison between GPTQ-Int4 and GGUF K-quants,
+see **[docs/QUANTIZATION-QUALITY.md](docs/QUANTIZATION-QUALITY.md)**.
+
 ## What's in this repo
 
 ```
@@ -63,6 +85,8 @@ benchmarks/
 docs/
   POWER-SWEET-SPOTS.md       ← MoE=150W, Dense=180W — why (with data)
   CAMPAIGN-LOG.md            ← 19-run narrative (A1→A16)
+  QUANTIZATION-QUALITY.md    ← GPTQ-Int4 vs GGUF K-quant KL divergence analysis
+  DENSE-FP8-GAP.md           ← Why vLLM dense is blocked (no XPU FP8 kernel)
 ```
 
 ## Quick start: vLLM MTP on Qwen3.6-35B-A3B (the 126 t/s path)

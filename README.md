@@ -216,6 +216,56 @@ bash scripts/b70-dynamic-power.sh 0.5 /tmp/dyn-power.log &
 # watch it boost to 230W during prefill, relax to 165W during decode
 ```
 
+## Consolidated results (Qwen3.6-35B-A3B-MTP GPTQ-Int4, one B70)
+
+**Config:** vLLM 0.21.0-xpu-int4moe, native INT4 v4 + BF16 MTP draft,
+single-stream, prefix caching OFF (honest cold prefill). Decode grid @165W,
+prefill @230W.
+
+### Decode (t/s) — grid @165W, steady-state
+
+| Prompt → Gen | MTP1 | MTP2 | MTP4 |
+|-------------|-----:|-----:|-----:|
+| short → 32 | 137.4 | 152.3 | **204.6** |
+| short → 64 | 134.8 | 155.2 | **190.6** |
+| short → 128 | 130.9 | 145.6 | **175.7** |
+| p1k → 64 | 127.7 | 151.8 | **179.8** |
+| p2k → 64 | 125.9 | 139.1 | **175.8** |
+| p4k → 64 | 121.8 | 141.2 | **173.1** |
+| p8k → 64 | 118.5 | 137.1 | **165.9** |
+| p8k → 128 | 119.7 | 133.4 | **159.6** |
+
+### Prefill (t/s) — cold, no prefix cache
+
+| Prompt | MTP1@165W | MTP1@230W | MTP4@165W | MTP4@230W |
+|--------|----------:|----------:|----------:|----------:|
+| p500 | 5607 | 5289 | 4894 | 4801 |
+| p1k | 7235 | 7235 | 6479 | 6548 |
+| p2k | 8414 | **8530** | 7653 | 8103 |
+| p4k | 8277 | **8989** | 7738 | 8715 |
+| p8k | 7518 | **8836** | 7246 | 8640 |
+
+### Power / thermal @165W cap
+| Config | card avg | card peak | prefill peak | temp pkg avg/peak |
+|--------|---------:|----------:|-------------:|------------------:|
+| MTP1 | 153.4W | 181.8W | ~237W | 66/73°C |
+| MTP2 | 157.5W | 188.5W | — | 67/72°C |
+| MTP4 | 159.8W | 190.5W | ~237W | 66/72°C |
+
+### Headlines
+- **MTP4 short/32 decode 204.6 t/s** (+49% vs MTP1, +41% vs community 145 claim)
+- **MTP1@230W prefill p4k 9,005 t/s** (+13% vs community 7,975)
+- **Dynamic power: identical 230W prefill at 5% duty** (boost prefill, relax decode)
+
+### vs the "custom image + kernel" Reddit claim
+| Metric | Our MTP4 (stock image + 2 patches) | Custom-build claim |
+|--------|-----------------------------------:|-------------------:|
+| tg32 decode | **204.6 t/s** | 174.54 ± 13.05 |
+| pp4096 prefill | ~8.5-8.7K t/s | 9,268 ± 39.69 |
+
+MTP4 beats his decode; his custom kernel edges us on prefill — the gap to
+close with a custom kernel.
+
 ## Dense 27B status
 
 vLLM dense FP8 is **blocked**: `KeyError: PlatformEnum.XPU` in

@@ -1,29 +1,41 @@
 # Intel Arc Pro B60 / B70 Inference Cookbook 🚀
 
 > Open recipes, engine patches, and benchmark harnesses for running LLMs on
-> Intel Arc Pro B-series (Battlemage / Xe2) GPUs — **MoE 35B at 133 t/s decode
-> and 8.7K t/s prefill, single-stream, one card.**
+> Intel Arc Pro B-series (Battlemage / Xe2) GPUs — **MoE 35B at 204.6 t/s decode
+> (MTP4) and 9.0K t/s prefill (MTP1@230W), single-stream, one card.**
 
-[![Benchmark](https://img.shields.io/badge/MoE%20decode-133%20t%2Fs-10b981)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
-[![Prefill](https://img.shields.io/badge/MoE%20prefill-8.7K%20t%2Fs-0ea5e9)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
+[![Benchmark](https://img.shields.io/badge/MoE%20decode-204.6%20t%2Fs-10b981)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
+[![Prefill](https://img.shields.io/badge/MoE%20prefill-9.0K%20t%2Fs-0ea5e9)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Open Source](https://img.shields.io/badge/open%20source-yes%20please-22c55e)](#why-open)
 
 ## The headline
 
-After a 19-run benchmark campaign, here's what one Intel Arc Pro B70 (32 GB,
-Battlemage, ~€1,100 / ~$1,200) actually does on Qwen3.6-35B-A3B (MoE):
+After a 19-run benchmark campaign (plus the MTP spec-token and prefill sweeps
+below), here's what one Intel Arc Pro B70 (32 GB, Battlemage, ~€1,100 /
+~$1,200) actually does on Qwen3.6-35B-A3B (MoE):
 
-| Metric | vLLM XPU + MTP | llama.cpp SYCL | vLLM advantage |
-|--------|---------------:|---------------:|---------------:|
-| **Decode (short/g32)** | **133 t/s** | 74 t/s | **1.8×** |
-| **Prefill (p8k)** | **8,718 t/s** | 1,662 t/s | **5.2×** |
-| **Decode (p8k/g512)** | **114 t/s** | 58 t/s | **1.96×** |
-| Power | 150W | 150W | (same) |
-| Temp | 58°C | 58°C | (same) |
+| Metric | vLLM XPU + MTP4 | vLLM + MTP1 | llama.cpp SYCL | vLLM best advantage |
+|--------|---------------:|------------:|---------------:|-------------------:|
+| **Decode (short/g32)** | **204.6 t/s** | 137.4 t/s | 74 t/s | **2.8×** |
+| **Decode (p8k)** | **159.6 t/s** | 119.7 t/s | 58 t/s | **2.75×** |
+| **Prefill (p4k)** | 8,715 t/s | **9,005 t/s**@230W | 1,662 t/s | **5.4×** |
+| Power (decode) | 150-165W | 150W | 150W | — |
+| Temp | 58°C | 58°C | 58°C | — |
 
-And vs our previous best (Run 16, Triton path: 58 t/s decode / 5.3K prefill):
-**2.17× decode jump, +40% prefill** — from four targeted in-container patches plus a batched-tokens cap fix.
+**The MTP spec-token lever:** the draft head is *recurrent* (`spec_step_idx %
+mtp_num_hidden_layers`), so a single `mtp_num_hidden_layers: 1` layer emits
+N draft tokens per step. `num_speculative_tokens` is NOT clamped by layer count
+— bump it:
+- **MTP4 = peak decode** (short/32: **204.6 t/s**, +49% vs MTP1; beats the
+  community "145 t/s" claim by 41%). Prefill pays for it (-11%).
+- **MTP2 = balanced** (decode +19% vs MTP1, prefill only -3-4%).
+- **MTP1 = best prefill / least MTP overhead** (9.0K t/s @230W).
+
+**Prefill is a POWER lever, decode is a bandwidth lever.** Prefill is
+compute-bound and scales to 230W (+16-22%); decode self-limits to ~140W
+regardless of cap. See the Dynamic Power section below for the boost/relax
+trick that gets both.
 
 Full methodology + all grids: **[vLLM vs llama.cpp — The Full MoE + Dense Showdown](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)**.
 
@@ -166,13 +178,42 @@ eager path is the remaining gate before production use — contributions welcome
 
 | Workload | Power cap | Why |
 |----------|----------|-----|
-| **MoE 35B** | **150W** | Self-limits to ~140W draw; 230W gives -8% at +80W heat. Cooler = same speed. |
+| **MoE 35B decode** | **150-165W** | Self-limits to ~140W draw; 230W gives -8% at +80W heat. Cooler = same speed. |
+| **MoE 35B prefill** | **230W** | Prefill is compute-bound and scales: 7358→8537 t/s (p2k, +16%), 7589→9005 (p4k, +19%), 7204→8824 (p8k, +22%). |
 | **Dense 27B** | **180W** sustained / 230W burst | Scales +18–30% (150→230W), but thermal cost (71→79°C). |
 
 Set it once:
 ```bash
-# 150W for MoE (in microwatts)
+# 150W for MoE decode (in microwatts)
 echo 150000000 | sudo tee /sys/class/hwmon/hwmon4/power1_cap
+# 230W for MoE prefill
+echo 230000000 | sudo tee /sys/class/hwmon/hwmon4/power1_cap
+```
+
+## Dynamic power: boost prefill, relax decode (the 5%-duty trick)
+
+Prefill wants 230W, decode wants 165W. Rather than pick one, run a reactive
+manager that raises the cap during the prefill burst and drops it once the card
+settles into decode. `scripts/b70-dynamic-power.sh` samples card watts
+(energy-delta) every 0.5s; power > 170W → cap 230W; ≤155W for 4 samples → cap
+165W.
+
+| metric | static 165W | static 230W | **dynamic** |
+|--------|------------|-------------|-------------|
+| p4k prefill | 7589 t/s | 9005 t/s | **8989 t/s** |
+| time at 230W | 0% | 100% | **5%** |
+| time at 165W | 100% | 0% | **95%** |
+
+**Identical 230W prefill, but the card sits at 230W only 5% of the time.** The
+power cap is the effective clock-boost control (direct GPU frequency is not
+readable on the Xe/Level-Zero driver). This is the classic "boost for the
+compute burst, relax for the bandwidth-bound phase" pattern.
+
+```bash
+# Serve with dynamic power management
+bash scripts/b70-dynamic-power.sh 0.5 /tmp/dyn-power.log &
+# ... run vLLM server ...
+# watch it boost to 230W during prefill, relax to 165W during decode
 ```
 
 ## Dense 27B status

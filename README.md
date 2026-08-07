@@ -300,7 +300,14 @@ cold, decode ~80 t/s). Harness: `benchmarks/b70-multiturn-128k-test.py`.
 
 ## On the localmaxxing leaderboard
 
-Three submissions **APPROVED and live** (2026-08-06):
+**Newest (2026-08-07) — MTP4 + concurrency max, both APPROVED:**
+
+| Submission | Decode | Prefill | Ctx | Batch | Status | Link |
+|------------|-------:|--------:|----:|------:|--------|------|
+| **vLLM MTP4 single-stream** | **204.6 t/s** | 8,715 t/s | 16K | 1 | ✅ APPROVED | [run](https://www.localmaxxing.com/en/models/Qwen/Qwen3.6-35B-A3B?run=cmsiwwpzf00a4qm01z18izmad) |
+| **vLLM concurrency max** | **1,139.8 t/s** (gen) | 8,715 t/s | 16K | 64 | ✅ APPROVED | [run](https://www.localmaxxing.com/en/models/Qwen/Qwen3.6-35B-A3B?run=cmsiwwqmt00a9qm010iekvi3u) |
+
+Prior batch (2026-08-06):
 
 | Submission | Decode | Prefill | Status |
 |------------|-------:|--------:|--------|
@@ -308,9 +315,11 @@ Three submissions **APPROVED and live** (2026-08-06):
 | llama.cpp MoE Q4_K_XL | 69 t/s | 1,498 t/s | ✅ APPROVED |
 | llama.cpp dense 27B Q4_K_M | 23 t/s | 1,007 t/s | ✅ APPROVED |
 
-The vLLM MTP result is the standout — **highest decode t/s for this model on
-the B70 on the leaderboard**, with full patch disclosure in the notes
-(reproducibility matters; the 4 patches are in this repo).
+The MTP4 result (204.6 t/s single-stream) and the concurrency-max (1,139.8
+gen t/s at batch 64) are the standout numbers — with full patch disclosure
+in the notes. **Submission gotcha:** `lmx benchmark submit` hits the wrong
+endpoint (`/api/benchmarks`, evals-only) and silently fails; the working path
+is `POST /api/speed-tests`. See the `localmaxxing-submit` skill.
 
 Submission payloads: `submissions/`. Schema + instructions:
 `docs/localmaxxing-submission-schema.md`.

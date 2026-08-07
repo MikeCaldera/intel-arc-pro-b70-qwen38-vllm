@@ -59,10 +59,29 @@ The vLLM path uses a specific checkpoint — not the stock Qwen release:
 | **HF repo** | [`llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4`](https://huggingface.co/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4) |
 | **Base model** | Qwen/Qwen3.6-35B-A3B (BF16, Apache 2.0) |
 | **Post-train** | Heretic (uncensored/abliterated) + Native MTP-Preserved |
-| **Quantization** | GPTQ-Int4, group_size=128, symmetric, desc_act=false |
+| **Quantization** | INT4 weights via GPTQ calibration (group_size=128, sym, desc_act=false) |
 | **Quant tool** | GPTQModel 7.1.0-dev ([github.com/modelcloud/gptqmodel](https://github.com/modelcloud/gptqmodel)) |
 | **MTP layer** | 1 layer, preserved at BF16 (not quantized) |
 | **Size** | 21 GB (6 safetensors shards) |
+
+> **Why this checkpoint?** The heretic variant from llmfan46 was the only
+> GPTQ-Int4 with **preserved MTP weight tensors** at the time of benchmarking.
+> The official `Qwen/Qwen3.6-35B-A3B-GPTQ-Int4` declares
+> `mtp_num_hidden_layers: 1` in config but ships **zero MTP weight tensors**
+> in the shards — MTP speculative decoding doesn't work without them. The
+> heretic variant preserves these tensors, enabling the 133 t/s decode path.
+> Quantization quality (KLD) is architecture-determined, not weight-determined
+> — the heretic abliteration doesn't change how INT4 quantization affects the
+> model's output distribution. See
+> [docs/QUANTIZATION-QUALITY.md](docs/QUANTIZATION-QUALITY.md) for details.
+>
+> **INT4 is the Intel-optimized format.** The B70's XMX (Xe Matrix Extension)
+> engines have native INT4 grouped GEMM support — this is Intel's equivalent
+> of NVIDIA's NVFP4 on Tensor Cores. GPTQ is the algorithm that computes the
+> INT4 weights (Hessian-based calibration); INT4 is the data format XMX
+> accelerates. Any INT4 weights (GPTQ, AWQ, RTN) hit the same XMX fast path.
+> See [research/quantization-format-strategy.md](research/quantization-format-strategy.md)
+> for the full format comparison (GPTQ-Int4 vs MXFP4 vs FP8 vs GGUF K-quants).
 
 The llama.cpp path uses Unsloth Dynamic GGUF quants of the same architecture:
 [`Qwen3.6-35B-A3B-UD-Q4_K_XL`](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF)

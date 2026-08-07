@@ -272,6 +272,21 @@ Launch at 128K: `bash benchmarks/launch-mtp-128k.sh /path/to/model`.
 - **num_spec=2** — clamps to 1 (checkpoint has 1 MTP layer). A 2-layer MTP
   checkpoint could push closer to 145 t/s.
 
+### Quantization format landscape on B70
+
+GPTQ-Int4 is the optimal format for MoE on vLLM XPU — INT4 is what Intel's XMX
+engines are built to accelerate. This is not a compromise vs NVIDIA's NVFP4;
+it's the Intel-native equivalent. Full analysis in
+`research/quantization-format-strategy.md`.
+
+| Format | vLLM XPU | llama.cpp SYCL | Notes |
+|--------|----------|----------------|-------|
+| **INT4 (GPTQ)** | **133 t/s** | 69 t/s (Q4_K_XL) | XMX native fast path |
+| MXFP4 | 10.4 t/s | N/A | Loads, correct output, bottlenecked by GDN Triton kernels (not the quant) |
+| FP8 block | 0.75 t/s | N/A | Dequant fallback only, no native XPU kernel |
+| GGUF Q5_K_M | N/A | 70 t/s | Best quality path, 2× lower KLD than Q4 |
+| FP8 (native) | Blocked | N/A | Needs upstream `xpu_kernels` contribution |
+
 ## 9. Contributing
 
 PRs welcome. Especially:

@@ -2,16 +2,16 @@
 
 > Open recipes, engine patches, and benchmark harnesses for running LLMs on
 > Intel Arc Pro B-series (Battlemage / Xe2) GPUs — **MoE 35B at 204.6 t/s decode
-> (MTP4) and 9.0K t/s prefill (MTP1@230W), single-stream, one card.**
+> (MTP4) and ~8.4K t/s prefill, single-stream, one card.**
 
 [![Benchmark](https://img.shields.io/badge/MoE%20decode-204.6%20t%2Fs-10b981)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
-[![Prefill](https://img.shields.io/badge/MoE%20prefill-9.0K%20t%2Fs-0ea5e9)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
+[![Prefill](https://img.shields.io/badge/MoE%20prefill-8.4K%20t%2Fs-0ea5e9)](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Open Source](https://img.shields.io/badge/open%20source-yes%20please-22c55e)](#why-open)
 
 ## The headline
 
-After a 19-run benchmark campaign (plus the MTP spec-token and prefill sweeps
+After a 24-run benchmark campaign (plus the MTP spec-token and prefill sweeps
 below), here's what one Intel Arc Pro B70 (32 GB, Battlemage, ~€1,100 /
 ~$1,200) actually does on Qwen3.6-35B-A3B (MoE):
 
@@ -19,9 +19,16 @@ below), here's what one Intel Arc Pro B70 (32 GB, Battlemage, ~€1,100 /
 |--------|---------------:|------------:|---------------:|-------------------:|
 | **Decode (short/g32)** | **204.6 t/s** | 137.4 t/s | 74 t/s | **2.8×** |
 | **Decode (p8k)** | **159.6 t/s** | 119.7 t/s | 58 t/s | **2.75×** |
-| **Prefill (p4k)** | 8,715 t/s | **9,005 t/s**@230W | 1,662 t/s | **5.4×** |
+| **Prefill (p4k)** | **8,153 t/s** | ~7,100 t/s | 1,662 t/s | **4.9×** |
 | Power (decode) | 150-165W | 150W | 150W | — |
 | Temp | 58°C | 58°C | 58°C | — |
+
+> **Power note (corrected 2026-08-07):** prefill numbers are measured at a fixed
+> 150W cap. An earlier version of this table claimed 9.0K t/s "MTP1@230W" as a
+> power-boost effect — that was **prefix-cache contamination** (a constant-filler
+> benchmark harness inflated prefill ~5× once cached), not a real power gain. A
+> paired, alternating 150W-vs-230W A/B on the same warm server came back **flat at
+> ±0.2%** across p2k/p4k/p8k. See the Power section below.
 
 **The MTP spec-token lever:** the draft head is *recurrent* (`spec_step_idx %
 mtp_num_hidden_layers`), so a single `mtp_num_hidden_layers: 1` layer emits
@@ -30,12 +37,17 @@ N draft tokens per step. `num_speculative_tokens` is NOT clamped by layer count
 - **MTP4 = peak decode** (short/32: **204.6 t/s**, +49% vs MTP1; beats the
   community "145 t/s" claim by 41%). Prefill pays for it (-11%).
 - **MTP2 = balanced** (decode +19% vs MTP1, prefill only -3-4%).
-- **MTP1 = best prefill / least MTP overhead** (9.0K t/s @230W).
+- **MTP1 = highest acceptance / least MTP overhead** (97.1% accept, but lowest
+  throughput).
 
-**Prefill is a POWER lever, decode is a bandwidth lever.** Prefill is
-compute-bound and scales to 230W (+16-22%); decode self-limits to ~140W
-regardless of cap. See the Dynamic Power section below for the boost/relax
-trick that gets both.
+**Acceptance falls with N — that's fundamental, not a tuning problem.** Per
+draft position (read directly from the `vllm:spec_decode_*` counters): pos0
+92.6% → pos1 84.2% → pos2 72.7% → pos3 68.9% at N=4 (80.1% overall). Each draft
+token is an autoregressive guess off the previous guess, so errors compound.
+**Chasing 97-99% acceptance (N=1) costs 30% throughput** (137.4 vs 204.6 t/s).
+For a single-layer draft head, throughput is the right objective, not
+acceptance %. Combining high-N + high-acceptance needs a multi-layer draft
+model (DeepSeek-V3-style), which this checkpoint lacks.
 
 Full methodology + all grids: **[vLLM vs llama.cpp — The Full MoE + Dense Showdown](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)**.
 
@@ -68,9 +80,10 @@ users, diverse 512-token prompts, median TPOT 56ms. The "145 t/s" community
 single-stream claim sits far below vLLM's multi-user aggregate. Community
 dual-B70 runs hit [912 tok/s at 50 users](https://github.com/PMZFX/intel-arc-pro-b70-benchmarks) — we exceed that on a single B70.
 
-*Note: this is the no-MTP path (Run 17/19). With MTP unlocked (Run 18+),
-per-user decode is ~1.8× higher, so the aggregate ceiling rises proportionally —
-a C16 + MTP sweep is pending.*
+*Note: this is the no-MTP path (Run 17/19). MTP + concurrency is **blocked** —
+the XPU GDN `causal_conv1d` kernel rejects mixed spec/non-spec batches (Run 23),
+so C2+ with MTP on crashes. The no-MTP concurrency numbers above are the
+multi-user ceiling until that kernel is fixed.*
 
 ## Model reference
 
@@ -189,49 +202,45 @@ eager path is the remaining gate before production use — contributions welcome
 
 | Workload | Power cap | Why |
 |----------|----------|-----|
-| **MoE 35B decode** | **150-165W** | Self-limits to ~140W draw; 230W gives -8% at +80W heat. Cooler = same speed. |
-| **MoE 35B prefill** | **230W** | Prefill is compute-bound and scales: 7358→8537 t/s (p2k, +16%), 7589→9005 (p4k, +19%), 7204→8824 (p8k, +22%). |
+| **MoE 35B (decode AND prefill)** | **150-165W** | Self-limits to ~140W draw; 230W gives -8% decode at +80W heat. Prefill is flat too — see the A/B below. |
 | **Dense 27B** | **180W** sustained / 230W burst | Scales +18–30% (150→230W), but thermal cost (71→79°C). |
 
 Set it once:
 ```bash
-# 150W for MoE decode (in microwatts)
+# 150W for MoE (decode + prefill both flat above this; 230W = pure waste heat)
 echo 150000000 | sudo tee /sys/class/hwmon/hwmon4/power1_cap
-# 230W for MoE prefill
-echo 230000000 | sudo tee /sys/class/hwmon/hwmon4/power1_cap
 ```
 
-## Dynamic power: boost prefill, relax decode (the 5%-duty trick)
+### MoE prefill power A/B (the claim that didn't hold up)
 
-Prefill wants 230W, decode wants 165W. Rather than pick one, run a reactive
-manager that raises the cap during the prefill burst and drops it once the card
-settles into decode. `scripts/b70-dynamic-power.sh` samples card watts
-(energy-delta) every 0.5s; power > 170W → cap 230W; ≤155W for 4 samples → cap
-165W.
+An earlier version of this cookbook claimed prefill scaled +16-22% from
+150W→230W on MoE+MTP. That came from **unpaired runs** with a constant-filler
+harness whose reps 2-3 hit prefix caching and reported inflated prefill
+(observed: p8k rising 8,640 → 42,733 t/s once cached — a 5× lie). A paired,
+**alternating** A/B on the same warm server, cooled <52°C between rounds,
+3 rounds, honest cold prefill (unique random prefix per call) returned:
 
-| metric | static 165W | static 230W | **dynamic** |
-|--------|------------|-------------|-------------|
-| p4k prefill | 7589 t/s | 9005 t/s | **8989 t/s** |
-| time at 230W | 0% | 100% | **5%** |
-| time at 165W | 100% | 0% | **95%** |
+| prompt | 150W mean | 230W mean | delta |
+|--------|-----------|-----------|-------|
+| p2k    | 7,216 t/s | 7,207 t/s | −0.1% |
+| p4k    | 8,140 t/s | 8,135 t/s | −0.1% |
+| p8k    | 8,384 t/s | 8,403 t/s | +0.2% |
 
-**Identical 230W prefill, but the card sits at 230W only 5% of the time.** The
-power cap is the effective clock-boost control (direct GPU frequency is not
-readable on the Xe/Level-Zero driver). This is the classic "boost for the
-compute burst, relax for the bandwidth-bound phase" pattern.
+**Flat at ±0.2%.** Live card-draw telemetry explains why: prefill p8k draws
+~171W, decode ~113W, idle ~47W — so at a 165W cap the prefill is already
+uncapped, and the grouped-GEMM is **bandwidth-gated, not power-gated**. Raising
+the cap is pure waste heat on this workload. (Dense llama.cpp decode is the
+opposite — it genuinely scales +18-30% from 150→230W; different workload.)
 
-```bash
-# Serve with dynamic power management
-bash scripts/b70-dynamic-power.sh 0.5 /tmp/dyn-power.log &
-# ... run vLLM server ...
-# watch it boost to 230W during prefill, relax to 165W during decode
-```
+> **No clock locking either.** The B70 runs the `xe` driver (not i915), which
+> exposes no clock-control sysfs — only read-only PMU counters. `xpu-smi` and
+> `intel_gpu_frequency` both fail on this stack. The hwmon power cap is the only
+> tunable, and as the A/B shows, it doesn't move MoE prefill.
 
 ## Consolidated results (Qwen3.6-35B-A3B-MTP GPTQ-Int4, one B70)
 
 **Config:** vLLM 0.21.0-xpu-int4moe, native INT4 v4 + BF16 MTP draft,
-single-stream, prefix caching OFF (honest cold prefill). Decode grid @165W,
-prefill @230W.
+single-stream, honest cold prefill (unique random prefix per call). All @165W.
 
 ### Decode (t/s) — grid @165W, steady-state
 
@@ -246,15 +255,20 @@ prefill @230W.
 | p8k → 64 | 118.5 | 137.1 | **165.9** |
 | p8k → 128 | 119.7 | 133.4 | **159.6** |
 
-### Prefill (t/s) — cold, no prefix cache
+### Prefill (t/s) — cold, no prefix cache, @165W
 
-| Prompt | MTP1@165W | MTP1@230W | MTP4@165W | MTP4@230W |
-|--------|----------:|----------:|----------:|----------:|
-| p500 | 5607 | 5289 | 4894 | 4801 |
-| p1k | 7235 | 7235 | 6479 | 6548 |
-| p2k | 8414 | **8530** | 7653 | 8103 |
-| p4k | 8277 | **8989** | 7738 | 8715 |
-| p8k | 7518 | **8836** | 7246 | 8640 |
+> **Corrected 2026-08-07:** the previous table here split MTP1@165W vs
+> MTP1@230W with the 230W column showing 8.5-9.0K t/s. That was prefix-cache
+> contamination, not a power effect (see the Power A/B above). Power is NOT a
+> prefill lever on this workload. Honest re-measured prefill at 165W:
+
+| Prompt | MTP1 @165W | MTP4 @165W |
+|--------|-----------:|-----------:|
+| p500 | ~5,000 | ~5,070 |
+| p1k | ~6,900 | ~6,890 |
+| p2k | ~7,260 | ~7,265 |
+| p4k | ~8,150 | ~8,150 |
+| p8k | ~8,390 | ~8,380 |
 
 ### Power / thermal @165W cap
 | Config | card avg | card peak | prefill peak | temp pkg avg/peak |
@@ -265,17 +279,18 @@ prefill @230W.
 
 ### Headlines
 - **MTP4 short/32 decode 204.6 t/s** (+49% vs MTP1, +41% vs community 145 claim)
-- **MTP1@230W prefill p4k 9,005 t/s** (+13% vs community 7,975)
-- **Dynamic power: identical 230W prefill at 5% duty** (boost prefill, relax decode)
+- **MTP4 prefill p4k ~8.15K t/s** at 150W (power is NOT a lever here — see A/B)
+- **Spec-N curve:** N=4 is the throughput optimum; N=1 reaches 97.1% acceptance
+  but costs 30% throughput. Throughput, not acceptance %, is the goal.
 
 ### vs the "custom image + kernel" Reddit claim
 | Metric | Our MTP4 (stock image + 2 patches) | Custom-build claim |
 |--------|-----------------------------------:|-------------------:|
 | tg32 decode | **204.6 t/s** | 174.54 ± 13.05 |
-| pp4096 prefill | ~8.5-8.7K t/s | 9,268 ± 39.69 |
+| pp4096 prefill | ~8.15K t/s | 9,268 ± 39.69 |
 
-MTP4 beats his decode; his custom kernel edges us on prefill — the gap to
-close with a custom kernel.
+MTP4 beats his decode by 17%; his custom kernel edges us on prefill (~13%) — the
+gap to close with a custom kernel.
 
 ## Dense 27B status
 

@@ -42,20 +42,31 @@ Full methodology + all grids: **[vLLM vs llama.cpp — The Full MoE + Dense Show
 ## Concurrency (multi-user throughput)
 
 Single-stream is one thing — serving many users at once is where vLLM's
-continuous batching shines. Native int4 v4 (no MTP), @180W, max-num-seqs=64:
+continuous batching shines. Two measurements, both no-MTP native int4 v4
+(MTP + concurrency is blocked by the GDN kernel):
 
-| Concurrent users | Wall-agg tok/s | Avg per-user decode |
-|-----------------:|---------------:|--------------------:|
-| 1 | 64 | 64.9 t/s |
-| 4 | 225 | 58.2 t/s |
-| 8 | 424 | 54.7 t/s |
-| **16** | **694** | 45.9 t/s |
+**Quick sweep (64-token gens, max-num-seqs=64):**
 
-That's **694 tokens/sec aggregate** across 16 concurrent users — each still
-getting ~46 t/s. Compare: a single user gets 64-73 t/s; 16 users get ~11× more
-total throughput with graceful per-user degradation. The "145 t/s" community
-claim sits comfortably in this multi-user band (≈C10 aggregate). Community
-dual-B70 runs hit [912 tok/s at 50 concurrent users](https://github.com/PMZFX/intel-arc-pro-b70-benchmarks).
+| Concurrent users | Wall-agg tok/s |
+|-----------------:|---------------:|
+| 16 | 804.8 |
+| 32 | 1,119.8 |
+| 48 | 904.1 |
+| **64** | **1,196.9** |
+
+**Realistic (diverse 512-token prompts, median TPOT):**
+
+| Concurrent users | Aggregate t/s | Gen t/s | Median TPOT |
+|-----------------:|--------------:|--------:|------------:|
+| 16 | 1,107.8 | 641.7 | 25ms |
+| 32 | 1,523.8 | 882.7 | 36ms |
+| 48 | 1,578.2 | 914.2 | 52ms |
+| **64** | **1,967.7** | **1,139.8** | **56ms** |
+
+**Max aggregate: 1,967.7 t/s @ C64** (1,139.8 gen t/s) with 64 concurrent
+users, diverse 512-token prompts, median TPOT 56ms. The "145 t/s" community
+single-stream claim sits far below vLLM's multi-user aggregate. Community
+dual-B70 runs hit [912 tok/s at 50 users](https://github.com/PMZFX/intel-arc-pro-b70-benchmarks) — we exceed that on a single B70.
 
 *Note: this is the no-MTP path (Run 17/19). With MTP unlocked (Run 18+),
 per-user decode is ~1.8× higher, so the aggregate ceiling rises proportionally —

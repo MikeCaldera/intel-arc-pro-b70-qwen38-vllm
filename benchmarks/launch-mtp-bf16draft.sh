@@ -8,6 +8,11 @@
 # MTP-preserved GPTQ model from llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4
 set -euo pipefail
 
+printf '%s\n' \
+  'RETIRED: this script requires the unpublished local intel/vllm:0.21.0-xpu-int4moe image.' \
+  'Use: bash benchmarks/launch-mtp4-128k-nightly.sh /path/to/model 8000' >&2
+exit 2
+
 MODEL_DIR="${1:-/mnt/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4}"
 PORT="${2:-8000}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

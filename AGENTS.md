@@ -2,16 +2,16 @@
 
 > **For AI agents and ML engineers reproducing or extending this work.**
 > This file is the authoritative setup guide. Follow it top-to-bottom on a
-> fresh B60/B70 host. Last updated: 2026-08-06.
+> fresh B60/B70 host. Last updated: 2026-08-08.
 
 ## 1. What this repo does
 
 Open recipes to run LLMs on **Intel Arc Pro B60/B70 (Battlemage, Xe2)** GPUs:
 
-- **vLLM XPU native int4 + MTP** — 126 t/s decode / 7.5K t/s prefill on Qwen3.6-35B-A3B MoE (single-stream, one B70). Requires four in-container patches.
-- **llama.cpp SYCL** — the production single-user engine and the only working dense path.
-- **Benchmark harnesses** — apples-to-apples prefill × generation grids for both engines.
-- **Power-sweep tooling** — find the MoE (150W) vs Dense (180W) sweet spots.
+- **Current vLLM XPU GPTQ-INT4 + MTP4** — pinned public nightly, two current patches, exact 131,072-token completion, and real-world Pi workloads.
+- **llama.cpp SYCL** — production single-user engine and dense-model path.
+- **Benchmark harnesses** — exact rendered-token, serving-latency, cache, MTP, power, thermal, and mixed-load measurements.
+- **Historical evidence** — old vLLM 0.21 scripts remain labeled; they are not the current quick start.
 
 Headline result and full methodology:
 [sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/](https://sergiiob.dev/posts/intel-arc-b70-vllm-vs-llamacpp-moe-dense-showdown/)
@@ -46,12 +46,16 @@ source /opt/intel/oneapi/setvars.sh --force
 ### 3.2 Docker (for vLLM)
 
 ```bash
-# Standard Docker install, then verify GPU passthrough:
-sudo docker run --rm --device /dev/dri --group-add $(stat -c "%g" /dev/dri/render* | head -n1) \
-  -v /dev/dri:/dev/dri:ro --entrypoint bash intel/vllm:0.21.0-xpu-int4moe \
-  -lc 'python -c "import torch; print(torch.xpu.device_count(), torch.xpu.get_device_name(0))"'
+# Public image used by the current recipe:
+IMAGE='vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97'
+sudo docker run --rm --device /dev/dri \
+  --group-add "$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')" \
+  -v /dev/dri:/dev/dri:ro --entrypoint python "$IMAGE" \
+  -c 'import torch; print(torch.xpu.device_count(), torch.xpu.get_device_name(0))'
 # Expect: 1 Intel Arc Pro B70
 ```
+
+`intel/vllm:0.21.0-xpu-int4moe` was a local derived research image and was never published. Do not substitute `intel/vllm:0.21.0-xpu`. Read `docs/IMAGE-AND-PATCH-MATRIX.md`.
 
 If that prints `0`, your driver/render-node permissions are wrong — fix before
 proceeding. The user running Docker must be in the `render` group, or use
@@ -82,9 +86,9 @@ tar -xzf lmx-linux-amd64.tar.gz && sudo mv lmx /usr/local/bin/
 lmx --version  # v0.1.30+ recommended
 ```
 
-## 4. Reproducing the headline result (vLLM MTP, 133 t/s)
+## 4. Reproducing the current public MTP4 path
 
-The full sequence — model download → patch → serve → bench.
+Use the public nightly by exact digest, the MTP-preserved model, and the two compatible current patches.
 
 ### 4.1 Get the model
 
@@ -101,78 +105,65 @@ CDN=$(curl -sI -L -o /dev/null -w '%{url_effective}' \
 # (~22 GB total)
 ```
 
-### 4.2 Serve with both patches applied
+### 4.2 Serve with the current two-patch stack
 
 ```bash
-# From the repo root:
-bash benchmarks/launch-mtp-bf16draft.sh /path/to/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 8000
+bash benchmarks/launch-mtp4-128k-nightly.sh \
+  /path/to/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 8000
 ```
 
-**Critical flag — `--max-num-batched-tokens 8192`:** MTP caps
-`max_num_scheduled_tokens` to 2048 by default, which **chunks prefill** on any
-prompt >2048 tokens and costs 21-28% prefill throughput. Setting it to 8192
-clears the cap (verified: p4k prefill 6,626 → 8,484 t/s; p8k → 8,718 t/s).
-Without this flag you lose the long-prompt prefill advantage.
+The launcher pins:
 
-The launch script:
-1. Sets speculative config `{"method":"mtp","num_speculative_tokens":1}`
-2. Runs `patch_xpu_int4_moe_v4.py` + `patch_mtp_bf16_draft.py` in-container
-3. Starts `vllm serve` with the right flags
-4. Polls until `/v1/models` responds
-
-Watch for `[B70] GDN XPU: spec decode active` in the logs — that's MTP running.
-Full graph capture + startup takes ~3-4 min.
-
-### 4.3 Benchmark
-
-```bash
-python3 benchmarks/b70-vllm-reddit-bench-v2.py \
-  http://localhost:8000/v1/chat/completions \
-  Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 /tmp/result.json "b70-mtp"
-# Expect: tg32 ~133 t/s, pp2048 ~7.5K t/s (with --max-num-batched-tokens 8192)
+```text
+vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97
 ```
 
-For the full prefill × gen grid:
-```bash
-python3 benchmarks/b70-moe-sweep.py \
-  http://localhost:8000/v1/chat/completions \
-  Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 /tmp/grid.json vllm-mtp 2
-```
+Observed image contents: vLLM `v0.26.1rc1.dev457+gc810e5ee9`, `vllm-xpu-kernels 0.1.12`.
 
-## 5. The four patches — what each fixes
+Patch order:
 
-| # | Patch | File | Fixes |
-|---|-------|------|-------|
-| 1 | Native int4 dtype | `patches/patch_xpu_int4_moe_v4.py` | C++ `is_B_int4 = (B_dtype == at::kChar)`; GPTQ packs uint8 → kernel saw BF16. Store int8. |
-| 2 | BF16 MTP draft | `patches/patch_mtp_bf16_draft.py` | Draft inherits GPTQ quant_config; checkpoint mtp experts are BF16 fused. Strip quant_config for `mtp` prefix. |
-| 3 | XpuFusedMoe kwarg strip | `patches/patch_mtp_bf16_draft.py` | vLLM passes `is_fp8`/`is_mxfp4`; kernels auto-detect dtype. Drop the kwargs. |
-| 4 | GDN spec assert | `patches/patch_mtp_bf16_draft.py` | `spec_sequence_masks` is metadata-only, never passed to SYCL. Assert was a guardrail, not a capability limit. |
+1. `patch_mtp_nightly.py`
+2. `patch_mtp_boundary.py`
 
-Patches 2, 3, 4 are all in `patch_mtp_bf16_draft.py` (applied together). They
-are **idempotent** — safe to re-run; they detect "already patched" and skip.
+Do not apply `patch_xpu_int4_moe_v4.py` or `patch_mtp_bf16_draft.py` to this nightly. Those target the historical local vLLM 0.21 image.
 
-**Correctness:** patches 1-3 are pure load-path fixes (no math change). Patch 4
-removes a guardrail; correctness verified by byte-identical greedy replays +
-factual probes (17×23=391, capital of Australia=Canberra). A full KL-divergence
-audit vs eager is the remaining gate before production — see
-`docs/CAMPAIGN-LOG.md`.
+The tested scheduler budget is 8,192. A matched p9445/g128 sweep found no improvement at 9,600, 10,240, 12,288, or 16,384.
+
+### 4.3 Reproduce the exact 128K request
+
+Follow `docs/REAL-WORLD-PI-BENCHMARKS.md`:
+
+1. Generate exact rendered p130944 prompts with `benchmarks/b70-generate-exact-prompts.py` inside the pinned tokenizer image.
+2. Use one same-shape warmup with separate entropy.
+3. Run `benchmarks/b70-realworld-context-harness.py` for p130944/g128.
+4. Accept only 130,944 endpoint prompt tokens, 128 completion tokens, finish reason `length`, zero cache-hit delta, and no server error.
+
+The expected single observation is TTFT 48.601 seconds, client post-first 96.87 tok/s, and MTP acceptance 72.31%. It is E2 provisional self-reported evidence, not an independently reproduced median.
+
+## 5. Current and historical patches
+
+| Stack | Order | File | Purpose |
+|---|---:|---|---|
+| Current pinned nightly | 1 | `patches/patch_mtp_nightly.py` | Build the preserved BF16 MTP draft outside the target GPTQ quant config |
+| Current pinned nightly | 2 | `patches/patch_mtp_boundary.py` | Complete an exact-128K partial final MTP4 group without padding |
+| Historical local vLLM 0.21 | 1 | `patches/patch_xpu_int4_moe_v4.py` | GPTQ uint8/int8 native-int4 load correction |
+| Historical local vLLM 0.21 | 2–4 | `patches/patch_mtp_bf16_draft.py` | BF16 draft, obsolete kwarg, and GDN metadata-guard corrections |
+
+The current patches are idempotent and fail closed when their source anchors differ. Patch 2 changes only a truncated final speculative group. Full five-token MTP4 groups are unchanged.
+
+The repaired current request completed p130944/g128 with finish reason `length`, zero cache hits, 2,619 MiB free after load, and 165,961 tokens of logged KV capacity. Public artifact: `results/realworld-pi-20260808-summary.json`.
 
 ## 6. Benchmarking discipline (read before measuring)
 
 These rules are non-negotiable for valid data. Violating them produces
 inflated/contaminated numbers.
 
-1. **Sequential only.** Never run two inference processes concurrently — GPU
-   contention corrupts metrics and can OOM.
-2. **Warmup is mandatory.** First request after start includes SYCL JIT (30-60s).
-   Discard rep 1; report best of reps 2+.
-3. **Cooldown between runs.** Wait for GPU temp ≤52°C before the next run.
-   Residual heat inflates temperatures.
-4. **Measure engine rate, not wall-clock.** vLLM: stream with
-   `include_usage`, decode = `completion_tokens / (total - ttft)`. llama.cpp:
-   `timings.predicted_per_second` (the engine rate, not `tokens/total_time`).
-5. **Power: set once, verify.** Set the cap, wait 3s, read it back. Don't
-   change power while a server is running.
+1. **One engine.** Never run two inference engines or unrelated GPU work. A declared concurrency campaign may send Cn requests to one server.
+2. **Warm each shape.** Discard a generic JIT warmup and one same-length warmup with separate entropy. Normally retain at least five measured samples; report median, range, and `n`.
+3. **Protect cold prefixes.** Put unique random entropy first and require zero token-level prefix-cache hit delta.
+4. **Name exact metrics.** Client post-first rate is `(completion_tokens - 1) / (request_end - first_token)`. It is not engine-native. Retain TTFT, TTFC, TPOT/ITL, E2E, endpoint token counts, and server counters.
+5. **Separate C1 and Cn.** Aggregate Cn output is all successful generated tokens divided by the full campaign interval. Never sum per-request rates.
+6. **Measure real power.** Diff `energy1_input` over the request interval and sample verified named temperatures. Maximum sampled power is an interval average, not instantaneous.
 
 ```bash
 # Cooldown loop (hwmon temp2_input is the B70 sensor, in millidegrees C):
@@ -222,55 +213,47 @@ If `lmx` is unavailable, build the JSON per the schema in
 upload script (`upload_b70_localmaxxing_jul16.py`, in the private B70-DOCS) is
 the reference implementation.
 
-### 7.3 What to submit (the headline candidates)
+### 7.3 Current submission status
 
-| Engine | Model | Quant | tokSOut | tokSPrefill | Notes |
-|--------|-------|-------|--------:|------------:|-------|
-| **vLLM** | Qwen3.6-35B-A3B | GPTQ-Int4 + MTP | **~123-126** | **~7,200** | The breakthrough — first MTP-on-XPU-GDN. |
-| llama.cpp | Qwen3.6-35B-A3B | Q4_K_XL | ~69 | ~1,500 | MoE baseline. |
-| llama.cpp | Qwen3.6-35B-A3B | Q5_K_M | ~67 | ~1,690 | Prior Jul 16 submission. |
-| llama.cpp | ThinkingCap-Qwen3.6-27B | Q4_K_M | ~23 | ~1,007 | Dense. |
-| llama.cpp | ThinkingCap-Qwen3.6-27B | Q5_K_M-MTP | ~25 | ~613 | Dense + MTP. |
+Files in `submissions/` are historical accepted self-reported payloads. They preserve the vLLM 0.21/MTP1 campaign and must not be copied as the current nightly recipe.
 
-**Important honesty note for the vLLM submission:** the MTP path uses a patched
-engine (GDN assert removed). The submission notes MUST disclose this —
-localmaxxing values reproducibility, and the patches are open in this repo.
-Suggested notes: *"vLLM 0.21 XPU + 4 in-container patches (see
-github.com/SergiioB/intel-arc-pro-b70-inference-cookbook). MTP speculative,
-1 layer, num_spec=1. Single-stream. KL audit vs eager pending."*
+The August 8 real-world Pi and exact-128K campaign remains E2 provisional and has not been submitted. Do not submit it until the claims review approves the exact payload.
 
-## Long-context scaling (128K)
+Any future current-stack note must include:
 
-How does MTP hold up as context fills? Tested with a context-scaling sweep
-(4K → 128K prompts, gen=64, single-stream, MTP on, 150W).
+```text
+Public image vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97.
+Observed vLLM v0.26.1rc1.dev457+gc810e5ee9; vllm-xpu-kernels 0.1.12.
+Patches: patch_mtp_nightly.py, then patch_mtp_boundary.py.
+MTP4, single-stream unless declared otherwise. Self-reported; independent reproduction pending.
+```
 
-**VRAM fit:** model 19.79 GiB + KV cache 7.75 GiB available → **349,869 tokens**
-of KV headroom. MoE's tiny 3B-active attention makes KV nearly free. 128K fits
-with 213K to spare. No OOM.
+Keep C1 decode, cold prefill, long-context latency, and aggregate Cn observations in separate internal evidence records even if the platform uses one flat payload.
 
-| Context | Prefill t/s | Decode t/s | TTFT |
-|--------:|------------:|-----------:|-----:|
-| 4K | 5,423 | 120.9 | 714ms |
-| 10K | 7,098 | 107.5 | 1.4s |
-| 20K | 7,325 (peak) | 116.0 | 2.6s |
-| 40K | 5,877 | 100.0 | 6.6s |
-| 65K | 4,418 | 104.7 | 14.3s |
-| **128K** | 3,064 | 92.5 | **40s** |
+## Long-context scaling (exact rendered tokens)
 
-**What degrades:** decode mildly (-24%, 4K→128K, still 92 t/s at full context);
-prefill harder past 20K (O(n²) attention, peaks 7.3K → 3,064 at 128K).
+The 2026-08-08 Pi campaign used g128, unique cold prefixes, zero cache-hit delta, and C1:
 
-**Guidance:** ≤32K interactive (TTFT <7s); 65K+ batch/RAG (128K TTFT=40s).
-Launch at 128K: `bash benchmarks/launch-mtp-128k.sh /path/to/model`.
+| Spec | Prompt | Output | Total | TTFT (s) | Client post-first (tok/s) | Result |
+|---|---:|---:|---:|---:|---:|---|
+| MTP4 | 16,256 | 128 | 16,384 | 2.403 | 161.23 | Completed |
+| MTP4 | 32,640 | 128 | 32,768 | 5.785 | 139.99 | Completed |
+| MTP4 | 65,408 | 128 | 65,536 | 15.093 | 111.17 | Completed |
+| MTP4 | 98,176 | 128 | 98,304 | 28.078 | 117.36 | Completed |
+| MTP4 | 122,880 | 128 | 123,008 | 44.057 | 95.13 | Completed |
+| MTP4 + boundary patch | 130,944 | 128 | **131,072** | 48.601 | 96.87 | **Completed** |
+| MTP2, unpatched | 130,944 | 128 | **131,072** | 48.559 | 103.63 | Completed |
+
+Unpatched MTP4 failed after 124 outputs because four remaining sequence slots truncated a required five-token speculative group. The boundary patch fixes that metadata path. MTP2 was 6.98% faster in the single matched exact-128K observations; MTP4 correctness does not make it the automatic production choice.
+
+Launch exact MTP4 with `benchmarks/launch-mtp4-128k-nightly.sh`. Reproduce the request through `docs/REAL-WORLD-PI-BENCHMARKS.md`.
 
 ## 8. Known gaps & open work
 
 - **Dense FP8 on vLLM** — blocked, no XPU kernel. See `docs/DENSE-FP8-GAP.md`.
-- **KL-divergence / acceptance-rate audit** of the MTP path vs eager — the
-  correctness gate before production use.
-- **B60 testing** — same patches should work; needs confirmation.
-- **num_spec=2** — clamps to 1 (checkpoint has 1 MTP layer). A 2-layer MTP
-  checkpoint could push closer to 145 t/s.
+- **KL-divergence / acceptance-rate audit** — pending before a broad production-correctness claim.
+- **B60 testing** — current image and patches are not yet verified on the 16 GB card.
+- **MTP mixed load** — long prefill plus speculative decode still fails in the XPU GDN `causal_conv1d` mixed-token path. Use no-spec for concurrent serving.
 
 ### Quantization format landscape on B70
 

@@ -1,7 +1,6 @@
 # localmaxxing.com submission schema
 
-The schema for `lmx benchmark submit` / the curl fallback. Flat JSON, single
-object per submission.
+The platform uses a flat JSON object. Keep the richer internal manifest because one flat payload cannot preserve separate decode, prefill, latency, cache, and concurrency observations.
 
 ## Schema (flat, working)
 
@@ -16,16 +15,16 @@ object per submission.
     "os": "Linux"
   },
   "engineName": "vllm",
-  "engineVersion": "0.21.1.dev18 XPU",
-  "quantization": "GPTQ-Int4",
+  "engineVersion": "v0.26.1rc1.dev457+gc810e5ee9 XPU",
+  "quantization": "GPTQ-INT4",
   "backend": "xpu",
-  "tokSOut": 123.3,
-  "tokSPrefill": 7261.0,
+  "tokSOut": 204.6,
+  "tokSPrefill": 8153.0,
   "contextLength": 16384,
   "batchSize": 1,
-  "notes": "Single-stream. vLLM 0.21 XPU + 4 in-container patches (github.com/SergiioB/intel-arc-pro-b70-inference-cookbook). MTP speculative, 1 layer, num_spec=1. q8_0/q4_1 KV-equivalent. 150W. KL audit vs eager pending.",
+  "notes": "Public image vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97. Observed vLLM v0.26.1rc1.dev457+gc810e5ee9; vllm-xpu-kernels 0.1.12. Patches: patch_mtp_nightly.py then patch_mtp_boundary.py. MTP4, single-stream. 204.6 tok/s is a short g32 maximum-observed cell; 8153 tok/s is cold p4k with unique prefix. Independent reproduction pending.",
   "engineFlags": {
-    "commandSnippet": "vllm serve /model --quantization gptq --dtype float16 --max-model-len 16384 --gpu-memory-utilization 0.92 --max-num-seqs 1 --language-model-only --speculative-config {\"method\":\"mtp\",\"num_speculative_tokens\":1} --cudagraph-capture-sizes 1 2 4 8 16 32",
+    "commandSnippet": "vllm serve /model --quantization gptq --dtype float16 --max-model-len 16384 --gpu-memory-utilization 0.85 --max-num-seqs 64 --max-num-batched-tokens 8192 --enable-prefix-caching --language-model-only --speculative-config {\"method\":\"mtp\",\"num_speculative_tokens\":4}",
     "kvCacheDtype": "auto",
     "flashAttn": true,
     "numParallel": 1
@@ -40,11 +39,11 @@ object per submission.
 | `hfId` | string | `Qwen/Qwen3.6-35B-A3B` | HuggingFace org/model. Must match leaderboard model registry. |
 | `hardware` | object | (see above) | `hwClass` ∈ {DISCRETE_GPU, IGPU, ...}. `gpuName` must match leaderboard hw registry. |
 | `engineName` | string | `vllm` or `llama.cpp` | |
-| `engineVersion` | string | `0.21.1.dev18 XPU` | Include build/commit info. |
-| `quantization` | string | `GPTQ-Int4` / `Q4_K_XL` / `Q5_K_M` | |
+| `engineVersion` | string | `v0.26.1rc1.dev457+gc810e5ee9 XPU` | Include the observed version and immutable image digest in notes. |
+| `quantization` | string | `GPTQ-INT4` / `Q4_K_XL` / `Q5_K_M` | |
 | `backend` | string | `xpu` | |
-| `tokSOut` | float | `123.3` | **Single-stream decode t/s** (engine rate, not wall-clock). |
-| `tokSPrefill` | float | `7261.0` | Prefill t/s (≥1024-token prompt to be valid). |
+| `tokSOut` | float | `204.6` | Platform output field. Preserve timing formula and exact prompt/output coordinate in the internal manifest. |
+| `tokSPrefill` | float | `8153.0` | Use an actual cold prompt of at least 1,024 tokens and retain zero cache-hit delta. |
 | `contextLength` | int | `16384` | Max context the server was configured for. |
 | `batchSize` | int | `1` | 1 for single-stream. |
 | `notes` | string | | **Disclose patches + setup.** Reproducibility matters. |
@@ -71,13 +70,12 @@ localmaxxing values reproducibility. Every submission MUST disclose:
 - **Single-stream vs concurrent** — `tokSOut` is single-stream. If you measured
   multi-user aggregate, that goes in notes, NOT `tokSOut`.
 
-The vLLM MTP submission notes the 4 patches + pending KL audit. That's honest
-and still a strong submission — the patches are open and reproducible.
+Historical payloads in `submissions/` disclose their old four-patch local-image stack. Do not copy those notes into a current nightly submission. The August 8 Pi/128K campaign remains E2 provisional and is not approved for submission.
 
 ## POST endpoint (curl fallback)
 
 ```bash
-curl -sS -X POST https://www.localmaxxing.com/api/benchmarks \
+curl -sS -X POST https://www.localmaxxing.com/api/speed-tests \
   -H "Authorization: Bearer $LOCALMAXXING_API_KEY" \
   -H "Content-Type: application/json" \
   -d @submission.json

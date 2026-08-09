@@ -32,20 +32,22 @@ Apply these patches in order:
 
 Do not apply `patch_xpu_int4_moe_v4.py` or `patch_mtp_bf16_draft.py` to this nightly. Those files target the historical vLLM 0.21 stack and use different source anchors.
 
-## One-command launch
+## Launch any tested mode
+
+The generic launcher supports no-spec, MTP1, MTP2, and MTP4 with cache explicitly on or off:
 
 ```bash
-git pull
-bash benchmarks/launch-mtp4-128k-nightly.sh \
-  /path/to/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 8000
+git pull --ff-only
+export MODEL_DIR=/path/to/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4
+bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 on 8000
 ```
 
-The launcher pins the image by digest, mounts both current patches, uses MTP4, sets `--max-model-len 131072`, and sets `--max-num-batched-tokens 8192`.
+The launcher pins the image by digest, mounts both current patches, applies the BF16 MTP patch first and the exact-boundary patch second, sets `--max-model-len 131072`, and sets `--max-num-batched-tokens 8192`.
 
 Follow startup:
 
 ```bash
-sudo docker logs -f b70-mtp4-128k
+sudo docker logs -f b70-mtp2-cache-on
 ```
 
 Expected first lines include both:
@@ -60,6 +62,8 @@ Check health after model load:
 ```bash
 curl -f http://127.0.0.1:8000/health
 ```
+
+Full model download, patch verification, all eight launch commands, the complete Docker command, and the matched benchmark command are in [`FULL-SETUP-COMMANDS.md`](FULL-SETUP-COMMANDS.md).
 
 ## Historical image warning
 

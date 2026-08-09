@@ -68,8 +68,8 @@ def snapshot(root, require_spec=True):
 
 
 def request(url, root, model, messages, max_tokens, raw_path, cache_expected,
-            expected_prompt_tokens=None):
-    before = snapshot(root)
+            expected_prompt_tokens=None, require_spec=True):
+    before = snapshot(root, require_spec=require_spec)
     body = {
         "model": model,
         "messages": messages,
@@ -121,7 +121,7 @@ def request(url, root, model, messages, max_tokens, raw_path, cache_expected,
                 if choice.get("finish_reason"):
                     finish_reason = choice["finish_reason"]
     end_ns = time.monotonic_ns()
-    after = snapshot(root)
+    after = snapshot(root, require_spec=require_spec)
     if before["resolved_names"] != after["resolved_names"]:
         raise RuntimeError("Prometheus counter names changed during request")
     usage = usage or {}
@@ -213,6 +213,7 @@ def main():
     parser.add_argument("--target", type=int)
     parser.add_argument("--output", type=int, default=128)
     parser.add_argument("--root", default="http://127.0.0.1:8001")
+    parser.add_argument("--no-spec", action="store_true")
     args = parser.parse_args()
     os.makedirs(args.outdir, exist_ok=False)
     with open(args.prompts) as source:
@@ -230,7 +231,8 @@ def main():
     generic = request(
         args.root + "/v1/chat/completions", args.root, args.model,
         [{"role": "user", "content": generic_content}], 16,
-        args.outdir + "/warmup-generic.sse.jsonl", "cold")
+        args.outdir + "/warmup-generic.sse.jsonl", "cold",
+        require_spec=not args.no_spec)
     print("milestone=warmup_generic_done", flush=True)
 
     shape_prompt = prompts[0]
@@ -241,7 +243,8 @@ def main():
         args.root + "/v1/chat/completions", args.root, args.model,
         shape_prompt["messages"], min(args.output, 32),
         args.outdir + "/warmup-shape.sse.jsonl", "cold",
-        expected_prompt_tokens=shape_prompt["calibrated_tokens"])
+        expected_prompt_tokens=shape_prompt["calibrated_tokens"],
+        require_spec=not args.no_spec)
     print("milestone=warmup_shape_done", flush=True)
 
     records = []
@@ -254,7 +257,8 @@ def main():
         record = request(
             args.root + "/v1/chat/completions", args.root, args.model,
             item["messages"], args.output, raw_path, "cold",
-            expected_prompt_tokens=item["calibrated_tokens"])
+            expected_prompt_tokens=item["calibrated_tokens"],
+            require_spec=not args.no_spec)
         record.update({
             "rep": rep,
             "mode": args.mode,

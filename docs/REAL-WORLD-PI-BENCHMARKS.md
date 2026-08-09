@@ -1,11 +1,56 @@
-# Real-World Pi Workloads and Exact 128K MTP4 on B70 — 2026-08-08
+# Real-World Pi, Cache, and Exact 128K Results on B70 — 2026-08-08
 
 **Status:** E2 — PROVISIONAL / NOT FOR PUBLIC HEADLINE
 
 This report covers the pinned stock vLLM XPU nightly, stock `vllm-xpu-kernels 0.1.12`, Qwen3.6-35B-A3B GPTQ-INT4, BF16 MTP adaptation, and the exact Pi system prompt. No result below is independently reproduced. LocalMaxxing has not received these results.
 
+## Current matched cache/spec matrix
 
-## Reproduce the exact MTP4 128K cell
+The newest campaign uses the same exact prompts and settings for no-spec, MTP1, MTP2, and MTP4 with prefix caching explicitly on and explicitly off. Every table cell contains five measured C1 requests after warmup.
+
+### Cold exact p130944/g128
+
+| Mode | Cache | TTFC median (s) | End-to-end median (s) | Client post-first median (tok/s) | MTP acceptance |
+|---|---|---:|---:|---:|---:|
+| No spec | On | **41.589** | **43.793** | 57.57 | n/a |
+| No spec | Off | 42.192 | 44.413 | 57.19 | n/a |
+| MTP1 | On | 48.865 | 50.358 | 85.10 | 90.36% |
+| MTP1 | Off | 45.262 | 46.749 | 86.21 | 90.69% |
+| MTP2 | On | 48.564 | 49.946 | 98.81 | 80.54% |
+| MTP2 | Off | 45.347 | 46.653 | **101.68** | 82.77% |
+| MTP4 | On | 48.761 | 50.011 | **102.30** | 61.22% |
+| MTP4 | Off | 45.473 | 46.865 | 93.60 | 62.31% |
+
+All cold requests used unique entropy-first prefixes and recorded zero cache-hit tokens. The cache-on/off pair therefore measures feature overhead, not reuse.
+
+### Changed follow-ups over a resident 120K session
+
+| Mode | Cache | Reused / recomputed tokens median | TTFC median (s) | End-to-end median (s) | Client post-first median (tok/s) |
+|---|---|---:|---:|---:|---:|
+| No spec | On | 119,680 / 468 | **0.554** | 2.671 | 59.90 |
+| No spec | Off | 0 / 120,148 | 36.770 | 38.921 | 59.04 |
+| MTP1 | On | 118,592 / 1,556 | 1.222 | 2.666 | 88.57 |
+| MTP1 | Off | 0 / 120,148 | 39.342 | 40.808 | 86.64 |
+| MTP2 | On | 118,592 / 1,556 | 1.251 | **2.504** | 101.39 |
+| MTP2 | Off | 0 / 120,148 | 39.408 | 40.634 | 104.62 |
+| MTP4 | On | 118,592 / 1,556 | 1.256 | 2.517 | 104.37 |
+| MTP4 | Off | 0 / 120,148 | 39.508 | 40.657 | **110.48** |
+
+Prefix caching cut resident TTFC by 31.46–66.32× and end-to-end latency by 14.57–16.23×. MTP2 + cache on had the best resident end-to-end median. No-spec + cache on had the fastest first visible token.
+
+The failed first cache-off attempt is retained as an exclusion. This vLLM V1 build defaults prefix caching to on; omitting the cache flag did not disable it. The accepted cache-off cells use `--no-enable-prefix-caching`, show `enable_prefix_caching: False` in server logs, and record zero cache hits.
+
+Evidence:
+
+- `results/cache-spec-matrix-20260808-summary.json`
+- [`FULL-SETUP-COMMANDS.md`](FULL-SETUP-COMMANDS.md)
+- `vllm-pi-128k-cache-spec-matched-20260808T224033Z-101198` in the private raw evidence workspace
+
+The sections below preserve the earlier capacity, scheduler, mixed-load, and repaired MTP4-boundary campaign. Do not merge its one-off or different-context rows into the matched matrix above.
+
+
+
+## Earlier single-cell MTP4 128K reproduction
 
 The compact public result artifact is `results/realworld-pi-20260808-summary.json`. The full raw SSE, server, hwmon, VRAM, and manifest archive remains in the private measurement workspace; the public artifact retains the reported coordinates and formulas.
 

@@ -140,6 +140,19 @@ Follow `docs/REAL-WORLD-PI-BENCHMARKS.md`:
 
 The expected single observation is TTFT 48.601 seconds, client post-first 96.87 tok/s, and MTP acceptance 72.31%. It is E2 provisional self-reported evidence, not an independently reproduced median.
 
+### 4.4 Reproduce the matched cache/spec matrix
+
+Use the full public path:
+
+```bash
+bash benchmarks/b70-pi-128k-cache-spec-matched.sh /path/to/model
+```
+
+It runs no-spec, MTP1, MTP2, and MTP4 with `--enable-prefix-caching` and `--no-enable-prefix-caching`. The negative flag is required because vLLM V1 in the pinned image defaults caching to on. Full setup, model download, patch verification, and all eight manual launch commands: `docs/FULL-SETUP-COMMANDS.md`.
+
+Current machine-readable result: `results/cache-spec-matrix-20260808-summary.json`.
+
+
 ## 5. Current and historical patches
 
 | Stack | Order | File | Purpose |
@@ -168,10 +181,9 @@ inflated/contaminated numbers.
 ```bash
 # Cooldown loop (hwmon temp2_input is the B70 sensor, in millidegrees C):
 while [ $(($(cat /sys/class/hwmon/hwmon4/temp2_input)/1000)) -gt 52 ]; do sleep 2; done
-
-# Power cap (microwatts): 150W=150000000, 180W=180000000, 230W=230000000
-echo 150000000 | sudo tee /sys/class/hwmon/hwmon4/power1_cap
 ```
+
+The public launchers and matrix runner do not change the host power cap. Record the configured cap in the evidence, but leave site-specific power policy to the operator.
 
 ## 7. Submitting to localmaxxing.com
 

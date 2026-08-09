@@ -8,7 +8,7 @@
 # SAFETY: refuses a competing inference process; does not change host power.
 #
 # Example:
-#   bash benchmarks/launch-mtp4-128k-nightly.sh /path/to/model 8000
+#   bash benchmarks/qwen36-35a3/launch-mtp4-128k-nightly.sh /path/to/model 8000
 set -euo pipefail
 
 MODEL_DIR=${1:?usage: $0 MODEL_DIR [PORT]}

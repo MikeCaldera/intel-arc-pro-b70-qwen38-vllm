@@ -2,11 +2,11 @@
 # B70 vLLM MTP server launch @128K context — native INT4 + BF16 MTP draft.
 # Variant of launch-mtp-bf16draft.sh for long-context (max-model-len 131072),
 # includes --enable-prefix-caching for multi-turn KV reuse (Run 22).
-# Usage: bash benchmarks/launch-mtp-128k.sh /path/to/model [PORT]
+# Usage: bash benchmarks/qwen36-35a3/launch-mtp-128k.sh /path/to/model [PORT]
 set -euo pipefail
 printf '%s\n' \
   'RETIRED: this script requires the unpublished local intel/vllm:0.21.0-xpu-int4moe image.' \
-  'Use: bash benchmarks/launch-mtp4-128k-nightly.sh /path/to/model 8000' >&2
+  'Use: bash benchmarks/qwen36-35a3/launch-mtp4-128k-nightly.sh /path/to/model 8000' >&2
 exit 2
 MODEL_DIR="${1:-/mnt/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4}"
 PORT="${2:-8000}"

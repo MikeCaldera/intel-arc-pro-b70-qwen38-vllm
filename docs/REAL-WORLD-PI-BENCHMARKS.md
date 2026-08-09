@@ -2,11 +2,115 @@
 
 **Current status:** E2 provisional self-reported evidence. Independent reproduction is pending.
 
-**Current tested stack:** image `vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97`; vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu`; `vllm-xpu-kernels 0.1.12`; Qwen3.6-35B-A3B preserved-MTP GPTQ-INT4. PyPI kernel package 0.1.12.2 is newer but untested.
+**Current tested stack:** image `vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97`; vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu`; `vllm-xpu-kernels 0.1.12`; Qwen3.6-35B-A3B preserved-MTP GPTQ-INT4 and Qwen3.6-27B preserved-MTP GPTQ-INT4. PyPI kernel package 0.1.12.2 is newer but untested.
 
-## Current result: phase-separated C1 matrix (2026-08-09)
+## Current result: dense 27B 4-mode Lane 1 model card (2026-08-09)
 
-**Scope for all current tables:** C1, median of `n=5` after one full-output
+**Scope for all dense tables:** C1, median of `n=5` after one full-output
+same-shape warmup, prefix cache enabled, entropy-first unique cold prefixes, zero
+cache-hit delta, scheduler 8,192, context 131,072, **`--kv-cache-dtype fp8`**
+(required for dense 128K), `gpu-memory-utilization=0.88` (MTP4) / `0.90`
+(no-spec/MTP1/MTP2), configured cap 230 W, client monotonic SSE timing,
+E2 provisional self-report. Dense 27B GPTQ-INT4 runs on the pinned nightly via
+`XPUwNa16LinearKernel`; both MTP patches apply unchanged to the dense
+`Qwen3_5ForConditionalGeneration` architecture.
+
+![B70 dense 27B 4-mode dashboard](assets/b70-dense27-4mode-dashboard.svg)
+
+### Cold input rate: actual endpoint input tokens / TTFT (tok/s)
+
+| Mode | p2048 | p4096 | p6144 | p8192 |
+|---|---:|---:|---:|---:|
+| No spec | 1,781 | 1,813 | 1,782 | 1,742 |
+| MTP1 | 1,816 | 1,776 | 1,747 | 1,713 |
+| MTP2 | 1,812 | 1,767 | 1,744 | 1,711 |
+| MTP4 | 1,755 | 1,693 | 1,683 | 1,654 |
+
+### Decode at p512: client post-first tok/s
+
+| Mode | g32 | g128 | g256 | g512 |
+|---|---:|---:|---:|---:|
+| No spec | 32.90 | 32.85 | 32.78 | 31.54 |
+| MTP1 | 50.00 | 50.47 | 50.19 | 48.88 |
+| MTP2 | 62.15 | 63.59 | 61.45 | 59.95 |
+| MTP4 | 72.78 | 69.30 | 64.06 | 64.13 |
+
+### Decode at p8192: client post-first tok/s
+
+| Mode | g32 | g128 | g256 | g512 |
+|---|---:|---:|---:|---:|
+| No spec | 31.48 | 31.46 | 31.45 | 31.42 |
+| MTP1 | 48.08 | 46.90 | 47.97 | 47.33 |
+| MTP2 | 63.98 | 60.73 | 59.62 | 57.10 |
+| MTP4 | 67.44 | 64.11 | 65.87 | 57.79 |
+
+### Historical control: p9445/g128
+
+| Mode | Client post-first median (tok/s) |
+|---|---:|
+| No spec | 31.35 |
+| MTP1 | 48.41 |
+| MTP2 | 60.12 |
+| MTP4 | 67.25 |
+
+### Full-context decode (exact 131,072 total tokens)
+
+| Mode | p130944/g128 (tok/s) | MTP accept | p130560/g512 (tok/s) | MTP accept |
+|---|---:|---:|---:|---:|
+| No spec | 23.14 | n/a | 23.05 | n/a |
+| MTP1 | 36.77 | 90.9% | 37.21 | 93.6% |
+| MTP2 | 42.67 | 91.1% | 36.18 | 87.8% |
+| MTP4 | 47.61 | 89.2% | 42.56 | 75.9% |
+
+### Real Pi workload (MTP4, g128 outputs)
+
+| Scenario | Post-first (tok/s) | TTFT (s) | Cache hits |
+|---|---:|---:|---:|
+| Cold new conversation | 54.2 | 0.424 | 0 |
+| Warm shared system prefix | 62.9 | 0.423 | 0 |
+| Warm multi-turn session | 46.9 | 0.477 | 0 |
+| New RAG/tool payload on warm session | 55.4 | 0.574 | 0 |
+| Warm system + cold 32K document | 43.7 | 25.201 | 0 (1,295 input t/s) |
+| Resident-doc follow-up | 52.3 | 2.952 | 29,952 / 32,797 (91.3%) |
+
+Realistic short-turn serving decode is **44–56 t/s**, not the 73 t/s synthetic
+peak. Cache reuse eliminates tokens (91.3% hit → TTFT 10.2× faster on the
+resident follow-up); it does not speed up per-token prefill.
+
+### Dense measured power draw — matched A/B (2026-08-10, authoritative)
+
+Same mixed workload (1× p2048/g1 prefill + 2× p2048/g128 decode), fresh
+entropy prompts, true per-mode server, 230 W cap, monitor windowing only the
+active requests, cooldown ≤55°C between modes. Live `energy1_input` deltas,
+0.5 s interval average:
+
+| Mode | Mean (W) | Max 0.5s (W) | pkg max (°C) |
+|---|---:|---:|---:|
+| No spec | 149.9 | 238.2 | 70 |
+| MTP4 | 151.0 | 251.5 | 73 |
+| MTP1 | 156.1 | 249.6 | 74 |
+| MTP2 | 153.3 | 242.9 | 72 |
+
+All four modes within a 6 W band — MTP depth is not a power lever on dense.
+(An earlier campaign-window table showed 195/197/146/146 W; those were
+coverage artifacts — full-context prefill cells inside the no-spec/MTP1
+windows and a 223 s decode-only MTP2 window — and are superseded by this
+matched A/B.)
+
+Client post-first rate is `(completion_tokens - 1) / (request_end -
+first_generated)`. It is request-side, not engine-native vLLM decode or
+llama-bench `tg`. Dense prefill is compute-bound and collapses at long context
+(p130944 ≈ 547 t/s input rate) — the full-attention O(N²) term.
+
+Evidence:
+
+- `results/qwen36-27/prefill-decode-matrix-20260809-dense27-summary.json`
+- [`BENCHMARK-FORMAT.md`](BENCHMARK-FORMAT.md)
+- private raw root `vllm-dense27-4mode-230w-20260809T163138Z-74780` (B70-DOCS)
+
+## Prior result: MoE phase-separated C1 matrix (2026-08-09)
+
+**Scope for all prior MoE tables:** C1, median of `n=5` after one full-output
 same-shape warmup, prefix cache enabled, entropy-first unique cold prefixes, zero
 cache-hit delta, scheduler 8,192, context 131,072,
 `gpu-memory-utilization=0.85`, configured cap 165 W, client monotonic SSE timing,
@@ -147,7 +251,7 @@ The compact public result artifact is `results/realworld-pi-20260808-summary.jso
 1. Launch the pinned nightly with both source patches:
 
 ```bash
-bash benchmarks/launch-mtp4-128k-nightly.sh /path/to/model 8000
+bash benchmarks/qwen36-35a3/launch-mtp4-128k-nightly.sh /path/to/model 8000
 ```
 
 2. Generate two exact p130944 Pi prompts without exposing the GPU:

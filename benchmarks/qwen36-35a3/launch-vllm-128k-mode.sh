@@ -8,7 +8,7 @@
 # SAFETY: refuses another inference process and does not change host power.
 #
 # Example:
-#   bash benchmarks/launch-vllm-128k-mode.sh /path/to/model mtp2 on 8000
+#   bash benchmarks/qwen36-35a3/launch-vllm-128k-mode.sh /path/to/model mtp2 on 8000
 set -euo pipefail
 
 MODEL_DIR=${1:?usage: $0 MODEL_DIR MODE CACHE [PORT]}

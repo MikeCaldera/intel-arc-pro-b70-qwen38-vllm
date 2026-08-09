@@ -9,7 +9,7 @@
 # SAFETY: one inference server at a time; does not change host power.
 #
 # Example:
-#   bash benchmarks/b70-pi-128k-cache-spec-matched.sh /path/to/model
+#   bash benchmarks/qwen36-35a3/b70-pi-128k-cache-spec-matched.sh /path/to/model
 set -euo pipefail
 
 MODEL_DIR=${1:?usage: $0 MODEL_DIR}
@@ -18,7 +18,7 @@ RUN_ID="vllm-pi-128k-cache-spec-matched-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 OUT="$ROOT/results/$RUN_ID"
 MODEL=Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4
 IMAGE='vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97'
-LAUNCHER=$ROOT/benchmarks/launch-vllm-128k-mode.sh
+LAUNCHER=$ROOT/benchmarks/qwen36-35a3/launch-vllm-128k-mode.sh
 GEN=$ROOT/benchmarks/b70-generate-exact-prompts.py
 COLD_HARNESS=$ROOT/benchmarks/b70-realworld-context-harness.py
 SESSION_HARNESS=$ROOT/benchmarks/b70-resident-session-harness.py

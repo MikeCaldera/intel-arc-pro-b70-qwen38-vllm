@@ -108,7 +108,7 @@ CDN=$(curl -sI -L -o /dev/null -w '%{url_effective}' \
 ### 4.2 Serve with the current two-patch stack
 
 ```bash
-bash benchmarks/launch-mtp4-128k-nightly.sh \
+bash benchmarks/qwen36-35a3/launch-mtp4-128k-nightly.sh \
   /path/to/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4 8000
 ```
 
@@ -145,7 +145,7 @@ The expected single observation is TTFT 48.601 seconds, client post-first 96.87 
 Use the full public path:
 
 ```bash
-bash benchmarks/b70-pi-128k-cache-spec-matched.sh /path/to/model
+bash benchmarks/qwen36-35a3/b70-pi-128k-cache-spec-matched.sh /path/to/model
 ```
 
 It runs no-spec, MTP1, MTP2, and MTP4 with `--enable-prefix-caching` and `--no-enable-prefix-caching`. The negative flag is required because vLLM V1 in the pinned image defaults caching to on. Full setup, model download, patch verification, and all eight manual launch commands: `docs/FULL-SETUP-COMMANDS.md`.
@@ -258,11 +258,11 @@ The 2026-08-08 Pi campaign used g128, unique cold prefixes, zero cache-hit delta
 
 Unpatched MTP4 failed after 124 outputs because four remaining sequence slots truncated a required five-token speculative group. The boundary patch fixes that metadata path. MTP2 was 6.98% faster in the single matched exact-128K observations; MTP4 correctness does not make it the automatic production choice.
 
-Launch exact MTP4 with `benchmarks/launch-mtp4-128k-nightly.sh`. Reproduce the request through `docs/REAL-WORLD-PI-BENCHMARKS.md`.
+Launch exact MTP4 with `benchmarks/qwen36-35a3/launch-mtp4-128k-nightly.sh`. Reproduce the request through `docs/REAL-WORLD-PI-BENCHMARKS.md`.
 
 ## 8. Known gaps & open work
 
-- **Dense FP8 on vLLM** — blocked, no XPU kernel. See `docs/DENSE-FP8-GAP.md`.
+- **Dense FP8 on vLLM** — blocked, no XPU kernel. See `docs/qwen36-27/DENSE-FP8-GAP.md`.
 - **KL-divergence / acceptance-rate audit** — pending before a broad production-correctness claim.
 - **B60 testing** — current image and patches are not yet verified on the 16 GB card.
 - **MTP mixed load** — long prefill plus speculative decode still fails in the XPU GDN `causal_conv1d` mixed-token path. Use no-spec for concurrent serving.
@@ -286,7 +286,7 @@ it's the Intel-native equivalent. Full analysis in
 
 PRs welcome. Especially:
 
-- **XPU FP8 dense kernel** — the #1 gap (see `docs/DENSE-FP8-GAP.md`).
+- **XPU FP8 dense kernel** — the #1 gap (see `docs/qwen36-27/DENSE-FP8-GAP.md`).
 - **KL/acceptance audit** of the MTP path.
 - **More models** — DeepSeek-V4, Qwen3-Next, Gemma 4 MoE. Test + PR configs.
 - **B60 confirmation** runs.

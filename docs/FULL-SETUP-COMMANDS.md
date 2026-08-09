@@ -122,7 +122,7 @@ This one launch uses MTP2, cache on, context 131,072, scheduler 8,192, `gpu-memo
 
 ```bash
 cd "$COOKBOOK"
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 on 8000
+bash benchmarks/qwen36-35a3/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 on 8000
 ```
 
 Follow startup and verify patch application and configuration:
@@ -132,6 +132,31 @@ docker logs -f b70-mtp2-cache-on
 ```
 
 The log must show both patch messages and these effective fields: `max_model_len: 131072`, `max_num_batched_tokens: 8192`, `max_num_seqs: 64`, `enable_prefix_caching: True`, and `num_speculative_tokens: 2`.
+
+### 6b. Dense 27B launch (same image and patches, fp8 KV)
+
+The dense Qwen3.6-27B track (Run 29/31) uses the same pinned image and the same
+two patches, plus `--kv-cache-dtype fp8` (REQUIRED: dense fp16 KV needs 9.5 GiB
+at 128K and does not fit) and `gpu-memory-utilization=0.88` for MTP4 (0.90 fills
+the card with MTP4 spec buffers; no-spec/MTP1/MTP2 run at 0.90).
+
+```bash
+export DENSE_DIR="$HOME/models/Qwen3.6-27B-MTP-Preserved-GPTQ-Int4"
+bash benchmarks/qwen36-27/launch-dense27-128k-mode.sh "$DENSE_DIR" mtp4 on 8000
+```
+
+Follow startup and verify patch application and configuration:
+
+```bash
+docker logs -f b70-dense-mtp4-cache-on
+```
+
+The log must show both patch messages and these effective fields:
+`max_model_len: 131072`, `max_num_batched_tokens: 8192`, `max_num_seqs: 64`,
+`enable_prefix_caching: True`, `kv_cache_dtype: fp8`, and
+`num_speculative_tokens: 4`. If `kv_cache_dtype` is not fp8, dense 128K will
+fail with a "KV cache is larger than available" error — never launch dense
+128K without `--kv-cache-dtype fp8`.
 
 ## 7. Check the endpoint
 

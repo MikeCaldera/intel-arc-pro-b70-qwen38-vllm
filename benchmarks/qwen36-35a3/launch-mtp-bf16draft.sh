@@ -2,7 +2,7 @@
 # B70 vLLM MTP server launch — native INT4 target + BF16-unquantized MTP draft.
 # Self-contained: uses the patches from this repo (../patches/).
 #
-# Usage: bash benchmarks/launch-mtp-bf16draft.sh /path/to/model [PORT]
+# Usage: bash benchmarks/qwen36-35a3/launch-mtp-bf16draft.sh /path/to/model [PORT]
 #
 # Prereqs: Arc Pro B60/B70, Docker, B70 drivers + oneAPI runtime, the
 # MTP-preserved GPTQ model from llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4
@@ -10,7 +10,7 @@ set -euo pipefail
 
 printf '%s\n' \
   'RETIRED: this script requires the unpublished local intel/vllm:0.21.0-xpu-int4moe image.' \
-  'Use: bash benchmarks/launch-mtp4-128k-nightly.sh /path/to/model 8000' >&2
+  'Use: bash benchmarks/qwen36-35a3/launch-mtp4-128k-nightly.sh /path/to/model 8000' >&2
 exit 2
 
 MODEL_DIR="${1:-/mnt/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4}"

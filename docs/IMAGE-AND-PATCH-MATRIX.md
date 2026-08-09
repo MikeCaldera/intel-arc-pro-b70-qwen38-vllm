@@ -33,7 +33,7 @@ Use this model:
 llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4
 ```
 
-The local model directory must contain the preserved `mtp.*` tensors. The official GPTQ-INT4 checkpoint declares an MTP layer in config but does not contain those draft weights.
+The local model directory must contain the preserved `mtp.*` tensors. The official `palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4` v2 now ships those draft weights in a separate `mtp.safetensors` (785 per-expert-split MTP keys) and was verified byte-exact on this stack; older snapshots of that repo lack the file and would fall back to no-spec.
 
 Apply these patches in order:
 

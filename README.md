@@ -32,9 +32,11 @@ Use [Full setup commands](docs/FULL-SETUP-COMMANDS.md) for the render-device che
 
 Agents updating benchmark graphics should use [the B70 benchmark visuals skill](.agentic/skills/b70-benchmark-visuals/SKILL.md). It renders the dashboard and method diagram from canonical `summary.json`.
 
-## Phase-separated C1 result
+## MoE: Qwen3.6-35B-A3B — whole analysis
 
 **Scope for every table below:** one Intel Arc Pro B70, C1, median of `n=5` after one same-output same-shape warmup, prefix cache enabled, unique entropy-first cold prefixes, zero cache-hit delta, scheduler 8,192, context 131,072, configured cap 165 W, client monotonic SSE timing, E2 provisional self-reported evidence. Independent reproduction is pending.
+
+Two model checkpoints were verified on this stack: the `llmfan46/...MTP-Preserved` GPTQ-INT4 (all matrix tables) and the byte-exact `palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4` incl. `mtp.safetensors` (claim-reproduction tests, below).
 
 ![B70 phase-separated input and decode dashboard](docs/assets/b70-prefill-decode-dashboard.svg)
 
@@ -78,6 +80,26 @@ This rate includes scheduling, uncached prompt processing, and first-token work.
 
 The MTP4 result of 160.42 tok/s reproduces the prior 158.83 tok/s scheduler-control result within 1.0%. It does not make the exact-128K cells equivalent.
 
+### Scheduler and context findings (2026-08-09, focused probes)
+
+`--max-num-batched-tokens` is a cap, not a target: at p4096 both 8,192 and 16,384 prefill in one chunk, yet the larger budget is measurably faster at the same 128K recipe, same seqs 64, same prompts (exact palmfuture checkpoint, 230 W, MTP4):
+
+| Budget | p4096 prefill | g128 decode |
+|---|---:|---:|
+| 8,192 | 6,525 t/s | 133.1 t/s |
+| 16,384 | 7,672 t/s | 149.1 t/s |
+| Δ | **+17.6%** | **+12.0%** |
+
+The gain is scheduler/memory-layout, not chunk count. **Do not blanket-adopt 16,384** without testing mixed long-prefill + short-chat loads: one 16K prefill step starves short requests (head-of-line), and activation spikes eat VRAM headroom (128K recipe already loads with ~1 GB free).
+
+Prefill is essentially **flat across context** (p4096 input rate, batch 16,384, seqs 16): 8K ctx 7,727 t/s · 16K 6,622 · 32K 7,740 · 128K 7,672. Context length is not a prefill lever.
+
+### The 12,400 tok/s LocalMaxxing claim — reproduction verdict
+
+We reproduced the claimed config exactly (byte-identical `palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4` incl. `mtp.safetensors`, hash-verified; context 32,768; p4096/g1; batch 16,384; seqs 16; MTP4; fp8 KV; cache off; 230 W). Measured: **7,740 t/s median**, not 12,400. The claim's cited build hash `568afb3a1` is an upstream macOS-CI commit (#49901), not an XPU kernel change — not a meaningful reproduction target; their entry ran vLLM 0.26.1.dev0 on Windows 11, our stack is 0.26.1rc1.dev457 on Linux.
+
+Verdict: `directional_only`, **not reproduced**. The 1.6× gap is build/OS or their prefill definition (their implied TTFT 0.330 s vs our 0.529 s). Evidence: `results/vllm-moe-12k-exact-20260809T190246Z-13717/` and `results/vllm-moe-12k-lowctx-20260809T193408Z-64922/` (raw SSE, monitor, summary.json in the private B70-DOCS repo).
+
 ### Full-context decode
 
 | Mode | p130944/g128 (tok/s) | MTP accept | p130560/g512 (tok/s) | MTP accept |
@@ -98,6 +120,18 @@ The original no-spec p130560/g512 cell stopped at EOS in three of five requests.
 3. **Exact 128K, g512:** MTP2 and MTP4 were effectively tied at 94.01 and 93.83 tok/s in this campaign.
 4. **Resident long sessions:** test cache reuse separately. The earlier matched cache campaign found MTP2 + cache on had the best resident end-to-end median.
 5. **Mixed long prefill plus short requests:** use no-spec on this stack. The MTP mixed-token XPU path remains unsupported.
+
+## Dense: Qwen3.6-27B — work in progress
+
+**Status: WORK IN PROGRESS.** Two working paths, neither production-settled.
+
+**llama.cpp SYCL (mature):** Q4_K_M ~21–23 t/s; Q6_K-MTP ~24–30 t/s with MTP-4; Q6_K @ 128K is the VRAM ceiling (0.7 GB free). 165 W is the efficiency sweet spot (0.155 t/s/W). See `docs/POWER-SWEET-SPOTS.md`.
+
+**vLLM XPU dense INT4 (new, 2026-08-09, Run 29):** dense 27B GPTQ-INT4 now runs on the pinned nightly via `XPUwNa16LinearKernel` — 73.2 t/s C1 synthetic decode at p512 with 85% MTP acceptance (both MTP patches apply unchanged to the dense architecture). **fp8 KV is required** for 128K (fp16 KV doesn't fit); realistic Pi short-turn decode drops to 44–56 t/s (MTP acceptance 44–60% on real prompts). 128K is the safe ceiling; 200K loads but lands in the VRAM abort zone; 256K infeasible. Dense prefill is compute-bound and collapses at long context (p4096 ≈ 1,284 t/s, p130944 ≈ 547 t/s).
+
+**Open blocker:** no FP8 *linear* kernel on XPU — `KeyError: PlatformEnum.XPU` in `choose_scaled_mm_linear_kernel`. FP8 checkpoints can't load; INT4 (GPTQ) dense works. See `docs/DENSE-FP8-GAP.md`.
+
+Next: finish the dense four-mode matrix (no-spec/MTP1/MTP2 done at 230 W; MTP4 pending) and settle the scheduler budget under mixed load before calling dense production-ready.
 
 ## Reproduce the matrix
 

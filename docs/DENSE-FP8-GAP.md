@@ -1,5 +1,11 @@
 # The Dense 27B FP8 XPU Kernel Gap
 
+> **Status update 2026-08-09:** the FP8 *linear* gap below is still real, but
+> dense vLLM is no longer blocked — dense 27B **GPTQ-INT4** runs on the pinned
+> nightly via `XPUwNa16LinearKernel` (~73 t/s C1 synthetic decode, MTP4, fp8 KV
+> required for 128K). Only FP8-dtype checkpoints hit the KeyError. See
+> README → Dense section.
+
 **Status:** Blocked. vLLM has **no FP8 linear kernel registered for XPU**.
 
 This is the single remaining blocker preventing vLLM from serving dense models

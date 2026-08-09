@@ -2,7 +2,7 @@
 
 > **For AI agents and ML engineers reproducing or extending this work.**
 > This file is the authoritative setup guide. Follow it top-to-bottom on a
-> fresh B60/B70 host. Last updated: 2026-08-08.
+> fresh B60/B70 host. Last updated: 2026-08-09.
 
 ## 1. What this repo does
 
@@ -118,7 +118,7 @@ The launcher pins:
 vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97
 ```
 
-Observed image contents: vLLM `v0.26.1rc1.dev457+gc810e5ee9`, `vllm-xpu-kernels 0.1.12`.
+Observed image contents: vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu`, `vllm-xpu-kernels 0.1.12`. PyPI `vllm-xpu-kernels 0.1.12.2` is newer but untested.
 
 Patch order:
 
@@ -235,7 +235,7 @@ Any future current-stack note must include:
 
 ```text
 Public image vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97.
-Observed vLLM v0.26.1rc1.dev457+gc810e5ee9; vllm-xpu-kernels 0.1.12.
+Observed vLLM 0.26.1rc1.dev457+gc810e5ee9.xpu; vllm-xpu-kernels 0.1.12.
 Patches: patch_mtp_nightly.py, then patch_mtp_boundary.py.
 MTP4, single-stream unless declared otherwise. Self-reported; independent reproduction pending.
 ```
@@ -331,3 +331,105 @@ sudo cat /sys/kernel/debug/dri/0000:0b:00.0/tile0/vram_mm   # VRAM (look for vis
 **Never load a single GGUF >30 GB with `-ngl 99`** — it overflows 32 GB VRAM
 and causes a hard system crash (verified; see campaign log). Use partial offload
 (`-ngl <N`) for models that large.
+
+
+## 12. Repeat the phase-separated matrix on another model
+
+This is the operational repeat-and-publish checklist. The stable table and
+evidence contract is [`docs/BENCHMARK-FORMAT.md`](docs/BENCHMARK-FORMAT.md).
+Use [`.agentic/skills/b70-benchmark-visuals/SKILL.md`](.agentic/skills/b70-benchmark-visuals/SKILL.md) for data-driven dashboard and method SVG regeneration; its bundled renderer matches `benchmarks/render-prefill-decode-svg.py`.
+
+### 12.1 Intake and calibration
+
+1. Record a pullable image plus immutable digest, observed in-container vLLM and
+   `vllm-xpu-kernels` versions, model repository/revision/quantization and hashes,
+   tokenizer/chat template, ordered patches and hashes, context, scheduler,
+   memory utilization, cache mode, configured cap, and UTC run ID.
+2. Verify MTP tensors from the model shards. A config field alone is not proof.
+   Run no-spec and each model-supported MTP depth; mark unsupported modes.
+3. Calibrate rendered messages inside the tested image with
+   `len(encoded["input_ids"])`. Save message and prompt-set hashes.
+4. Use `benchmarks/benchmark-system-prompt.txt` for standard p512 through p8192
+   cells. Use `benchmarks/pi-system-prompt.txt` for p9445 and full-context cells.
+5. Generate six exact entropy-first prompts per coordinate: one warmup and five
+   measured. Preserve the exact target length.
+
+Any change to image, package, model revision, quantization, tokenizer, chat
+template, prompt, patch, scheduler, context, or memory setting starts a new
+result generation.
+
+### 12.2 Exact matrix and request policy
+
+Run:
+
+- input p512/p2048/p4096/p6144/p8192/p131071, each g1;
+- p512 and p8192 decode at g32/g128/g256/g512;
+- p9445/g128 historical control;
+- full p130944/g128 and p130560/g512;
+- no-spec plus every supported MTP depth.
+
+For every coordinate and mode, discard one full-output same-shape warmup, then
+measure five C1 requests. Decode requests MUST use `ignore_eos=true`. Retain any
+early-EOS original as an exclusion and rerun the full affected cell with forced
+exact output. Never mix partial and exact samples.
+
+This matrix is C1 cold-prefix work. Cache/resident-prefix and concurrency
+campaigns are separate publications.
+
+### 12.3 Cache, VRAM, and timing gates
+
+Keep prefix caching enabled for the production-state matrix, but require unique
+entropy first and zero `vllm:prefix_cache_hits` delta for each cold cell. Diff
+`vllm:prefix_cache_queries` too and reconcile it with actual endpoint prompt
+tokens. Retain proposed/accepted MTP counters; no-spec must propose zero tokens.
+
+Before load, require no inference process/container and approximately 31,000 MiB
+or more empty-card `visible_avail`. After load: below 500 MiB abort; 500–1,023
+MiB is isolated C1 capacity only; 1,024–2,047 MiB is staged C1 research; at least
+2,048 MiB is preferred C1 performance; at least 3,072 MiB is the
+mixed/concurrency target. Logged KV capacity must exceed prompt plus output.
+
+C1 means one active measured request and no queue:
+
+- cold input rate = actual endpoint prompt tokens / client monotonic TTFT;
+- client post-first rate =
+  `(completion_tokens - 1) / (request_end - first_generated)`;
+- TTFT, TTFC, TPOT/ITL, and E2E are client monotonic SSE measurements.
+
+Cold input rate includes scheduling and first-token work. It is not llama-bench
+`pp` or isolated engine prefill. Client post-first rate is not engine-native vLLM
+decode and is not llama-bench `tg`.
+
+### 12.4 Evidence, compiler, and publication
+
+Store one root with `manifest.txt`, `package-versions.txt`, `prompts/`, one
+directory per mode, `summary.json`, and `tables.md`. Each mode retains server
+logs, metrics snapshots, monitor and VRAM data, harness logs, raw SSE/request
+records, per-cell results, failures, exclusions, and cleanup state.
+
+Compile before copying any number:
+
+```bash
+python3 benchmarks/b70-compile-prefill-decode-matrix.py "$RUN_ROOT" \
+  --output "$RUN_ROOT/summary.json"
+python3 benchmarks/render-prefill-decode-tables.py "$RUN_ROOT/summary.json" \
+  > "$RUN_ROOT/tables.md"
+```
+
+The compiler must fail closed on incomplete modes, wrong tokens, prompt mismatch,
+cache contamination, server errors, and missing replacement evidence.
+`summary.json` is the numeric authority.
+
+Before publication:
+
+1. Show separate cold-input, p512 decode, p8192 decode, p9445 control,
+   full-context, and exclusion views.
+2. Put units, C1, `n=5`, cache state, timing source, configured cap, image and
+   observed software versions, and E-tier beside the tables.
+3. State prompt parity and output/correctness limits. Speed is not proof of token,
+   logit/KL, or task-quality parity.
+4. Update README, `FULL-SETUP-COMMANDS.md`, `BENCHMARK-FORMAT.md`,
+   `REAL-WORLD-PI-BENCHMARKS.md`, compact public summary JSON, and every portfolio
+   page that repeats a changed number. Keep older results labeled and linked.
+5. Keep a self-run at E2 provisional until an independent E4/E5 reproduction.
+   Do not commit, push, deploy, post, or submit unless separately authorized.

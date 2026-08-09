@@ -68,7 +68,7 @@ def snapshot(root, require_spec=True):
 
 
 def request(url, root, model, messages, max_tokens, raw_path, cache_expected,
-            expected_prompt_tokens=None, require_spec=True):
+            expected_prompt_tokens=None, require_spec=True, ignore_eos=False):
     before = snapshot(root, require_spec=require_spec)
     body = {
         "model": model,
@@ -77,6 +77,7 @@ def request(url, root, model, messages, max_tokens, raw_path, cache_expected,
         "temperature": 0.0,
         "stream": True,
         "stream_options": {"include_usage": True},
+        "ignore_eos": ignore_eos,
     }
     req = urllib.request.Request(url, data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
@@ -192,6 +193,15 @@ def request(url, root, model, messages, max_tokens, raw_path, cache_expected,
 
 
 def stats(values):
+    if not values:
+        return {
+            "n": 0,
+            "median": None,
+            "mean": None,
+            "min": None,
+            "max": None,
+            "pstdev": None,
+        }
     return {
         "n": len(values),
         "median": statistics.median(values),
@@ -214,6 +224,8 @@ def main():
     parser.add_argument("--output", type=int, default=128)
     parser.add_argument("--root", default="http://127.0.0.1:8001")
     parser.add_argument("--no-spec", action="store_true")
+    parser.add_argument("--full-output-warmup", action="store_true")
+    parser.add_argument("--ignore-eos", action="store_true")
     args = parser.parse_args()
     os.makedirs(args.outdir, exist_ok=False)
     with open(args.prompts) as source:
@@ -241,10 +253,12 @@ def main():
         flush=True)
     shape = request(
         args.root + "/v1/chat/completions", args.root, args.model,
-        shape_prompt["messages"], min(args.output, 32),
+        shape_prompt["messages"],
+        args.output if args.full_output_warmup else min(args.output, 32),
         args.outdir + "/warmup-shape.sse.jsonl", "cold",
         expected_prompt_tokens=shape_prompt["calibrated_tokens"],
-        require_spec=not args.no_spec)
+        require_spec=not args.no_spec,
+        ignore_eos=args.ignore_eos)
     print("milestone=warmup_shape_done", flush=True)
 
     records = []
@@ -258,7 +272,8 @@ def main():
             args.root + "/v1/chat/completions", args.root, args.model,
             item["messages"], args.output, raw_path, "cold",
             expected_prompt_tokens=item["calibrated_tokens"],
-            require_spec=not args.no_spec)
+            require_spec=not args.no_spec,
+            ignore_eos=args.ignore_eos)
         record.update({
             "rep": rep,
             "mode": args.mode,
@@ -268,6 +283,7 @@ def main():
             "family": item["family"],
             "scenario": item.get("scenario"),
             "requested_output_tokens": args.output,
+            "ignore_eos": args.ignore_eos,
             "entropy_prefix": item["entropy_prefix"],
         })
         records.append(record)
@@ -284,6 +300,7 @@ def main():
         "budget": args.budget,
         "target": args.target,
         "requested_output_tokens": args.output,
+        "ignore_eos": args.ignore_eos,
         "timing_note": (
             "input_tokens_per_ttft_s is endpoint input tokens divided by client TTFT; "
             "it is not isolated engine prefill throughput"),

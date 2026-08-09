@@ -1,12 +1,102 @@
-# Real-World Pi, Cache, and Exact 128K Results on B70 — 2026-08-08
+# Real-World Pi, Phase-Separated, Cache, and Exact 128K Results on B70
 
-**Status:** E2 — PROVISIONAL / NOT FOR PUBLIC HEADLINE
+**Current status:** E2 provisional self-reported evidence. Independent reproduction is pending.
 
-This report covers the pinned stock vLLM XPU nightly, stock `vllm-xpu-kernels 0.1.12`, Qwen3.6-35B-A3B GPTQ-INT4, BF16 MTP adaptation, and the exact Pi system prompt. No result below is independently reproduced. LocalMaxxing has not received these results.
+**Current tested stack:** image `vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97`; vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu`; `vllm-xpu-kernels 0.1.12`; Qwen3.6-35B-A3B preserved-MTP GPTQ-INT4. PyPI kernel package 0.1.12.2 is newer but untested.
 
-## Current matched cache/spec matrix
+## Current result: phase-separated C1 matrix (2026-08-09)
 
-The newest campaign uses the same exact prompts and settings for no-spec, MTP1, MTP2, and MTP4 with prefix caching explicitly on and explicitly off. Every table cell contains five measured C1 requests after warmup.
+**Scope for all current tables:** C1, median of `n=5` after one full-output
+same-shape warmup, prefix cache enabled, entropy-first unique cold prefixes, zero
+cache-hit delta, scheduler 8,192, context 131,072,
+`gpu-memory-utilization=0.85`, configured cap 165 W, client monotonic SSE timing,
+E2 provisional self-report. Measured card draw is not part of these tables.
+
+Standard p512 through p8192 cells use the compact fixed benchmark system prompt.
+The p9445 historical control and full-context cells use the full Pi system prompt.
+
+![B70 phase-separated input and decode dashboard](assets/b70-prefill-decode-dashboard.svg)
+
+### Cold input rate: actual endpoint input tokens / TTFT (tok/s)
+
+| Mode | p512 | p2048 | p4096 | p6144 | p8192 | Full p131071 |
+|---|---:|---:|---:|---:|---:|---:|
+| No spec | 5,156 | 6,674 | 7,197 | 7,451 | 7,576 | 3,144 |
+| MTP1 | 4,840 | 7,377 | 6,999 | 7,189 | 7,264 | 2,679 |
+| MTP2 | 4,843 | 7,341 | 7,002 | 7,140 | 7,229 | 2,683 |
+| MTP4 | 4,532 | 7,401 | 6,868 | 7,057 | 7,197 | 2,678 |
+
+Input rate includes scheduling, uncached prompt processing, and first-token work.
+It is not isolated engine prefill and not llama-bench `pp`.
+
+### Decode at p512: client post-first tok/s
+
+| Mode | g32 | g128 | g256 | g512 |
+|---|---:|---:|---:|---:|
+| No spec | 97.43 | 96.79 | 96.60 | 96.13 |
+| MTP1 | 122.21 | 124.57 | 123.82 | 120.58 |
+| MTP2 | 162.90 | 153.17 | 148.31 | 141.80 |
+| MTP4 | 178.34 | 170.91 | 167.85 | 148.35 |
+
+### Decode at p8192: client post-first tok/s
+
+| Mode | g32 | g128 | g256 | g512 |
+|---|---:|---:|---:|---:|
+| No spec | 85.92 | 90.34 | 90.91 | 91.26 |
+| MTP1 | 108.41 | 118.41 | 118.49 | 117.45 |
+| MTP2 | 143.95 | 145.43 | 143.82 | 135.61 |
+| MTP4 | 156.28 | 164.36 | 163.89 | 138.03 |
+
+### Historical control: p9445/g128
+
+| Mode | Client post-first median (tok/s) |
+|---|---:|
+| No spec | 89.68 |
+| MTP1 | 116.85 |
+| MTP2 | 142.02 |
+| MTP4 | 160.42 |
+
+MTP4 at 160.42 tok/s reproduces the prior 158.83 tok/s scheduler result within
+1.0%. Exact-128K is a different workload and is reported separately.
+
+### Full-context decode
+
+| Mode | p130944/g128 (tok/s) | MTP accept | p130560/g512 (tok/s) | MTP accept |
+|---|---:|---:|---:|---:|
+| No spec | 57.35 | n/a | 57.14 | n/a |
+| MTP1 | 84.88 | 89.22% | 82.74 | 85.32% |
+| MTP2 | 101.64 | 85.81% | 94.01 | 76.45% |
+| MTP4 | 93.53 | 66.91% | 93.83 | 59.81% |
+
+Client post-first rate is
+`(completion_tokens - 1) / (request_end - first_generated)`. It is request-side,
+not engine-native vLLM decode or llama-bench `tg`.
+
+![Exact-token benchmark method from intake through publication](assets/b70-benchmark-method.svg)
+
+The original no-spec p130560/g512 cell stopped at EOS in three of five requests.
+It remains excluded in the evidence. The accepted 57.14 tok/s value is the
+forced exact-output replacement. Decode cells now use `ignore_eos=true`.
+
+Prompt hashes match across no-spec, MTP1, MTP2, and MTP4, but output parity is
+incomplete. Depending on the longer-decode cell, exact text matched all four
+modes in only 0–4 of five repetitions. Speed and exact request shape are not
+token, logit/KL, task-quality, or independent correctness proof.
+
+Evidence:
+
+- `results/prefill-decode-matrix-20260809-summary.json`
+- [`BENCHMARK-FORMAT.md`](BENCHMARK-FORMAT.md)
+- [`FULL-SETUP-COMMANDS.md`](FULL-SETUP-COMMANDS.md)
+- private raw root `vllm-pi-prefill-decode-matrix-20260809T060920Z-238794`
+
+The remaining sections retain the 2026-08-08 cache/resident, scheduler, capacity,
+mixed-load, and boundary-repair campaigns as history. Their numbers keep their
+original scope and must not be merged with the phase-separated matrix.
+
+## Prior matched cache/spec matrix (2026-08-08)
+
+This earlier campaign uses the same exact prompts and settings for no-spec, MTP1, MTP2, and MTP4 with prefix caching explicitly on and explicitly off. Every table cell contains five measured C1 requests after warmup.
 
 ### Cold exact p130944/g128
 

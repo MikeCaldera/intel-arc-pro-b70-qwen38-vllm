@@ -11,8 +11,20 @@ vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c
 Observed version inside the image:
 
 ```text
-vLLM v0.26.1rc1.dev457+gc810e5ee9
+vLLM 0.26.1rc1.dev457+gc810e5ee9.xpu
 vllm-xpu-kernels 0.1.12
+```
+
+PyPI published `vllm-xpu-kernels 0.1.12.2` on August 5, 2026. That newer patch
+wheel has not been measured in this recipe. The current tables are specifically
+`0.1.12` results from the pinned image; changing the wheel creates a new
+comparison generation.
+
+Verify package metadata inside a running container:
+
+```bash
+sudo docker exec b70-mtp2-cache-on python -c \
+  "import importlib.metadata as m; print(m.version('vllm')); print(m.version('vllm-xpu-kernels'))"
 ```
 
 Use this model:

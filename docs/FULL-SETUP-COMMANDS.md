@@ -1,58 +1,71 @@
-# Full vLLM XPU Setup and Commands
+# Full vLLM XPU Setup and Matrix Commands
 
-This is the complete public setup used for the matched 128K cache/spec campaign. It starts from a host where Docker can access the Intel render device. It does not change the GPU power cap.
+These commands reproduce the 2026-08-09 phase-separated C1 matrix. They do not change the host GPU power cap. `CONFIGURED_CAP_W` records the operator-selected setting in the manifest; it does not set that value.
 
-## 1. Set paths
+## 1. Clone and set paths
 
 ```bash
-export COOKBOOK="$HOME/intel-arc-pro-b70-inference-cookbook"
+git clone https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook.git "$HOME/intel-arc-pro-b70-inference-cookbook"
+cd "$HOME/intel-arc-pro-b70-inference-cookbook"
+export COOKBOOK="$PWD"
 export MODEL_DIR="$HOME/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4"
+export MODEL_ID='llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4'
 export IMAGE='vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97'
 ```
 
-Clone or update the cookbook:
+If the repository already exists, enter it and update it separately. Do not run the clone command over an existing working tree.
 
-```bash
-if [ -d "$COOKBOOK/.git" ]; then
-  git -C "$COOKBOOK" pull --ff-only
-else
-  git clone https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook.git "$COOKBOOK"
-fi
-cd "$COOKBOOK"
-```
-
-## 2. Verify Docker and the Intel render device
+## 2. Verify Docker and the render device
 
 ```bash
 docker version
 stat /dev/dri/render*
-RENDER_GID=$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')
+export RENDER_GID="$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')"
 printf 'render_gid=%s\n' "$RENDER_GID"
 ```
 
-The user running Docker must be able to access the render device. The launcher passes its group ID to the container with `--group-add`.
-
-## 3. Pull the exact public image
+The Docker user must be able to access the render node. Confirm the device from the pinned image:
 
 ```bash
-sudo docker pull "$IMAGE"
-sudo docker image inspect "$IMAGE" --format '{{json .RepoDigests}}'
+docker run --rm \
+  --device /dev/dri --group-add "$RENDER_GID" \
+  -v /dev/dri:/dev/dri:ro \
+  --entrypoint python "$IMAGE" \
+  -c 'import torch; print(torch.xpu.device_count(), torch.xpu.get_device_name(0)); assert torch.xpu.device_count() == 1'
 ```
 
-Observed versions in this digest:
+Expected device name: `Intel Arc Pro B70`.
 
-```text
-vLLM v0.26.1rc1.dev457+gc810e5ee9
-vllm-xpu-kernels 0.1.12
+## 3. Pull the immutable image and check exact packages
+
+```bash
+docker pull "$IMAGE"
+docker image inspect "$IMAGE" --format '{{json .RepoDigests}}'
 ```
 
-## 4. Download the preserved-MTP checkpoint
+Check the versions inside that digest, not the host Python environment:
 
-This command uses a temporary Python container, so the host does not need `huggingface-cli`:
+```bash
+docker run --rm --entrypoint python "$IMAGE" -c '
+from importlib.metadata import version
+vllm = version("vllm")
+kernels = version("vllm-xpu-kernels")
+print("vllm=" + vllm)
+print("vllm-xpu-kernels=" + kernels)
+assert vllm == "0.26.1rc1.dev457+gc810e5ee9.xpu"
+assert kernels == "0.1.12"
+'
+```
+
+The tested versions are vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu` and `vllm-xpu-kernels 0.1.12`. PyPI `vllm-xpu-kernels 0.1.12.2` is newer but was not tested in this campaign.
+
+## 4. Download and verify the preserved-MTP model
+
+The host does not need the Hugging Face CLI:
 
 ```bash
 mkdir -p "$MODEL_DIR"
-sudo docker run --rm \
+docker run --rm \
   --user "$(id -u):$(id -g)" \
   -e HF_HOME=/tmp/hf \
   -v "$MODEL_DIR:/model" \
@@ -60,182 +73,142 @@ sudo docker run --rm \
   sh -lc 'pip install --no-cache-dir "huggingface_hub[cli]" && hf download llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4 --local-dir /model'
 ```
 
-Verify that the checkpoint declares one MTP layer and contains `mtp.*` tensors:
+Verify the configuration, all Safetensors shards, and the preserved `mtp.*` tensors:
 
 ```bash
-sudo docker run --rm \
+docker run --rm \
   -v "$MODEL_DIR:/model:ro" \
   --entrypoint python "$IMAGE" -c '
 import glob, json
 from safetensors import safe_open
 config = json.load(open("/model/config.json"))
-print("mtp_num_hidden_layers=", config.get("mtp_num_hidden_layers"))
-keys = []
-for path in glob.glob("/model/*.safetensors"):
+shards = sorted(glob.glob("/model/*.safetensors"))
+assert config.get("mtp_num_hidden_layers") == 1, config.get("mtp_num_hidden_layers")
+assert shards, "no safetensors shards"
+mtp = 0
+for path in shards:
     with safe_open(path, framework="pt", device="cpu") as shard:
-        keys.extend(key for key in shard.keys() if key.startswith("mtp."))
-print("mtp_tensor_count=", len(keys))
-assert config.get("mtp_num_hidden_layers") == 1
-assert keys
+        mtp += sum(key.startswith("mtp.") for key in shard.keys())
+print("shards=", len(shards), "mtp_tensor_count=", mtp)
+assert mtp > 0
 '
+sha256sum "$MODEL_DIR/config.json" "$MODEL_DIR"/*.safetensors | tee "$MODEL_DIR/SHA256SUMS.local"
 ```
 
-The official GPTQ-INT4 checkpoint declares an MTP layer but does not carry the preserved draft tensors required by this recipe.
+The standard GPTQ-INT4 checkpoint declares an MTP layer but does not include the preserved draft tensors required here.
 
-## 5. Verify the two current patches
+## 5. Verify patch and prompt hashes
 
 ```bash
 cd "$COOKBOOK"
-sha256sum \
-  patches/patch_mtp_nightly.py \
-  patches/patch_mtp_boundary.py
-python3 -m py_compile \
-  patches/patch_mtp_nightly.py \
-  patches/patch_mtp_boundary.py
+printf '%s  %s\n' \
+  '4d7a02c4ea10ca7c00dc89ad927fa3dafa747dbf0553d2adf24e30a3c53e9c14' 'patches/patch_mtp_nightly.py' \
+  '41d2f74e5fef1f074b76b5a90dd1016de437228431802cfb1fa7bd7ce4cc9b50' 'patches/patch_mtp_boundary.py' \
+  '1c4c8bba350db23ef64d166d2260a3a747d565f1ec682fde6b0e93224bc1dfb9' 'benchmarks/benchmark-system-prompt.txt' \
+  '49eadcaef1b05b5ca376673c4b0be6b004e72a0fc4e48c050c781e10c90a4339' 'benchmarks/pi-system-prompt.txt' \
+  | sha256sum --check
 ```
 
 Patch order is fixed:
 
 1. `patch_mtp_nightly.py` builds the preserved BF16 MTP draft outside the GPTQ target quantization config.
-2. `patch_mtp_boundary.py` handles a shortened final speculative group at the exact 131,072-token boundary.
+2. `patch_mtp_boundary.py` handles the partial final speculative group at the exact 131,072-token boundary.
 
-Do not add the historical vLLM 0.21 patches. They target different source files and a local image that was never published.
+Do not apply the historical vLLM 0.21 patches to this image.
 
-## 6. Launch one tested mode
+## 6. Launch one tested server
 
-The launcher contains the complete Docker command, patch mounts, patch order, environment variables, and vLLM flags.
+This one launch uses MTP2, cache on, context 131,072, scheduler 8,192, `gpu-memory-utilization=0.85`, and port 8000:
 
 ```bash
 cd "$COOKBOOK"
 bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 on 8000
 ```
 
-Follow startup and verify both patches ran:
+Follow startup and verify patch application and configuration:
 
 ```bash
-sudo docker logs -f b70-mtp2-cache-on
+docker logs -f b70-mtp2-cache-on
 ```
 
-Expected patch lines:
+The log must show both patch messages and these effective fields: `max_model_len: 131072`, `max_num_batched_tokens: 8192`, `max_num_seqs: 64`, `enable_prefix_caching: True`, and `num_speculative_tokens: 2`.
 
-```text
-patched .../qwen3_5_mtp.py
-patched .../gdn_attn.py
-```
-
-Expected server fields include:
-
-```text
-max_model_len: 131072
-max_num_batched_tokens: 8192
-max_num_seqs: 64
-enable_prefix_caching: True
-num_speculative_tokens: 2
-```
-
-Check the endpoint:
+## 7. Check the endpoint
 
 ```bash
 curl -f http://127.0.0.1:8000/health
-curl -s http://127.0.0.1:8000/v1/models
-curl -s http://127.0.0.1:8000/metrics | grep -E 'prefix_cache|spec_decode'
+curl -fsS http://127.0.0.1:8000/v1/models
+curl -fsS http://127.0.0.1:8000/metrics \
+  | grep -E 'vllm:prefix_cache_(hits|queries)|vllm:spec_decode_'
 ```
 
-Stop that server:
+Stop the tested server before the matrix:
 
 ```bash
-sudo docker rm -f b70-mtp2-cache-on
+docker rm -f b70-mtp2-cache-on
 ```
 
-## 7. All eight launch commands
+## 8. Run the full phase-separated matrix
 
-Each command starts one server. Stop it before starting the next command.
-
-### No speculative decoding
-
-```bash
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" no-spec on 8000
-sudo docker rm -f b70-no-spec-cache-on
-
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" no-spec off 8000
-sudo docker rm -f b70-no-spec-cache-off
-```
-
-### MTP1
-
-```bash
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp1 on 8000
-sudo docker rm -f b70-mtp1-cache-on
-
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp1 off 8000
-sudo docker rm -f b70-mtp1-cache-off
-```
-
-### MTP2
-
-```bash
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 on 8000
-sudo docker rm -f b70-mtp2-cache-on
-
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 off 8000
-sudo docker rm -f b70-mtp2-cache-off
-```
-
-### MTP4
-
-```bash
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp4 on 8000
-sudo docker rm -f b70-mtp4-cache-on
-
-bash benchmarks/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp4 off 8000
-sudo docker rm -f b70-mtp4-cache-off
-```
-
-`--no-enable-prefix-caching` is required for every cache-off cell. vLLM V1 in the pinned image defaults prefix caching to on. Omitting the negative flag silently produces cache-on behavior.
-
-## 8. Run the complete matched campaign
-
-This command runs all eight cells and writes separate cold and resident-session evidence for each one:
+First confirm there is no other inference engine or container. The runner performs its own empty-GPU and VRAM gates.
 
 ```bash
 cd "$COOKBOOK"
-bash benchmarks/b70-pi-128k-cache-spec-matched.sh "$MODEL_DIR"
+CONFIGURED_CAP_W=165 \
+  bash benchmarks/b70-pi-prefill-decode-matrix.sh "$MODEL_DIR"
 ```
 
-The campaign records:
+`CONFIGURED_CAP_W=165` only writes the operator's declared cap into evidence. The script never writes `power1_cap` or changes host power policy.
 
-- no-spec, MTP1, MTP2, and MTP4;
-- cache enabled and explicitly disabled;
-- five exact p130944/g128 cold requests per cell;
-- one exact 120,000-token session preparation per cell;
-- five changed resident-session g128 follow-ups per cell;
-- raw SSE timestamps, endpoint token counts, cache counters, MTP counters, server logs, VRAM, and named-temperature/energy telemetry.
+The matrix is:
 
-Results appear under:
+- cold input: p512, p2048, p4096, p6144, p8192, and p131071, each g1;
+- decode: p512 and p8192 at g32, g128, g256, and g512;
+- historical control: p9445/g128;
+- full-context decode: p130944/g128 and p130560/g512;
+- modes: no-spec, MTP1, MTP2, and MTP4;
+- one full-output same-shape warmup, then five C1 measured requests per cell;
+- exact-output decode with `ignore_eos=true`;
+- cache on, entropy-first unique cold prefixes, and required zero cache-hit delta.
 
-```text
-results/vllm-pi-128k-cache-spec-matched-<UTC>-<PID>/
-```
+Standard p512 through p8192 cells use `benchmark-system-prompt.txt`. The p9445 control and full-context cells use `pi-system-prompt.txt`.
 
-## 9. Read the current measured result
+![How the exact-token phase-separated campaign is measured](assets/b70-benchmark-method.svg)
+
+The visual is generated from the same evidence contract. Agents regenerating it should use `.agentic/skills/b70-benchmark-visuals/SKILL.md` or the matching public renderer `benchmarks/render-prefill-decode-svg.py`.
+
+## 9. Compile, audit, and render
+
+The runner prints its result directory at completion. Set it here:
 
 ```bash
-python3 - <<'PY'
-import json
-path = "results/cache-spec-matrix-20260808-summary.json"
-data = json.load(open(path))
-for row in data["rows"]:
-    cold = row["cold"]
-    warm = row["resident"]
-    print(
-        row["mode"], row["cache"],
-        f"cold_ttfc={cold['ttfc_median_s']:.3f}s",
-        f"cold_post_first={cold['client_post_first_tps_median']:.2f}tok/s",
-        f"resident_ttfc={warm['ttfc_median_s']:.3f}s",
-        f"resident_e2e={warm['e2e_median_s']:.3f}s",
-        f"reused={warm['reused_tokens_median']:.0f}",
-    )
-PY
+export RUN_ROOT="$COOKBOOK/results/vllm-pi-prefill-decode-matrix-<UTC>-<PID>"
+python3 benchmarks/b70-compile-prefill-decode-matrix.py "$RUN_ROOT" \
+  --output "$RUN_ROOT/summary.json"
+python3 benchmarks/render-prefill-decode-tables.py "$RUN_ROOT/summary.json" \
+  > "$RUN_ROOT/tables.md"
+python3 benchmarks/render-prefill-decode-svg.py "$RUN_ROOT/summary.json" \
+  --dashboard docs/assets/b70-prefill-decode-dashboard.svg \
+  --method docs/assets/b70-benchmark-method.svg
 ```
 
-The published result is E2 self-reported evidence. It has raw internal evidence and a reproducible public command path, but no independent reproduction yet.
+The compiler fails closed on incomplete modes, server errors, cache-state errors, prompt mismatch, wrong token counts, and missing forced-exact replacement evidence. Do not publish directly from raw request files.
+
+## 10. Evidence layout
+
+```text
+results/vllm-pi-prefill-decode-matrix-<UTC>-<PID>/
+  manifest.txt
+  package-versions.txt
+  prompts/
+  no-spec/
+  mtp1/
+  mtp2/
+  mtp4/
+  summary.json
+  tables.md
+```
+
+Each mode retains server logs, metrics snapshots, synchronized monitor data, VRAM evidence, harness logs, raw SSE/request records, and per-cell manifests. Preserve failed and excluded cells. The original no-spec p130560/g512 early-EOS cell remains excluded; the accepted summary uses its forced-exact replacement.
+
+Publication remains E2 provisional until another operator reproduces it. Follow [Benchmark format](BENCHMARK-FORMAT.md) before copying any table.

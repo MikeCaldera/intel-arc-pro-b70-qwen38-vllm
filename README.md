@@ -331,6 +331,33 @@ share the 128K ceiling with MTP; vLLM additionally needs fp8 KV.
 5. **Mixed long prefill + short requests:** no-spec is the safe path on this
    stack (MTP4 mixed-token `causal_conv1d` crash remains open).
 
+## Muse: Glimmer-30B — llama.cpp analysis (2026-08-10, E2 provisional)
+
+First B70 run of Meta Muse-Glimmer-30B (dense 27.85B text + ViT-G/14 vision,
+128K ctx, reasoning model). llama.cpp SYCL only — **no INT4 quant exists yet**
+(FP8-block 34.4 GB won't fit 32 GB; NVFP4 Blackwell-only; XPU has no FP8
+kernel). Decode = engine `timings.predicted_per_second` (C1 cold, 128K ctx,
+230 W cap, `-ub 8192`); prefill = llama-bench pp. Winner of the DFlash depth
+screen: **n_max=2**.
+
+| Metric | DFlash n2 | no-spec | Δ |
+|---|---:|---:|---:|
+| p512/g128 decode (t/s) | **26.8** | 22.5 | +19% |
+| p8192/g128 decode (t/s) | **22.9** | 17.2 | +33% |
+| p32768/g128 decode (t/s) | **21.1** | 13.9 | **+52%** |
+| prefill pp4096 (t/s) | — | **1,301** | llama-bench |
+| prefill pp32768 (t/s) | — | **865** | llama-bench |
+
+DFlash n_max screen (n=3, p512/p8192): n1 24.8/20.0 · n2 27.6/21.4 · n3 26.3/21.3
+· n4 27.5/18.2 · n5-7 collapse (acceptance 0.30-0.56) · n8 aborts the server.
+Acceptance decays 0.91→0.30 with depth; the DFlash gain **grows with context**
+(+19% → +52%). Vision + reasoning + DFlash all verified.
+
+![Muse Glimmer-30B B70 dashboard](docs/assets/b70-muse-glimmer-dashboard.svg)
+
+Full commands, provenance, failures, and quality caveats:
+[docs/muse-glimmer/MUSE-GLIMMER-B70.md](docs/muse-glimmer/MUSE-GLIMMER-B70.md).
+
 ## Reproduce the matrix
 
 The runner does not change host power. `CONFIGURED_CAP_W` records the cap selected by the operator.

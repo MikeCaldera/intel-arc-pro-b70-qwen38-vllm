@@ -77,6 +77,47 @@ Realistic short-turn serving decode is **44–56 t/s**, not the 73 t/s synthetic
 peak. Cache reuse eliminates tokens (91.3% hit → TTFT 10.2× faster on the
 resident follow-up); it does not speed up per-token prefill.
 
+### Growing resident session — 8 sequential follow-ups over one 32K document (2026-08-10)
+
+One cold 32,640-token document ingestion, then eight follow-up turns where
+every turn **appends** the previous assistant reply and question to the
+session, so the resident prefix grows. MTP4, g128 outputs, `ignore_eos=true`,
+prefix cache on, 230 W cap:
+
+| Turn | Prompt tokens | Reused | Hit % | Novel | TTFT (s) | Post-first (tok/s) |
+|---:|---:|---:|---:|---:|---:|---:|
+| Ingest (cold) | 32,640 | 0 | 0% | 32,640 | 38.191 | 41.2 |
+| 1 | 32,789 | 29,952 | 91.3% | 2,837 | 4.069 | 41.0 |
+| 2 | 32,884 | 29,952 | 91.1% | 2,932 | 4.162 | 48.0 |
+| 3 | 32,961 | 29,952 | 90.9% | 3,009 | 4.241 | 46.7 |
+| 4 | 33,054 | 29,952 | 90.6% | 3,102 | 4.491 | 49.3 |
+| 5 | 33,151 | 29,952 | 90.4% | 3,199 | 4.553 | 43.9 |
+| 6 | 33,208 | 29,952 | 90.2% | 3,256 | 4.586 | 44.1 |
+| 7 | 33,313 | 29,952 | 89.9% | 3,361 | 4.932 | 49.4 |
+| 8 | 33,377 | 31,616 | 94.7% | 1,761 | 2.591 | 55.8 |
+
+**What this shows:**
+
+- **Cold ingest 38.2 s TTFT → every warm turn 2.6-4.9 s** (8-15× faster) while
+  carrying a *growing* 32.8-33.4K prompt — the resident document is the cache
+  payload, the conversation tail is cheap.
+- **Hit count is block-granular (64-token blocks), not prompt-granular.** The
+  doc is 32,640 tokens = 510 blocks; turns 1-7 hit 468 blocks (29,952) because
+  the ~42 tail blocks overlap the boundary where the re-rendered assistant text
+  begins (generated token stream ≠ chat-template-rendered input stream, so the
+  final blocks don't hash-match). Turn 8 hit 494 blocks (31,616) as the
+  growing history crossed another block boundary — hits are exact token-level
+  hashes, so alignment shifts matter.
+- **Reuse stays ~90-95% across all turns** even as novel tokens grow to ~3.3K —
+  TTFT grows slowly (4.07 → 4.93 s) with novel tokens, then drops at turn 8
+  (2.59 s) when more blocks align.
+- Post-first decode stays flat 41-56 t/s (MTP acceptance 52-79%) — cache
+  eliminates input tokens, it does not speed per-token decode or prefill.
+
+Evidence: `results/dense27-multiturn-resident-20260810T065510Z/` (private
+B70-DOCS): ingest + per-turn raw SSE, results.json with per-turn
+query/hit/novel counters and MTP acceptance.
+
 ### Dense measured power draw — matched A/B (2026-08-10, authoritative)
 
 Same mixed workload (1× p2048/g1 prefill + 2× p2048/g128 decode), fresh

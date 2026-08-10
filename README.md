@@ -239,6 +239,15 @@ Realistic short-turn serving decode is **44–56 t/s**, not the 73 t/s synthetic
 peak. Cache reuse eliminates tokens (91.3% hit → TTFT 10.2× faster on the
 resident follow-up); it does not speed up per-token prefill.
 
+**Growing resident session (8 follow-ups, 2026-08-10):** one cold 32,640-token
+doc ingestion (TTFT 38.2 s) followed by eight sequential turns that each append
+the previous Q&A. Every warm turn reuses 90–95% of its prompt and runs at
+**2.6–4.9 s TTFT** (8–15× faster than cold) despite a growing 32.8–33.4K
+session. Reuse is block-granular (64-token blocks): turns 1–7 hit 468 blocks
+(29,952 tokens); turn 8 hit 494 (31,616) as history crossed a block boundary.
+Cache eliminates input tokens; it does not speed per-token decode or prefill.
+Full table: [`REAL-WORLD-PI-BENCHMARKS.md`](docs/REAL-WORLD-PI-BENCHMARKS.md).
+
 `Client post-first` is `(completion tokens - 1) / (request end - first generated
 token)`. It is request-side timing, not engine-native vLLM decode.
 

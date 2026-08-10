@@ -391,6 +391,47 @@ scheduler findings) and prefix caching (see the resident-session section).
 
 Prompt hashes match across no-spec, MTP1, MTP2, and MTP4. Output parity does not. Depending on the longer-decode cell, only 0 to 4 of 5 repetitions matched exact output text across all four modes. The campaign shows speed and completed exact token shapes, not token, logit, KL, or task-quality parity. Do not use speed as correctness proof.
 
+## Upcoming: Qwen3.8-27B — landing plan (expected Wed 2026-08-12)
+
+Status as of 2026-08-10: Qwen3.8 family announced Aug 3; the 27B open weights
+are expected this Wednesday. **Architecture (dense vs MoE, vision encoder,
+MTP head in the open release) is NOT officially confirmed** — every model
+claim below is a community expectation labeled as such, and must be
+re-verified against the actual release before benchmarking.
+
+**Day-1 reality: no MTP for days-to-weeks.** The measured history on
+Qwen3.6-27B: engine architecture support lands in days, community k-quant
+GGUFs follow in ~1–2 weeks, and MTP-preserved quants plus MTP support in
+llama.cpp / the pinned vLLM nightly (and reworking both `patch_mtp_nightly`
+and `patch_mtp_boundary` for any changed architecture files) takes weeks.
+Until then the model runs without speculative decoding.
+
+**Expected decode without MTP (measured dense 27B INT4 baselines, vLLM XPU,
+C1, 230 W, n=5 — AutoRound INT4 uses the same w4a16 layout as GPTQ):**
+
+| Mode | p512 | p8192 | p130944 (128K) |
+|---|---|---|---|
+| no-spec (no-MTP analog) | 32.9 t/s | 31.5 t/s | 23.1 t/s |
+| MTP4 (once supported) | 69.3–72.8 t/s | 57.8–67.4 t/s | 42.6–47.6 t/s |
+
+llama.cpp GGUF fallback: ~21 t/s Q4_K_M base (24–29 with MTP-4). If the
+27B ships as MoE instead of dense, the no-spec class changes to ~60–70 t/s
+(MoE 35B-A3B measured) — re-check at release.
+
+**Self-serve quantization on the B70 is feasible (two paths):**
+
+1. **AutoRound (Intel) → HF INT4 w4a16 or GGUF** (`Q4_K_M` recommended; see
+   [intel/auto-round](https://github.com/intel/auto-round)). Feasibility: a
+   Qwen3.6-27B INT4 quantization completed on a 32 GB RTX 5090 at 22.6 GiB
+   peak VRAM with `low_gpu_mem_usage=True` + `device_map=cpu` (23.8 GiB RAM,
+   [auto-round#1451](https://github.com/intel/auto-round/issues/1451)). The
+   B70's 32 GB VRAM fits; the 30 GB system RAM is tight — use `nsamples=128`
+   (Intel's recommended start), expect swap usage and hours of runtime.
+   Needs the ~54 GB bf16 release (~106 GB free on the secondary volume fits)
+   plus a calibration set.
+2. **`llama-quantize` for plain k-quants** — only after llama.cpp supports
+   the new architecture.
+
 ## Repository map
 
 ```text

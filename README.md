@@ -52,6 +52,8 @@ launchers, so `tool_choice: "auto"` works out of the box. For a persistent
 server, wrap either launcher in your own systemd unit or process supervisor —
 the scripts are self-contained and portable (no host-specific paths).
 
+**[Connecting Pi / omp / Hermes to the servers](docs/CONNECTING-CLIENTS.md)** — client config blocks, ports (8000 / 8765 bridge), API key setup, and a tool-call smoke test.
+
 **Exact software versions (do not substitute):**
 
 | Component | Exact tested value |

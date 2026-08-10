@@ -108,7 +108,7 @@ prefix cache on, 230 W cap:
   final blocks don't hash-match). Turn 8 hit 494 blocks (31,616) as the
   growing history crossed another block boundary — hits are exact token-level
   hashes, so alignment shifts matter.
-- **Reuse stays ~90-95% across all turns** even as novel tokens grow to ~3.3K —
+- **Reuse stays 89.9-94.7% across all turns** even as novel tokens grow to ~3.3K —
   TTFT grows slowly (4.07 → 4.93 s) with novel tokens, then drops at turn 8
   (2.59 s) when more blocks align.
 - Post-first decode stays flat 41-56 t/s (MTP acceptance 52-79%) — cache

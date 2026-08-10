@@ -241,7 +241,7 @@ resident follow-up); it does not speed up per-token prefill.
 
 **Growing resident session (8 follow-ups, 2026-08-10):** one cold 32,640-token
 doc ingestion (TTFT 38.2 s) followed by eight sequential turns that each append
-the previous Q&A. Every warm turn reuses 90–95% of its prompt and runs at
+the previous Q&A. Every warm turn reuses 89.9–94.7% of its prompt and runs at
 **2.6–4.9 s TTFT** (8–15× faster than cold) despite a growing 32.8–33.4K
 session. Reuse is block-granular (64-token blocks): turns 1–7 hit 468 blocks
 (29,952 tokens); turn 8 hit 494 (31,616) as history crossed a block boundary.

@@ -225,7 +225,7 @@
 <text x="1328" y="1581.0" fill="#9caec4" font-size="12" font-weight="500" text-anchor="start">t7 89.9%</text>
 <rect x="1298" y="1558.7" width="24" height="10" rx="3" fill="#ffb45c" opacity="0.85"/>
 <text x="1328" y="1567.6666666666667" fill="#9caec4" font-size="12" font-weight="500" text-anchor="start">t8 94.7%</text>
-<text x="82" y="1716" fill="#9caec4" font-size="14" font-weight="500" text-anchor="start">Cold 32,640-token ingest 38.2 s → every warm turn 2.6-4.9 s (8-15×) at 90-95% reuse. Cache eliminates input tokens; decode stays 41-56 t/s.</text>
+<text x="82" y="1716" fill="#9caec4" font-size="14" font-weight="500" text-anchor="start">Cold 32,640-token ingest 38.2 s → every warm turn 2.6-4.9 s (8-15×) at 89.9-94.7% reuse. Cache eliminates input tokens; decode stays 41-56 t/s.</text>
 <rect x="48" y="1770" width="1504" height="156" rx="26" fill="#0f1d30"/>
 <text x="78" y="1804" fill="#55d6be" font-size="15" font-weight="800" text-anchor="start">FULL CONTEXT · EXACT 131,072 TOTAL TOKENS</text>
 <circle cx="78" cy="1842" r="6" fill="#aeb9c7"/>

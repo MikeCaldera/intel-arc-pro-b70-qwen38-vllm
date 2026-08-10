@@ -1,131 +1,183 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1580" viewBox="0 0 1600 1580" role="img" aria-labelledby="title desc">
-<title id="title">Muse-Glimmer-30B B70 Benchmark Dashboard</title>
-<desc id="desc">Dashboard showing prefill, decode, and power scaling for Muse-Glimmer-30B on Intel Arc Pro B70 using llama.cpp SYCL.</desc>
-<rect width="1600" height="1580" fill="#07111f"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1520" viewBox="0 0 1600 1520" role="img" aria-labelledby="title desc">
+<title id="title">Muse-Glimmer-30B Q4_K_XL DFlash Dashboard</title>
+<desc id="desc">DFlash scaling, prefill performance, build flag fix, and power draw for Muse-Glimmer-30B on Intel Arc Pro B70.</desc>
+<rect width="1600" height="1520" fill="#07111f"/>
 <style>text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}</style>
 
-<!-- Header -->
-<text x="48" y="64" fill="#55d6be" font-size="18" font-weight="800" text-anchor="start">MUSE-GLIMMER-30B · Q4_K_XL · LLAMA.CPP SYCL · C1 · FIRST B70 RUN</text>
-<text x="48" y="112" fill="#f5f8fc" font-size="39" font-weight="750" text-anchor="start">Prefill fixed by a build flag: 1,301 t/s pp4096</text>
-<text x="48" y="148" fill="#9caec4" font-size="19" font-weight="500" text-anchor="start">Intel Arc Pro B70 32GB · llama.cpp master d2f83055d (284) · SYCL IntelLLVM 2026.0 · Q4_K_XL 14.78 GiB · 27.85B text params · q8_0/q4_1 KV · 64K ctx</text>
+<text x="58" y="64" fill="#55d6be" font-size="18" font-weight="800" text-anchor="start">MUSE-GLIMMER-30B · Q4_K_XL · LLAMA.CPP SYCL · C1 · UP TO 128K CTX</text>
+<text x="58" y="112" fill="#f5f8fc" font-size="38" font-weight="750" text-anchor="start">DFlash context scaling and SYCL build-flag fix</text>
+<text x="58" y="148" fill="#9caec4" font-size="19" font-weight="500" text-anchor="start">Intel Arc Pro B70 32GB · llama.cpp d2f83055d (284) F16 SYCL · Q4_K_XL 14.78 GiB · q8_0/q4_1 KV · 230 W cap</text>
 
-<!-- Panel 1: Prefill -->
-<rect x="48" y="190" width="1504" height="380" rx="28" fill="#0f1d30"/>
-<text x="82" y="230" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start">THE F16 BUILD FLAG STORY</text>
-<text x="82" y="268" fill="#f5f8fc" font-size="28" font-weight="700" text-anchor="start">Prefill context scaling</text>
-<text x="82" y="296" fill="#9caec4" font-size="17" font-weight="500" text-anchor="start">llama-bench, no-spec, 230 W, ub 8192, r=5, F16 build (final)</text>
+<!-- Panel 1: Build Flag Fix -->
+<rect x="48" y="190" width="730" height="260" rx="28" fill="#0f1d30"/>
+<text x="82" y="230" fill="#55d6be" font-size="16" font-weight="700">THE BUILD-FLAG FIX</text>
+<text x="82" y="264" fill="#f5f8fc" font-size="24" font-weight="700">llama-bench pp4096 (t/s)</text>
+<text x="82" y="318" fill="#9caec4" font-size="18" font-weight="600">Without GGML_SYCL_F16=ON</text>
+<rect x="360" y="300" width="90" height="24" rx="4" fill="#aeb9c7"/>
+<text x="460" y="318" fill="#f5f8fc" font-size="18" font-weight="600">293</text>
+<text x="82" y="378" fill="#f5f8fc" font-size="18" font-weight="600">With flag (F16 SYCL)</text>
+<rect x="360" y="360" width="400" height="24" rx="4" fill="#55d6be"/>
+<text x="370" y="378" fill="#07111f" font-size="16" font-weight="700">1,301 (+344%)</text>
+<text x="82" y="420" fill="#9caec4" font-size="15">Missing the F16 flag causes a massive performance collapse on SYCL.</text>
 
-<!-- P1 Table -->
-<rect x="82" y="320" width="600" height="44" rx="12" fill="#0b1829"/>
-<text x="100" y="348" fill="#9caec4" font-size="17" font-weight="600">Metric</text>
-<text x="650" y="348" fill="#9caec4" font-size="17" font-weight="600" text-anchor="end">Rate (t/s)</text>
+<!-- Panel 2: Prefill Curve -->
+<rect x="822" y="190" width="730" height="260" rx="28" fill="#0f1d30"/>
+<text x="856" y="230" fill="#55d6be" font-size="16" font-weight="700">PREFILL DEGRADATION</text>
+<text x="856" y="264" fill="#f5f8fc" font-size="24" font-weight="700">llama-bench pp (t/s)</text>
+<text x="1516" y="260" fill="#9caec4" font-size="15" text-anchor="end">230 W cap · r=5/r=3</text>
+<line x1="856" y1="380" x2="1516" y2="380" stroke="#263a53" stroke-width="2"/>
+<rect x="875" y="301" width="40" height="79" rx="4" fill="#68a7ff"/>
+<text x="895" y="293" fill="#f5f8fc" font-size="15" font-weight="600" text-anchor="middle">858</text>
+<text x="895" y="402" fill="#9caec4" font-size="14" font-weight="500" text-anchor="middle">p512</text>
+<rect x="1005" y="262" width="40" height="118" rx="4" fill="#68a7ff"/>
+<text x="1025" y="254" fill="#f5f8fc" font-size="15" font-weight="600" text-anchor="middle">1,278</text>
+<text x="1025" y="402" fill="#9caec4" font-size="14" font-weight="500" text-anchor="middle">p2048</text>
+<rect x="1135" y="260" width="40" height="120" rx="4" fill="#55d6be"/>
+<text x="1155" y="252" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle">1,301</text>
+<text x="1155" y="402" fill="#9caec4" font-size="14" font-weight="500" text-anchor="middle">p4096</text>
+<rect x="1265" y="272" width="40" height="108" rx="4" fill="#68a7ff"/>
+<text x="1285" y="264" fill="#f5f8fc" font-size="15" font-weight="600" text-anchor="middle">1,172</text>
+<text x="1285" y="402" fill="#9caec4" font-size="14" font-weight="500" text-anchor="middle">p8192</text>
+<rect x="1395" y="300" width="40" height="80" rx="4" fill="#ffb45c"/>
+<text x="1415" y="292" fill="#ffb45c" font-size="15" font-weight="600" text-anchor="middle">865</text>
+<text x="1415" y="402" fill="#9caec4" font-size="14" font-weight="500" text-anchor="middle">p32K</text>
+<text x="856" y="435" fill="#9caec4" font-size="15">Long-prompt prefill degrades: SWA caps attention cost, but memory access grows.</text>
 
-<rect x="82" y="372" width="600" height="36" fill="#12243a" opacity="0.52"/>
-<text x="100" y="396" fill="#f5f8fc" font-size="18" font-weight="600">pp512</text>
-<text x="650" y="396" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="end">858</text>
+<!-- Panel 3: DFlash Sweep -->
+<rect x="48" y="475" width="1504" height="460" rx="28" fill="#0f1d30"/>
+<text x="82" y="515" fill="#55d6be" font-size="16" font-weight="700">DFLASH N_MAX SWEEP</text>
+<text x="82" y="549" fill="#f5f8fc" font-size="24" font-weight="700">Engine decode at 128K context (t/s)</text>
+<text x="1516" y="545" fill="#9caec4" font-size="15" text-anchor="end">n=3 median · Acceptance decays 0.91 → 0.30 with depth</text>
+<text x="82" y="590" fill="#9caec4" font-size="15" font-weight="600">Config</text>
+<text x="280" y="590" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">p512/g128</text>
+<text x="680" y="590" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">p8192/g128</text>
+<text x="900" y="590" fill="#9caec4" font-size="15" font-weight="600">Acceptance &amp; Status</text>
 
-<text x="100" y="432" fill="#f5f8fc" font-size="18" font-weight="600">pp2048</text>
-<text x="650" y="432" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="end">1,278</text>
+<rect x="82" y="604" width="1436" height="28" fill="#12243a" opacity="0.3"/>
+<text x="82" y="623" fill="#f5f8fc" font-size="16">no-spec</text>
+<text x="280" y="623" fill="#f5f8fc" font-size="16" text-anchor="end">22.5</text>
+<rect x="290" y="611" width="180" height="14" rx="3" fill="#aeb9c7"/>
+<text x="680" y="623" fill="#f5f8fc" font-size="16" text-anchor="end">17.2</text>
+<rect x="690" y="611" width="137" height="14" rx="3" fill="#aeb9c7"/>
+<text x="900" y="623" fill="#9caec4" font-size="15">Baseline</text>
 
-<rect x="82" y="444" width="600" height="36" fill="#12243a" opacity="0.52"/>
-<text x="100" y="468" fill="#f5f8fc" font-size="18" font-weight="600">pp4096</text>
-<text x="650" y="468" fill="#55d6be" font-size="18" font-weight="700" text-anchor="end">1,301</text>
+<text x="82" y="658" fill="#f5f8fc" font-size="16">n1</text>
+<text x="280" y="658" fill="#f5f8fc" font-size="16" text-anchor="end">24.8</text>
+<rect x="290" y="646" width="198" height="14" rx="3" fill="#68a7ff"/>
+<text x="680" y="658" fill="#f5f8fc" font-size="16" text-anchor="end">20.0</text>
+<rect x="690" y="646" width="160" height="14" rx="3" fill="#68a7ff"/>
+<text x="900" y="658" fill="#9caec4" font-size="15">accept: 0.91 (p512) / 0.88 (p8192)</text>
 
-<text x="100" y="504" fill="#f5f8fc" font-size="18" font-weight="600">pp8192</text>
-<text x="650" y="504" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="end">1,172</text>
+<rect x="70" y="674" width="1460" height="34" rx="6" fill="#55d6be" opacity="0.12"/>
+<text x="82" y="695" fill="#55d6be" font-size="16" font-weight="700">n2 (WINNER)</text>
+<text x="280" y="695" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">27.6</text>
+<rect x="290" y="683" width="220" height="14" rx="3" fill="#55d6be"/>
+<text x="680" y="695" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">21.4</text>
+<rect x="690" y="683" width="171" height="14" rx="3" fill="#55d6be"/>
+<text x="900" y="695" fill="#55d6be" font-size="15" font-weight="600">accept: 0.86 (p512) / 0.67 (p8192) — Optimal speed</text>
 
-<rect x="82" y="516" width="600" height="36" fill="#12243a" opacity="0.52"/>
-<text x="100" y="540" fill="#9caec4" font-size="18" font-weight="600">tg128 decode</text>
-<text x="650" y="540" fill="#9caec4" font-size="18" font-weight="700" text-anchor="end">25.3</text>
+<text x="82" y="730" fill="#f5f8fc" font-size="16">n3</text>
+<text x="280" y="730" fill="#f5f8fc" font-size="16" text-anchor="end">26.3</text>
+<rect x="290" y="718" width="210" height="14" rx="3" fill="#68a7ff"/>
+<text x="680" y="730" fill="#f5f8fc" font-size="16" text-anchor="end">21.3</text>
+<rect x="690" y="718" width="170" height="14" rx="3" fill="#68a7ff"/>
+<text x="900" y="730" fill="#9caec4" font-size="15">accept: 0.74 (p512) / 0.60 (p8192)</text>
 
-<!-- P1 Callout -->
-<text x="750" y="348" fill="#f5f8fc" font-size="20" font-weight="600">The missing flag: GGML_SYCL_F16=ON</text>
-<text x="750" y="378" fill="#9caec4" font-size="17" font-weight="500">The SAME build WITHOUT `GGML_SYCL_F16=ON` measured pp4096 = 293 t/s.</text>
-<text x="750" y="400" fill="#9caec4" font-size="17" font-weight="500">The flag was the entire 3.4× prefill gap.</text>
+<text x="82" y="765" fill="#f5f8fc" font-size="16">n4</text>
+<text x="280" y="765" fill="#f5f8fc" font-size="16" text-anchor="end">27.5</text>
+<rect x="290" y="753" width="220" height="14" rx="3" fill="#68a7ff"/>
+<text x="680" y="765" fill="#f5f8fc" font-size="16" text-anchor="end">18.2</text>
+<rect x="690" y="753" width="145" height="14" rx="3" fill="#68a7ff"/>
+<text x="900" y="765" fill="#9caec4" font-size="15">accept: 0.74 (p512) / 0.49 (p8192)</text>
 
-<text x="750" y="460" fill="#f5f8fc" font-size="16" font-weight="600">Before (No F16 flag)</text>
-<rect x="950" y="442" width="90" height="24" rx="4" fill="#ffb45c"/>
-<text x="1055" y="460" fill="#ffb45c" font-size="18" font-weight="700">293 t/s</text>
+<rect x="82" y="779" width="1436" height="28" fill="#12243a" opacity="0.3"/>
+<text x="82" y="800" fill="#ffb45c" font-size="16">n5</text>
+<text x="280" y="800" fill="#ffb45c" font-size="16" text-anchor="end">21.3</text>
+<rect x="290" y="788" width="170" height="14" rx="3" fill="#ffb45c"/>
+<text x="680" y="800" fill="#ffb45c" font-size="16" text-anchor="end">13.8</text>
+<rect x="690" y="788" width="110" height="14" rx="3" fill="#ffb45c"/>
+<text x="900" y="800" fill="#ffb45c" font-size="15">accept: 0.52 (p512) / 0.37 (p8192) — COLLAPSE</text>
 
-<text x="750" y="505" fill="#f5f8fc" font-size="16" font-weight="600">After (F16 flag ON)</text>
-<rect x="950" y="487" width="400" height="24" rx="4" fill="#55d6be"/>
-<text x="1365" y="505" fill="#55d6be" font-size="18" font-weight="700">+344% (1,301 t/s)</text>
+<text x="82" y="835" fill="#ffb45c" font-size="16">n6</text>
+<text x="280" y="835" fill="#ffb45c" font-size="16" text-anchor="end">23.0</text>
+<rect x="290" y="823" width="184" height="14" rx="3" fill="#ffb45c"/>
+<text x="680" y="835" fill="#ffb45c" font-size="16" text-anchor="end">15.2</text>
+<rect x="690" y="823" width="121" height="14" rx="3" fill="#ffb45c"/>
+<text x="900" y="835" fill="#ffb45c" font-size="15">accept: 0.56 (p512) / 0.35 (p8192)</text>
 
-<!-- Panel 2: Final decode -->
-<rect x="48" y="600" width="1504" height="320" rx="28" fill="#0f1d30"/>
-<text x="82" y="640" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start">FINAL DECODE RATES &amp; DFLASH TUNING</text>
-<text x="82" y="678" fill="#f5f8fc" font-size="28" font-weight="700" text-anchor="start">Final decode and relative tuning</text>
-<text x="82" y="706" fill="#9caec4" font-size="17" font-weight="500" text-anchor="start">C1, engine timings.predicted_per_second, DFlash n_max=2, ub 8192, 230 W</text>
+<rect x="82" y="849" width="1436" height="28" fill="#12243a" opacity="0.3"/>
+<text x="82" y="870" fill="#ffb45c" font-size="16">n7</text>
+<text x="280" y="870" fill="#ffb45c" font-size="16" text-anchor="end">23.2</text>
+<rect x="290" y="858" width="185" height="14" rx="3" fill="#ffb45c"/>
+<text x="680" y="870" fill="#ffb45c" font-size="16" text-anchor="end">13.6</text>
+<rect x="690" y="858" width="108" height="14" rx="3" fill="#ffb45c"/>
+<text x="900" y="870" fill="#ffb45c" font-size="15">accept: 0.56 (p512) / 0.30 (p8192)</text>
 
-<!-- P2 Left: Decode Rates -->
-<rect x="82" y="736" width="600" height="150" rx="12" fill="#0b1829"/>
-<text x="110" y="776" fill="#9caec4" font-size="16" font-weight="600">p512/g128</text>
-<text x="110" y="816" fill="#55d6be" font-size="36" font-weight="700">29.2 t/s</text>
-<text x="110" y="842" fill="#9caec4" font-size="15" font-weight="500">median (max 31.8, n=5)</text>
-<text x="110" y="866" fill="#68a7ff" font-size="15" font-weight="600">+38% vs no-spec@150W</text>
+<text x="82" y="905" fill="#9caec4" font-size="16">n8</text>
+<text x="280" y="905" fill="#9caec4" font-size="16" text-anchor="end">—</text>
+<text x="680" y="905" fill="#9caec4" font-size="16" text-anchor="end">—</text>
+<text x="900" y="905" fill="#ffb45c" font-size="15">ABORT: server core dump at launch (unsupported at 128K)</text>
 
-<line x1="382" y1="756" x2="382" y2="866" stroke="#263a53" stroke-width="2"/>
+<!-- Panel 4: Final Decode -->
+<rect x="48" y="960" width="1504" height="210" rx="28" fill="#0f1d30"/>
+<text x="82" y="1000" fill="#55d6be" font-size="16" font-weight="700">FINAL DECODE RATES</text>
+<text x="82" y="1034" fill="#f5f8fc" font-size="24" font-weight="700">Winner n2 vs No-spec (up to 32K context)</text>
+<text x="1516" y="1030" fill="#9caec4" font-size="15" text-anchor="end">n=5 median · DFlash gain grows with context length</text>
 
-<text x="410" y="776" fill="#9caec4" font-size="16" font-weight="600">p8192/g128</text>
-<text x="410" y="816" fill="#55d6be" font-size="36" font-weight="700">22.3 t/s</text>
-<text x="410" y="842" fill="#9caec4" font-size="15" font-weight="500">median (max 22.8, n=4)</text>
-<text x="410" y="866" fill="#68a7ff" font-size="15" font-weight="600">+48% vs no-spec@150W</text>
+<rect x="82" y="1056" width="1436" height="32" rx="8" fill="#0b1829"/>
+<text x="94" y="1078" fill="#9caec4" font-size="15" font-weight="600">Prompt</text>
+<text x="360" y="1078" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">Winner n2 (t/s)</text>
+<text x="560" y="1078" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">No-spec (t/s)</text>
+<text x="760" y="1078" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">Gain Δ</text>
+<text x="960" y="1078" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">Accept</text>
+<text x="1160" y="1078" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">Max (t/s)</text>
+<text x="1360" y="1078" fill="#9caec4" font-size="15" font-weight="600" text-anchor="end">TTFT (s)</text>
 
-<!-- P2 Right: Tuning Screen -->
-<text x="750" y="766" fill="#f5f8fc" font-size="20" font-weight="600">Tuning screen (pre-F16 build, relative ranking)</text>
-<rect x="750" y="786" width="700" height="44" rx="12" fill="#0b1829"/>
-<text x="780" y="814" fill="#55d6be" font-size="18" font-weight="700">DFlash n_max=2</text>
-<text x="940" y="814" fill="#9caec4" font-size="18" font-weight="700">&gt;</text>
-<text x="980" y="814" fill="#f5f8fc" font-size="18" font-weight="600">n_max=3</text>
-<text x="1070" y="814" fill="#9caec4" font-size="18" font-weight="700">&gt;</text>
-<text x="1110" y="814" fill="#f5f8fc" font-size="18" font-weight="600">no-spec</text>
-<text x="1200" y="814" fill="#9caec4" font-size="18" font-weight="700">&gt;</text>
-<text x="1240" y="814" fill="#ffb45c" font-size="18" font-weight="600">n_max=15</text>
-<text x="750" y="860" fill="#9caec4" font-size="16" font-weight="500">Lesson: n_max=15 collapses performance.</text>
-<text x="750" y="880" fill="#9caec4" font-size="16" font-weight="500">Acceptance drops to 0.18–0.45, mean accepted length only 3.4–6.7.</text>
+<text x="94" y="1114" fill="#f5f8fc" font-size="16">p512/g128</text>
+<text x="360" y="1114" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">26.8</text>
+<text x="560" y="1114" fill="#aeb9c7" font-size="16" text-anchor="end">22.5</text>
+<text x="760" y="1114" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">+19%</text>
+<text x="960" y="1114" fill="#9caec4" font-size="16" text-anchor="end">0.85</text>
+<text x="1160" y="1114" fill="#9caec4" font-size="16" text-anchor="end">28.9</text>
+<text x="1360" y="1114" fill="#9caec4" font-size="16" text-anchor="end">1.1</text>
 
-<!-- Panel 3: Power A/B -->
-<rect x="48" y="950" width="1504" height="390" rx="28" fill="#0f1d30"/>
-<text x="82" y="990" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start">POWER A/B TEST: 150 W vs 230 W</text>
-<text x="82" y="1028" fill="#f5f8fc" font-size="28" font-weight="700" text-anchor="start">Dense power scaling confirmed</text>
-<text x="82" y="1056" fill="#9caec4" font-size="17" font-weight="500" text-anchor="start">Matched context, alternated 150→230→150, DFlash n=2</text>
+<rect x="82" y="1126" width="1436" height="28" fill="#12243a" opacity="0.3"/>
+<text x="94" y="1146" fill="#f5f8fc" font-size="16">p8192/g128</text>
+<text x="360" y="1146" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">22.9</text>
+<text x="560" y="1146" fill="#aeb9c7" font-size="16" text-anchor="end">17.2</text>
+<text x="760" y="1146" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">+33%</text>
+<text x="960" y="1146" fill="#9caec4" font-size="16" text-anchor="end">0.75</text>
+<text x="1160" y="1146" fill="#9caec4" font-size="16" text-anchor="end">23.1</text>
+<text x="1360" y="1146" fill="#9caec4" font-size="16" text-anchor="end">12.3</text>
 
-<text x="82" y="1106" fill="#f5f8fc" font-size="22" font-weight="700">Headline delta: 230 W = +19% p512, +12% p8192</text>
+<text x="94" y="1178" fill="#f5f8fc" font-size="16">p32768/g128</text>
+<text x="360" y="1178" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">21.1</text>
+<text x="560" y="1178" fill="#aeb9c7" font-size="16" text-anchor="end">13.9</text>
+<text x="760" y="1178" fill="#55d6be" font-size="16" font-weight="700" text-anchor="end">+52%</text>
+<text x="960" y="1178" fill="#9caec4" font-size="16" text-anchor="end">0.75</text>
+<text x="1160" y="1178" fill="#9caec4" font-size="16" text-anchor="end">—</text>
+<text x="1360" y="1178" fill="#9caec4" font-size="16" text-anchor="end">48.1</text>
 
-<rect x="82" y="1136" width="1436" height="44" rx="12" fill="#0b1829"/>
-<text x="100" y="1164" fill="#9caec4" font-size="17" font-weight="600">Metric</text>
-<text x="500" y="1164" fill="#9caec4" font-size="17" font-weight="600">150 W limit</text>
-<text x="1000" y="1164" fill="#9caec4" font-size="17" font-weight="600">230 W limit</text>
-
-<rect x="82" y="1186" width="1436" height="36" fill="#12243a" opacity="0.52"/>
-<text x="100" y="1210" fill="#f5f8fc" font-size="18" font-weight="600">p512 decode</text>
-<text x="500" y="1210" fill="#aeb9c7" font-size="18" font-weight="600">~25 t/s</text>
-<text x="1000" y="1210" fill="#55d6be" font-size="18" font-weight="700">29.8 t/s</text>
-<text x="1090" y="1210" fill="#55d6be" font-size="16" font-weight="600">(+19%)</text>
-
-<text x="100" y="1246" fill="#f5f8fc" font-size="18" font-weight="600">p8192 decode</text>
-<text x="500" y="1246" fill="#aeb9c7" font-size="18" font-weight="600">~21 t/s</text>
-<text x="1000" y="1246" fill="#55d6be" font-size="18" font-weight="700">23.7 t/s</text>
-<text x="1090" y="1246" fill="#55d6be" font-size="16" font-weight="600">(+12%)</text>
-
-<rect x="82" y="1258" width="1436" height="36" fill="#12243a" opacity="0.52"/>
-<text x="100" y="1282" fill="#f5f8fc" font-size="18" font-weight="600">Measured draw</text>
-<text x="500" y="1282" fill="#f5f8fc" font-size="18" font-weight="600">149 W</text>
-<text x="570" y="1282" fill="#9caec4" font-size="16" font-weight="500">(157 s window)</text>
-<text x="1000" y="1282" fill="#f5f8fc" font-size="18" font-weight="600">206 W</text>
-<text x="1070" y="1282" fill="#9caec4" font-size="16" font-weight="500">(13 s decode window)</text>
-
-<text x="100" y="1318" fill="#f5f8fc" font-size="18" font-weight="600">Max temp</text>
-<text x="500" y="1318" fill="#f5f8fc" font-size="18" font-weight="600">70 °C</text>
-<text x="1000" y="1318" fill="#ffb45c" font-size="18" font-weight="600">75 °C</text>
+<!-- Panel 5: Power -->
+<rect x="48" y="1195" width="1504" height="120" rx="28" fill="#0f1d30"/>
+<text x="82" y="1235" fill="#55d6be" font-size="16" font-weight="700">POWER &amp; THERMALS</text>
+<rect x="82" y="1255" width="300" height="42" rx="8" fill="#12243a" opacity="0.52"/>
+<text x="98" y="1281" fill="#9caec4" font-size="15" font-weight="500">Power Cap</text>
+<text x="366" y="1282" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="end">230 W</text>
+<rect x="402" y="1255" width="300" height="42" rx="8" fill="#12243a" opacity="0.52"/>
+<text x="418" y="1281" fill="#9caec4" font-size="15" font-weight="500">Measured Draw (n2)</text>
+<text x="686" y="1282" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="end">83–138 W</text>
+<rect x="722" y="1255" width="300" height="42" rx="8" fill="#12243a" opacity="0.52"/>
+<text x="738" y="1281" fill="#9caec4" font-size="15" font-weight="500">Peak Temp</text>
+<text x="1006" y="1282" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="end">73–74 °C</text>
+<text x="1050" y="1281" fill="#9caec4" font-size="15">Measured via energy1_input. Highly window-dependent.</text>
 
 <!-- Footer -->
-<text x="48" y="1380" fill="#f5f8fc" font-size="14" font-weight="700">E2 provisional · self-reported, not independently reproduced</text>
-<text x="48" y="1405" fill="#9caec4" font-size="14" font-weight="500">Timing source labels: prefill = llama-bench pp (engine); decode = C1 engine timings.predicted_per_second (llama-server HTTP); never mix.</text>
-<text x="48" y="1430" fill="#9caec4" font-size="14" font-weight="500">Config: -ngl 99 -ncmoe 0 -fa on -ctk q8_0 -ctv q4_1 -t 8 -b 8192 -ub 8192 --spec-type draft-dflash --spec-draft-n-max 2</text>
-<text x="48" y="1455" fill="#9caec4" font-size="14" font-weight="500">Evidence: docs/benchmark-history.md Run 33 + Run 34; results/muse-glimmer-q4kxl-dflash-20260810T143831-2493876/</text>
-<text x="48" y="1480" fill="#9caec4" font-size="14" font-weight="500">Notes: 128K ctx untested (VRAM-gated); vision + reasoning + DFlash verified working.</text>
-
-<text x="48" y="1520" fill="#6b7a90" font-size="12" font-weight="500">vLLM blocked on B70: RedHatAI FP8-block = 34.4 GB (no fit on 32 GB); XPU has no FP8 linear kernel (PlatformEnum.XPU KeyError); no GPTQ-INT4 exists — llama.cpp GGUF is the only path.</text>
+<text x="58" y="1350" fill="#ffb45c" font-size="14" font-weight="600">⚠️ E2 provisional · self-reported, not independently reproduced.</text>
+<text x="58" y="1375" fill="#9caec4" font-size="14">Timing labels: decode = engine timings.predicted_per_second (llama-server HTTP, C1 cold, unique entropy-first exact prompts); prefill = llama-bench pp. Never merge.</text>
+<text x="58" y="1400" fill="#9caec4" font-size="14">Config: -ngl 99 -ncmoe 0 -fa on -ctk q8_0 -ctv q4_1 -t 8 -b 8192 -ub 8192 -c 131072 --parallel 1 --spec-type draft-dflash --spec-draft-n-max 2</text>
+<text x="58" y="1425" fill="#9caec4" font-size="14">Evidence: benchmark-history.md Run 33/34/35; results/muse-dflash-sweep-manual-20260810T164735/</text>
+<text x="58" y="1450" fill="#6c8098" font-size="14">vLLM/FP8 status: blocked on B70 (FP8-block = 34.4 GB, no XPU FP8 linear kernel, no GPTQ-INT4). llama.cpp GGUF is the only working path.</text>
+<text x="58" y="1475" fill="#9caec4" font-size="14">Quality caveat: reasoning model — decode includes reasoning_content tokens; speed ≠ output-quality parity (reference check pending).</text>
 
 </svg>

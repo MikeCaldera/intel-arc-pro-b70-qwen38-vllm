@@ -4,7 +4,7 @@
 <rect width="1600" height="1720" fill="#07111f"/>
 <style>text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}</style>
 <text x="58" y="64" fill="#55d6be" font-size="18" font-weight="800" text-anchor="start">DENSE 27B GPTQ-INT4 · C1 · 4-MODE COMPARISON · 230 W</text>
-<text x="58" y="112" fill="#f5f8fc" font-size="39" font-weight="750" text-anchor="start">Prefill, decode length, power, and full context separated</text>
+<text x="58" y="112" fill="#f5f8fc" font-size="39" font-weight="750" text-anchor="start">Prefill, decode length, and full context separated</text>
 <text x="58" y="148" fill="#9caec4" font-size="19" font-weight="500" text-anchor="start">vLLM 0.26.1rc1.dev457+gc810e5ee9.xpu · XPU kernels 0.1.12 · fp8 KV · exact tokens · median n=5</text>
 <rect x="48" y="190" width="1504" height="390" rx="28" fill="#0f1d30"/>
 <text x="82" y="230" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start">INPUT TOKENS ÷ CLIENT TTFT</text>
@@ -136,35 +136,68 @@
 <circle cx="1239" cy="997" r="5" fill="#ffb45c"/>
 <text x="1251" y="1002" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start">MTP4</text>
 <rect x="48" y="1060" width="1504" height="420" rx="28" fill="#0f1d30"/>
-<text x="82" y="1100" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start">SAME MIXED WORKLOAD · LIVE ENERGY1_INPUT INTERVAL AVERAGE</text>
-<text x="82" y="1138" fill="#f5f8fc" font-size="28" font-weight="700" text-anchor="start">Measured card draw — matched A/B at 230 W cap</text>
+<text x="82" y="1100" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start">DETAILED P512 AND P8192 COORDINATES</text>
+<text x="82" y="1138" fill="#f5f8fc" font-size="28" font-weight="700" text-anchor="start">Exact post-first decode rates (tok/s)</text>
 <rect x="82" y="1186" width="1436" height="44" rx="12" fill="#0b1829"/>
 <text x="96" y="1215" fill="#9caec4" font-size="17" font-weight="600" text-anchor="start">Mode</text>
-<text x="421.33333333333337" y="1215" fill="#9caec4" font-size="17" font-weight="600" text-anchor="middle">Mean (W)</text>
-<text x="860.0" y="1215" fill="#9caec4" font-size="17" font-weight="600" text-anchor="middle">Max 0.5 s (W)</text>
-<text x="1298.6666666666667" y="1215" fill="#9caec4" font-size="17" font-weight="600" text-anchor="middle">Coverage</text>
+<text x="284.25" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p512/g32</text>
+<text x="448.75" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p512/g128</text>
+<text x="613.25" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p512/g256</text>
+<text x="777.75" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p512/g512</text>
+<text x="942.25" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p8192/g32</text>
+<text x="1106.75" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p8192/g128</text>
+<text x="1271.25" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p8192/g256</text>
+<text x="1435.75" y="1215" fill="#9caec4" font-size="15" font-weight="600" text-anchor="middle">p8192/g512</text>
 <circle cx="94" cy="1258" r="5" fill="#aeb9c7"/>
 <text x="109" y="1264" fill="#f5f8fc" font-size="18" font-weight="600" text-anchor="start">No spec</text>
-<text x="421.33333333333337" y="1264" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">149.9</text>
-<text x="860.0" y="1264" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">238.2</text>
-<text x="1298.6666666666667" y="1264" fill="#9caec4" font-size="15" font-weight="500" text-anchor="middle">matched A/B · mixed workload</text>
+<text x="284.25" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">32.9</text>
+<text x="448.75" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">32.9</text>
+<text x="613.25" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">32.8</text>
+<text x="777.75" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">31.5</text>
+<text x="942.25" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">31.5</text>
+<text x="1106.75" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">31.5</text>
+<text x="1271.25" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">31.5</text>
+<text x="1435.75" y="1264" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">31.4</text>
 <rect x="82" y="1285" width="1436" height="55" fill="#12243a" opacity="0.52"/>
 <circle cx="94" cy="1313" r="5" fill="#55d6be"/>
 <text x="109" y="1319" fill="#f5f8fc" font-size="18" font-weight="600" text-anchor="start">MTP1</text>
-<text x="421.33333333333337" y="1319" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">156.1</text>
-<text x="860.0" y="1319" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">249.6</text>
-<text x="1298.6666666666667" y="1319" fill="#9caec4" font-size="15" font-weight="500" text-anchor="middle">matched A/B · mixed workload</text>
+<text x="284.25" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">50.0</text>
+<text x="448.75" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">50.5</text>
+<text x="613.25" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">50.2</text>
+<text x="777.75" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">48.9</text>
+<text x="942.25" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">48.1</text>
+<text x="1106.75" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">46.9</text>
+<text x="1271.25" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">48.0</text>
+<text x="1435.75" y="1319" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">47.3</text>
 <circle cx="94" cy="1368" r="5" fill="#68a7ff"/>
 <text x="109" y="1374" fill="#f5f8fc" font-size="18" font-weight="600" text-anchor="start">MTP2</text>
-<text x="421.33333333333337" y="1374" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">153.3</text>
-<text x="860.0" y="1374" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">242.9</text>
-<text x="1298.6666666666667" y="1374" fill="#9caec4" font-size="15" font-weight="500" text-anchor="middle">matched A/B · mixed workload</text>
+<text x="284.25" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">62.1</text>
+<text x="448.75" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">63.6</text>
+<text x="613.25" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">61.5</text>
+<text x="777.75" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">60.0</text>
+<text x="942.25" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">64.0</text>
+<text x="1106.75" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">60.7</text>
+<text x="1271.25" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">59.6</text>
+<text x="1435.75" y="1374" fill="#f5f8fc" font-size="18" font-weight="500" text-anchor="middle">57.1</text>
 <rect x="82" y="1395" width="1436" height="55" fill="#12243a" opacity="0.52"/>
 <circle cx="94" cy="1423" r="5" fill="#ffb45c"/>
 <text x="109" y="1429" fill="#f5f8fc" font-size="18" font-weight="600" text-anchor="start">MTP4</text>
-<text x="421.33333333333337" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">151.0</text>
-<text x="860.0" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">251.5</text>
-<text x="1298.6666666666667" y="1429" fill="#9caec4" font-size="15" font-weight="500" text-anchor="middle">matched A/B · mixed workload</text>
+<rect x="218.4" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="284.25" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">72.8</text>
+<rect x="382.9" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="448.75" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">69.3</text>
+<rect x="547.5" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="613.25" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">64.1</text>
+<rect x="712.0" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="777.75" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">64.1</text>
+<rect x="876.5" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="942.25" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">67.4</text>
+<rect x="1041.0" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="1106.75" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">64.1</text>
+<rect x="1205.5" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="1271.25" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">65.9</text>
+<rect x="1370.0" y="1403" width="131.6" height="38" rx="10" fill="#ffb45c" opacity="0.14"/>
+<text x="1435.75" y="1429" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="middle">57.8</text>
 <rect x="48" y="1510" width="1504" height="156" rx="26" fill="#0f1d30"/>
 <text x="78" y="1544" fill="#55d6be" font-size="15" font-weight="800" text-anchor="start">FULL CONTEXT · EXACT 131,072 TOTAL TOKENS</text>
 <circle cx="78" cy="1582" r="6" fill="#aeb9c7"/>
@@ -186,5 +219,5 @@
 <text x="1210" y="1589" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="start">MTP4</text>
 <text x="1210" y="1623" fill="#9caec4" font-size="17" font-weight="600" text-anchor="start">g128 47.61</text>
 <text x="1356" y="1623" fill="#9caec4" font-size="17" font-weight="600" text-anchor="start">g512 42.56</text>
-<text x="58" y="1700" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start">Matched p9445/g128: MTP4 67.25 tok/s. Client post-first timing · cache on, zero hits · configured 230 W, live draw above · E2 self-reported, not independently reproduced.</text>
+<text x="58" y="1700" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start">Matched p9445/g128: MTP4 67.25 tok/s. Client post-first timing · cache on, zero hits · configured 230 W · E2 self-reported, not independently reproduced.</text>
 </svg>

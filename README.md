@@ -52,7 +52,12 @@ launchers, so `tool_choice: "auto"` works out of the box. For a persistent
 server, wrap either launcher in your own systemd unit or process supervisor —
 the scripts are self-contained and portable (no host-specific paths).
 
-**[Connecting Pi / omp / Hermes to the servers](docs/CONNECTING-CLIENTS.md)** — client config blocks, ports (8000 / 8765 bridge), API key setup, and a tool-call smoke test.
+### Connecting Pi / omp / Hermes
+
+See **[CONNECTING-CLIENTS.md](docs/CONNECTING-CLIENTS.md)** for the full
+client quick start: Hermes `config.yaml` provider block, omp base URL,
+Pi client settings, the port table (8000 launcher / 8765 bridge), the `active`
+model alias, API key setup, and a copy-paste tool-call smoke test.
 
 **Exact software versions (do not substitute):**
 
@@ -349,6 +354,7 @@ Evidence and format:
 - [Stable cross-model benchmark format](docs/BENCHMARK-FORMAT.md)
 - [Current result plus prior Pi campaigns](docs/REAL-WORLD-PI-BENCHMARKS.md)
 - [Image and patch compatibility](docs/IMAGE-AND-PATCH-MATRIX.md)
+- [Connecting Pi / omp / Hermes clients](docs/CONNECTING-CLIENTS.md)
 - [Historical campaign log](docs/CAMPAIGN-LOG.md)
 
 ## vLLM runtime decisions — what this stack uses (both MoE and dense)

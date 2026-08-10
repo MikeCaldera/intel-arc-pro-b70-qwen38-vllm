@@ -224,51 +224,41 @@ controller engages (card TDP ~300 W). Evidence:
 > prefill cells, and the MTP2 monitor only caught a 223 s decode-only window.
 > They must not be cited as a mode-vs-mode power comparison.
 
-### Real Pi workload (MTP4, g128 outputs)
+### Real Pi workload — document session with follow-ups (MTP4, g128 outputs, 2026-08-10)
 
-| Scenario | Post-first (tok/s) | TTFT (s) | Cache hits |
-|---|---:|---:|---:|
-| Cold new conversation | 54.2 | 0.424 | 0 |
-| Warm shared system prefix | 62.9 | 0.423 | 0 |
-| Warm multi-turn session | 46.9 | 0.477 | 0 |
-| New RAG/tool payload on warm session | 55.4 | 0.574 | 0 |
-| Warm system + cold 32K document | 43.7 | 25.201 | 0 (1,295 input t/s) |
-| Resident-doc follow-up (warm server) | 52.3 | 2.952 | 29,952 / 32,797 (91.3%) |
+**The test that matters:** you give Pi a 32K-token document and ask it eight
+questions in a row. First question reads the whole document cold; every
+follow-up reuses the cached document. Fresh-server run:
 
-**Server-state note (corrected 2026-08-10):** the 32K-document rows above were
-measured on a *warm* server (JIT kernels already compiled by earlier
-scenarios). The controlled re-run on a *fresh* server measured the same cold
-32K ingest at **38.2 s TTFT** (includes first-run JIT compile of the 32K
-attention kernels) and the first follow-up at **4.07 s**. The warm-server
-numbers are the serving-representative ones; the fresh-server numbers are the
-worst-case first-request ones. The eight-follow-up session below uses the
-fresh-server values.
+| Step | Prompt tokens | Cache hits | Hit % | TTFT (s) | Post-first (tok/s) |
+|---:|---:|---:|---:|---:|---:|
+| 1. First read (cold) | 32,640 | 0 | 0% | 38.191 | 41.2 |
+| 2. Follow-up 1 | 32,789 | 29,952 | 91.3% | 4.069 | 41.0 |
+| 3. Follow-up 2 | 32,884 | 29,952 | 91.1% | 4.162 | 48.0 |
+| 4. Follow-up 3 | 32,961 | 29,952 | 90.9% | 4.241 | 46.7 |
+| 5. Follow-up 4 | 33,054 | 29,952 | 90.6% | 4.491 | 49.3 |
+| 6. Follow-up 5 | 33,151 | 29,952 | 90.4% | 4.553 | 43.9 |
+| 7. Follow-up 6 | 33,208 | 29,952 | 90.2% | 4.586 | 44.1 |
+| 8. Follow-up 7 | 33,313 | 29,952 | 89.9% | 4.932 | 49.4 |
+| 9. Follow-up 8 | 33,377 | 31,616 | 94.7% | 2.591 | 55.8 |
 
-**Why the short-turn rows show 0 cache hits (correct, not a miss):** vLLM
-prefix cache matches in **1,088-token pages** (`block_size="1088"` on this
-stack). A hit requires at least one full page of identical tokens. The Pi
-system prompt renders to only **557 tokens**, so the short-turn scenarios
-(591–930 tokens) share a prefix shorter than one page — they *cannot* hit
-mechanically. The 32K-document rows hit (91.3%) because the resident document
-spans 30 full pages. In practice: short system prompts never get cache
-speedup on this stack; documents, RAG payloads, and long sessions do.
+**The result:** cold document read = **38.2 s TTFT** (fresh server; 25.2 s once
+the server is warm). Every follow-up = **2.6–4.9 s TTFT with 89.9–94.7% token
+reuse** — 8–15× faster — even though the session grows 32.8K → 33.4K tokens as
+each Q&A is appended. The document is read once and stays resident; only the
+new question and reply are processed. Reuse wobbles because the cache matches
+in 64-token blocks at the document/conversation boundary. Cache eliminates
+input tokens — decode stays flat at 41–56 t/s.
+
+**Short-turn context (same server, single requests):** cold conversation 54.2
+tok/s (TTFT 0.424 s) · warm shared system 62.9 (0.423) · short multi-turn 46.9
+(0.477) · RAG append 55.4 (0.574). These short scenarios show **0 cache hits
+by design**: the shared prefix is the 557-token Pi system prompt, shorter than
+one 1,088-token cache page — a hit requires a full page, so only page-spanning
+content (documents, long sessions) reuses cache.
 
 Realistic short-turn serving decode is **44–56 t/s**, not the 73 t/s synthetic
-peak. Cache reuse eliminates tokens (91.3% hit → TTFT 10.2× faster on the
-resident follow-up); it does not speed up per-token prefill.
-
-**Real-world Pi scenario: one document, eight follow-ups (2026-08-10).**
-You give Pi a 32K-token document and ask it eight questions in a row. The
-first question forces Pi to read the whole document cold — **38.2 s TTFT**
-(fresh server; 25.2 s once the server is warm). Every follow-up after that
-reuses the now-cached document (89.9–94.7% of prompt tokens) and answers in
-**2.6–4.9 s** — 8–15× faster — even though the
-session keeps growing (32.8K → 33.4K tokens) as each Q&A is appended. The
-document is read once, then stays resident; only the new question and reply
-are actually processed. Reuse wobbles because the cache matches in 64-token
-blocks at the document/conversation boundary. Cache eliminates input tokens —
-decode stays flat at 41–56 t/s. Full step-by-step:
-[`REAL-WORLD-PI-BENCHMARKS.md`](docs/REAL-WORLD-PI-BENCHMARKS.md).
+peak. Cache reuse eliminates tokens; it does not speed up per-token prefill.
 
 ![Dense 27B resident 32K session — prefix-cache effect](docs/assets/b70-dense27-resident-session.svg)
 

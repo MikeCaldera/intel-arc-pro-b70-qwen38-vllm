@@ -425,10 +425,15 @@ llama.cpp GGUF fallback: ~21 t/s Q4_K_M base (24–29 with MTP-4). If the
    Qwen3.6-27B INT4 quantization completed on a 32 GB RTX 5090 at 22.6 GiB
    peak VRAM with `low_gpu_mem_usage=True` + `device_map=cpu` (23.8 GiB RAM,
    [auto-round#1451](https://github.com/intel/auto-round/issues/1451)). The
-   B70's 32 GB VRAM fits; the 30 GB system RAM is tight — use `nsamples=128`
-   (Intel's recommended start), expect swap usage and hours of runtime.
-   Needs the ~54 GB bf16 release (~106 GB free on the secondary volume fits)
-   plus a calibration set.
+   B70's 32 GB VRAM fits; the 30 GB system RAM is the hard blocker — the
+   54 GB bf16 weights + calibration cache exceed RAM, so expect heavy disk
+   swap and an estimated **10–20 h runtime** (community anchors: ~7 h on
+   NVIDIA GB10/128 GB unified, ~15–45 min on A100-class). Use
+   `nsamples=128` (Intel's recommended start) to shrink the cache. Needs
+   the ~54 GB bf16 release (~106 GB free on the secondary volume fits)
+   plus a calibration set. Faster day-1 alternative: once llama.cpp
+   supports the architecture, `convert_hf_to_gguf.py` + `llama-quantize`
+   (CPU-only) produce a runnable Q4_K_M GGUF in under an hour.
 2. **`llama-quantize` for plain k-quants** — only after llama.cpp supports
    the new architecture.
 

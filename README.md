@@ -358,6 +358,11 @@ Acceptance decays 0.91→0.30 with depth; the DFlash gain **grows with context**
 Full commands, provenance, failures, and quality caveats:
 [docs/muse-glimmer/MUSE-GLIMMER-B70.md](docs/muse-glimmer/MUSE-GLIMMER-B70.md).
 
+**LocalMaxxing submission (2026-08-10):** [leaderboard](https://www.localmaxxing.com/en/leaderboard) —
+engine `cmsnly2su00goo001wn6c98ly`, benchmark run `cmsnly2sy00gqo001ui1k5l67`
+(record: [submissions/llamacpp-muse-glimmer-30b.json](submissions/llamacpp-muse-glimmer-30b.json)).
+E2 provisional self-report, not independently verified.
+
 ## Reproduce the matrix
 
 The runner does not change host power. `CONFIGURED_CAP_W` records the cap selected by the operator.

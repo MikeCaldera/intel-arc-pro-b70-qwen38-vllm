@@ -118,6 +118,13 @@ Do not apply the historical vLLM 0.21 patches to this image.
 
 ## 6. Launch one tested server
 
+Both launchers include the **tool-calling flags**
+(`--enable-auto-tool-choice --tool-call-parser qwen3_coder`), required for Pi,
+omp, and other agent clients that send `tool_choice: "auto"`. Without them
+those clients fail with
+`400: "auto" tool choice requires --enable-auto-tool-choice and
+--tool-call-parser to be set`.
+
 This one launch uses MTP2, cache on, context 131,072, scheduler 8,192, `gpu-memory-utilization=0.85`, and port 8000:
 
 ```bash
@@ -131,7 +138,7 @@ Follow startup and verify patch application and configuration:
 docker logs -f b70-mtp2-cache-on
 ```
 
-The log must show both patch messages and these effective fields: `max_model_len: 131072`, `max_num_batched_tokens: 8192`, `max_num_seqs: 64`, `enable_prefix_caching: True`, and `num_speculative_tokens: 2`.
+The log must show both patch messages and these effective fields: `max_model_len: 131072`, `max_num_batched_tokens: 8192`, `max_num_seqs: 64`, `enable_prefix_caching: True`, `enable_auto_tool_choice: True`, `tool_call_parser: qwen3_coder`, and `num_speculative_tokens: 2`.
 
 ### 6b. Dense 27B launch (same image and patches, fp8 KV)
 

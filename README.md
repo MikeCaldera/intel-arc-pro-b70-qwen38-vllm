@@ -21,6 +21,12 @@ PyPI `vllm-xpu-kernels 0.1.12.2` is newer, but it was not installed or tested in
 
 ## Short setup
 
+Both launchers below already include the **tool-calling flags**
+(`--enable-auto-tool-choice --tool-call-parser qwen3_coder`) — required for
+Pi / omp / agent clients that send `tool_choice: "auto"`. Without them those
+clients get `400: "auto" tool choice requires --enable-auto-tool-choice and
+--tool-call-parser to be set`.
+
 ```bash
 git clone https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook.git
 cd intel-arc-pro-b70-inference-cookbook
@@ -38,6 +44,22 @@ export DENSE_DIR="$HOME/models/Qwen3.6-27B-MTP-Preserved-GPTQ-Int4"
 bash benchmarks/qwen36-27/launch-dense27-128k-mode.sh "$DENSE_DIR" mtp4 on 8000
 curl -f http://127.0.0.1:8000/health
 ```
+
+**Serving with Pi / omp / agents:** point the client at `http://127.0.0.1:8000/v1`
+and use the served model name (`Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4` or
+`Qwen3.6-27B-MTP-Preserved-GPTQ-Int4`). Tool calling is enabled by the
+launchers, so `tool_choice: "auto"` works out of the box. For a persistent
+server, wrap either launcher in your own systemd unit or process supervisor —
+the scripts are self-contained and portable (no host-specific paths).
+
+**Exact software versions (do not substitute):**
+
+| Component | Exact tested value |
+|---|---|
+| Image | `vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97` |
+| vLLM | `0.26.1rc1.dev457+gc810e5ee9.xpu` |
+| `vllm-xpu-kernels` | `0.1.12` |
+| Tool-call parser | `qwen3_coder` (`Qwen3EngineToolParser`) |
 
 Use [Full setup commands](docs/FULL-SETUP-COMMANDS.md) for the render-device check, model download and verification, package check, patch hashes, endpoint checks, and full matrix.
 
@@ -139,7 +161,7 @@ one same-output same-shape warmup, prefix cache enabled, unique entropy-first co
 prefixes, zero cache-hit delta, scheduler 8,192, context 131,072,
 **`--kv-cache-dtype fp8`** (required for dense 128K), configured cap **230 W**,
 client monotonic SSE timing, E2 provisional self-reported evidence. Independent
-reproduction is pending. Dense 27B GPTQ-INT4 runs on the pinned nightly via
+reproduction is pending. Dense 27B GPTQ-INT4 runs on the pinned image (vLLM 0.26.1rc1.dev457+gc810e5ee9.xpu) via
 `XPUwNa16LinearKernel`; both MTP patches apply unchanged to the dense
 `Qwen3_5ForConditionalGeneration` architecture (same shared `qwen3_5_mtp.py` /
 `gdn_attn.py`).
@@ -326,6 +348,36 @@ Evidence and format:
 - [Current result plus prior Pi campaigns](docs/REAL-WORLD-PI-BENCHMARKS.md)
 - [Image and patch compatibility](docs/IMAGE-AND-PATCH-MATRIX.md)
 - [Historical campaign log](docs/CAMPAIGN-LOG.md)
+
+## vLLM runtime decisions — what this stack uses (both MoE and dense)
+
+The pinned image runs vLLM V1 (0.26.1rc1.dev457+gc810e5ee9.xpu) on a single-socket single-GPU host. Of the five
+runtime decisions commonly discussed, here is exactly where this stack stands
+(verified from the running server's own config log, 2026-08-10):
+
+| Decision | This stack | Evidence |
+|---|---|---|
+| **NUMA binding** | **N/A — single socket.** `Socket(s): 1`, `NUMA node(s): 1`. There is no inter-socket link to cross; the "wrong socket" problem cannot occur on one NUMA node. vLLM's `--numa-memory-tracking` / node pinning is irrelevant here and would change nothing. | `lscpu` |
+| **Chunked prefill** | **Already ON (V1 default).** Server config: `enable_chunked_prefill=True`. `--max-num-batched-tokens 8192` is the chunk cap; large prompts are sliced and decode interleaves between chunks. Scheduler-budget probes on the MoE (+17.6% at 16,384) and dense (flat) show the cap also shapes throughput — see the scheduler findings above. | server config log |
+| **Recompute instead of swap** | **Already the V1 behavior.** vLLM V1 has no KV swap path — evicted/recomputed requests rebuild from the prompt (recompute) rather than moving KV to CPU. `swap_space` is a V0 concept; on this V1 build there is nothing to set to 0. The `vllm:prefix_cache_*` counters confirm hits are served from GPU KV, not CPU. | V1 source + metrics |
+| **Skip memory profiling** | **Not used — and not worth it here.** We pass `--gpu-memory-utilization 0.88` (dense) / `0.85` (MoE); the memory-profile/warmup phase costs **0.40 s + 0.03 s** of a **139.77 s** engine init (compilation 106.37 s). `--kv-cache-memory` would skip ~0.4 s of a 140 s boot — 0.3%. Startup is dominated by Triton JIT + CUDA graph capture, not profiling. | server log |
+| **Eager mode** | **Not used — correct for serving.** `enforce_eager=False`, `cudagraph_mode: FULL_AND_PIECEWISE` with capture sizes 1-256. Graph capture is the 106 s of the 140 s boot, and it is what makes steady-state decode fast (MTP4 69.3 t/s dense, 170.9 MoE). `--enforce-eager` would cut boot but trade away most decode throughput — only sensible for throwaway dev loops, not the production profile. | server config log |
+
+**Tool calling (Pi / omp / OpenAI clients):** both model paths must run with
+`--enable-auto-tool-choice --tool-call-parser qwen3_coder` (the
+`Qwen3EngineToolParser` in this build). Without them, clients that send
+`tool_choice: "auto"` (Pi, omp, most agents) get
+`400: "auto" tool choice requires --enable-auto-tool-choice and
+--tool-call-parser to be set`. The launcher profiles for both models include
+these flags; the raw launcher scripts in `benchmarks/` include them for the
+serve command.
+
+**Bottom line:** of the five levers, this stack already uses chunked prefill
+and V1 recompute (both defaults), does not need NUMA (single socket), and
+correctly skips eager mode and `--kv-cache-memory` — the profiling saving is
+0.3% of boot while the eager trade would cost most decode throughput. The
+actionable runtime lever measured here was the scheduler budget (see MoE
+scheduler findings) and prefix caching (see the resident-session section).
 
 ## Correctness limitation
 

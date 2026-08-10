@@ -92,6 +92,8 @@ exec vllm serve /model \\
   --port 8000 \\
   --max-num-seqs 64 \\
   --max-num-batched-tokens 8192 \\
+  --enable-auto-tool-choice \\
+  --tool-call-parser qwen3_coder \\
   $CACHE_ARG \\
   --served-model-name $MODEL \\
   --language-model-only \\

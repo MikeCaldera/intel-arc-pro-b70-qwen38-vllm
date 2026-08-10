@@ -11,6 +11,7 @@ Repeatable vLLM XPU and llama.cpp SYCL recipes for Intel Arc Pro B60/B70 GPUs.
 | `vllm-xpu-kernels` observed in image | `0.1.12` |
 | MoE model | `llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4` |
 | Dense model | `llmfan46/Qwen3.6-27B-uncensored-heretic-v2-Native-MTP-Preserved-GPTQ-Int4` |
+| Muse-Glimmer-30B (llama.cpp only) | `unsloth/Muse-Glimmer-30B-GGUF` UD-Q4_K_XL + mmproj-kquant + dflash-kquant → [docs/muse-glimmer/MUSE-GLIMMER-B70.md](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
 | Target / draft weights | GPTQ INT4 target / preserved BF16 MTP layer (both models) |
 | Patches, in order | `patch_mtp_nightly.py`, then `patch_mtp_boundary.py` |
 | MoE context / scheduler / memory | 131,072 / 8,192 / `gpu-memory-utilization=0.85` |

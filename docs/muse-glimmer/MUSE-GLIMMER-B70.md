@@ -86,3 +86,12 @@ reference (e.g. perplexity or task benchmarks) is a separate, not-yet-done step.
 - NVFP4/MXFP4 are Blackwell-class; no GPTQ-INT4 exists yet.
 - → llama.cpp GGUF is the only path; the new vLLM Muse support (0.27.0+) needs a
   GPTQ-INT4 quant (conversion blocked: BF16 base 56 GB doesn't fit disk).
+
+## LocalMaxxing submission (2026-08-10)
+
+Submitted via `lmx speed-test submit` (v0.1.31) — record:
+`submissions/llamacpp-muse-glimmer-30b.json`. Payload: `tokSOut` 26.8 (DFlash
+n2, p512/g128, 128K ctx, 230 W) · `tokSPrefill` 1,301 (llama-bench pp4096) ·
+`contextLength` 131,072 · engine `llama.cpp d2f83055d SYCL` · Q4_K_XL.
+Engine id `cmsnly2su00goo001wn6c98ly`, benchmark run `cmsnly2sy00gqo001ui1k5l67`.
+E2 provisional self-report, not independently verified.

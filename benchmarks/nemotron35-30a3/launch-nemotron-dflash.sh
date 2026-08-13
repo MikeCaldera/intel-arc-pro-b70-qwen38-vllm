@@ -18,6 +18,9 @@ set -euo pipefail
 MODEL_DIR=${1:?usage: $0 MODEL_DIR DRAFT_DIR [PORT]}
 DRAFT_DIR=${2:?usage: $0 MODEL_DIR DRAFT_DIR [PORT]}
 PORT=${3:-8001}
+# Serving default is the completed capacity limit. The published 186.6 / 7160
+# speed card was measured at 16384 — set MAX_MODEL_LEN=16384 to reproduce it.
+MAX_MODEL_LEN=${MAX_MODEL_LEN:-120000}
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 IMAGE='vllm/vllm-openai-xpu@sha256:1da0a95485455f08588c11080b9718992fd7d434c6a965d74654903a9d999c57'
 SERVED='nemotron-gptq-dflash7'
@@ -68,7 +71,7 @@ docker run --name "$CONTAINER" --rm --network host \
     exec vllm serve /model \
       --served-model-name $SERVED \
       --dtype float16 --quantization gptq \
-      --max-model-len 120000 --max-num-seqs 1 --max-num-batched-tokens 8192 \
+      --max-model-len $MAX_MODEL_LEN --max-num-seqs 1 --max-num-batched-tokens 8192 \
       --gpu-memory-utilization 0.90 --no-enable-prefix-caching \
       --language-model-only --async-scheduling \
       --speculative-config '$SPEC' \

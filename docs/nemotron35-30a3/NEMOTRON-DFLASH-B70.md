@@ -63,6 +63,23 @@ Canonical evidence (private host log):
 - Context **capacity** (Run 38, not a speed card): `max-model-len=120000`
   loaded (5328 MiB free, KV 295,000) and completed staged C1 requests through
   **p119872+g32 = 119,904** tokens. **128K was not run.**
+  `n` is repeats, not concurrency — both campaigns are **C1**.
+
+![Speed card vs 120K capacity ladder](../assets/b70-nemotron-dflash-context-dashboard.svg)
+
+| Campaign | `max_model_len` | Prompt / gen | Metric | n | Value |
+|---|---:|---|---|--:|---:|
+| Speed (Run 36) | 16384 | p8192/g1 | cold input median | 5 | **7160** |
+| Speed (Run 36) | 16384 | p2048/g128 | C1 client post-first median | 5 | **186.61** |
+| Speed (Run 36) | 16384 | p8192/g128 | C1 client post-first median | 5 | 157.92 |
+| Speed (Run 36) | 16384 | p512/g128 | C1 client post-first median | 5 | 194.61 (do not headline) |
+| Capacity (Run 38) | 120000 | 32768+32 | completed | 1 | 32800 |
+| Capacity (Run 38) | 120000 | 65536+32 | completed | 1 | 65568 |
+| Capacity (Run 38) | 120000 | 98304+32 | completed | 1 | 98336 |
+| Capacity (Run 38) | **120000** | **119872+32** | **completed** | 1 | **119904** |
+
+Run 38 g32 post-first rates (103.8 / 75.6 / 52.1 / 37.1) are diagnostics only.
+
 - Cell-window draw ~149–160 W; peak interval-average 179.3 W; pkg max 68.0 °C.
   Raw `energy1_input` / temp samples are in the private Run 36 directory
   (`monitor.jsonl`); not mirrored in this public repo.
@@ -118,6 +135,8 @@ safe). If present, rename it or vLLM will treat the draft as NVFP4.
 ```bash
 export TARGET="$HOME/models/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym"
 export DRAFT="$HOME/models/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16"
+# Default serves 120000 (capacity). Speed-card reproduction:
+# MAX_MODEL_LEN=16384 bash benchmarks/nemotron35-30a3/launch-nemotron-dflash.sh "$TARGET" "$DRAFT" 8001
 bash benchmarks/nemotron35-30a3/launch-nemotron-dflash.sh "$TARGET" "$DRAFT" 8001
 curl -f http://127.0.0.1:8001/health
 ```

@@ -4,3 +4,7 @@ __pycache__/
 /tmp/
 results/private/
 .env
+.env.*
+**/.hf_token*
+**/hf_token*
+**/*hf_*token*

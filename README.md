@@ -2,7 +2,28 @@
 
 Repeatable vLLM XPU and llama.cpp SYCL recipes for Intel Arc Pro B60/B70 GPUs.
 
-## Current tested stack
+This is **one cookbook with one page per model family**. Do not start a second
+repo when a new architecture lands: add `docs/<family>/` + `benchmarks/<family>/`
+and pin that family's image digest. **Do not mix patch lists or numbers across
+families.** The image that serves Qwen3.6 Pi is not the image that served
+Nemotron DFlash.
+
+## Model family hub
+
+| Family | Engine | What is proven | Headline (self-report, E2) | Page |
+|---|---|---|---|---|
+| **Qwen3.6-35B-A3B** | vLLM XPU (Pi digest) | Native MTP 1/2/4, 128K | MTP4 p512/g128 **170.91** client post-first n=5 | [this README §MoE](#moe-qwen36-35b-a3b--whole-analysis) |
+| **Qwen3.6-27B** | vLLM XPU (same Pi digest) | Dense GPTQ-INT4 + MTP, fp8 KV | MTP4 p512/g128 **69.30** n=5 | [this README §Dense](#dense-qwen36-27b--whole-analysis) |
+| **Nemotron-3.5-Lightning-30B-A3B** | vLLM XPU (**newer** digest) | DFlash n=7; native MTP **0%** | **186.61** C1 client post-first at p2048/g128 n=5; **cold input 7160** (prompt/TTFT) at p8192/g1 | [NEMOTRON-DFLASH-B70](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
+| **Muse-Glimmer-30B** | llama.cpp SYCL | Vision + DFlash n2; vLLM still experimental | **26.8** engine t/s at p512/g128 **128K** n=5 | [MUSE-GLIMMER-B70](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
+
+Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
+Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
+means published self-report, not a platform rerun.
+
+## Qwen3.6 family — current tested stack
+
+Use **this** table only for Qwen3.6 Pi / dense. Nemotron uses a different digest.
 
 | Component | Exact tested value |
 |---|---|
@@ -12,7 +33,7 @@ Repeatable vLLM XPU and llama.cpp SYCL recipes for Intel Arc Pro B60/B70 GPUs.
 | MoE model | `llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4` |
 | Dense model | `llmfan46/Qwen3.6-27B-uncensored-heretic-v2-Native-MTP-Preserved-GPTQ-Int4` |
 | Muse-Glimmer-30B (llama.cpp only) | `unsloth/Muse-Glimmer-30B-GGUF` UD-Q4_K_XL + mmproj-kquant + dflash-kquant → [docs/muse-glimmer/MUSE-GLIMMER-B70.md](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
-| Target / draft weights | GPTQ INT4 target / preserved BF16 MTP layer (both models) |
+| Target / draft weights | GPTQ INT4 target / preserved BF16 MTP layer (both Qwen models) |
 | Patches, in order | `patch_mtp_nightly.py`, then `patch_mtp_boundary.py` |
 | MoE context / scheduler / memory | 131,072 / 8,192 / `gpu-memory-utilization=0.85` |
 | Dense context / scheduler / memory | 131,072 / 8,192 / `gpu-memory-utilization=0.88` (MTP4) or `0.90` (no-spec/MTP1/MTP2) |
@@ -331,14 +352,47 @@ share the 128K ceiling with MTP; vLLM additionally needs fp8 KV.
 5. **Mixed long prefill + short requests:** no-spec is the safe path on this
    stack (MTP4 mixed-token `causal_conv1d` crash remains open).
 
+## Nemotron: 3.5-Lightning-30B-A3B — vLLM XPU + DFlash (2026-08-13, E2)
+
+Two separate recipes. Do not mix their tables.
+
+**E2 self-report with raw evidence. Not independently reproduced.**
+LocalMaxxing `cmsr9po4w000ams01e4fc5qhj` is an approved self-report, not a
+platform rerun.
+
+**DFlash (current headline, isolated n=5):** official `method=dflash`
+`n_spec=7` on a local GPTQ-INT4 G64 target + local NVFP4→BF16 draft.
+Representative C1 client post-first decode **186.61 t/s** at p2048/g128
+(174.60–201.83). p8192/g128 **157.92 t/s** (1.81× vs matched no-spec 87.25
+on that cell). p8192/g1 cold input **7160 t/s** (prompt/TTFT — **not**
+isolated engine prefill). Window acceptance 52.0%. Do not headline p512
+194.6 (family range 140–220). An earlier ~10.3k figure is a no-spec n=3
+TTFT-derived rate on a decode cell — not this campaign.
+
+**No-spec graphs (still useful):** 21.8 → **93.00 / 87.25 t/s**
+(p512/p8192 g128, n=5) after XPU graph capture. Native MTP remains 0%
+acceptance. N-gram is not a production path.
+
+Artifacts (canonical two-i account):
+[`SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym`](https://huggingface.co/SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym)
++
+[`SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16`](https://huggingface.co/SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16).
+
+- Family index + claim lock: [docs/nemotron35-30a3/README.md](docs/nemotron35-30a3/README.md), [CLAIMS.md](docs/nemotron35-30a3/CLAIMS.md)
+- DFlash recipe: [docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md)
+- Dashboard: [docs/assets/b70-nemotron-dflash-dashboard.svg](docs/assets/b70-nemotron-dflash-dashboard.svg)
+- No-spec recipe: [docs/nemotron35-30a3/NEMOTRON-B70.md](docs/nemotron35-30a3/NEMOTRON-B70.md)
+- Launchers: `launch-nemotron-dflash.sh TARGET DRAFT 8001` / `launch-nemotron-graph.sh TARGET 8001`
+- Patches: `patches/patch_xpu_grouped_topk_native_v2.py`, `patches/ssu-b70-b8w4/`
+
 ## Muse: Glimmer-30B — llama.cpp analysis (2026-08-10, E2 provisional)
 
 First B70 run of Meta Muse-Glimmer-30B (dense 27.85B text + ViT-G/14 vision,
-128K ctx, reasoning model). llama.cpp SYCL only — **no INT4 quant exists yet**
-(FP8-block 34.4 GB won't fit 32 GB; NVFP4 Blackwell-only; XPU has no FP8
-kernel). Decode = engine `timings.predicted_per_second` (C1 cold, 128K ctx,
-230 W cap, `-ub 8192`); prefill = llama-bench pp. Winner of the DFlash depth
-screen: **n_max=2**.
+128K ctx, reasoning model). **Public recipe: llama.cpp SYCL** (DFlash n_max=2).
+vLLM Muse is an experimental PR-#51655 overlay plus a compressed-tensors INT4
+n=3 screen — slower than this GGUF path and not a pullable image. FP8-block
+still does not fit 32 GB. Decode = engine `timings.predicted_per_second`
+(C1 cold, 128K ctx, 230 W cap, `-ub 8192`); prefill = llama-bench pp.
 
 | Metric | DFlash n2 | no-spec | Δ |
 |---|---:|---:|---:|
@@ -474,22 +528,27 @@ llama.cpp GGUF fallback: ~21 t/s Q4_K_M base (24–29 with MTP-4). If the
 
 ```text
 benchmarks/
-  qwen36-35a3/     MoE Qwen3.6-35B-A3B launchers and model-specific campaigns
-  qwen36-27/       Dense Qwen3.6-27B launchers (launch-dense27-128k-mode.sh)
-  <root>           shared: matrix runner, harness, monitor, prompt generation, compiler, renderers
-patches/           current nightly patches and retained historical patches
+  qwen36-35a3/       MoE Qwen3.6-35B-A3B launchers and model-specific campaigns
+  qwen36-27/         Dense Qwen3.6-27B launchers (launch-dense27-128k-mode.sh)
+  nemotron35-30a3/   Nemotron DFlash + no-spec graph launchers
+  <root>             shared: matrix runner, harness, monitor, prompt generation, compiler, renderers
+patches/             family-tagged patches — see IMAGE-AND-PATCH-MATRIX.md
 docs/
-  qwen36-35a3/     MoE-specific reference (QUANTIZATION-QUALITY.md)
-  qwen36-27/       Dense-specific reference (DENSE-FP8-GAP.md)
-  <root>           shared: setup, benchmark contract, methodology, compatibility, history
+  qwen36-35a3/       MoE-specific reference (QUANTIZATION-QUALITY.md)
+  qwen36-27/         Dense-specific reference (DENSE-FP8-GAP.md)
+  nemotron35-30a3/   Nemotron DFlash + no-spec recipes
+  muse-glimmer/      Muse llama.cpp recipe
+  <root>             shared: setup, benchmark contract, methodology, compatibility, history
 results/
-  qwen36-35a3/     MoE machine-readable summaries and engine grids
-  qwen36-27/       Dense summaries (dense27 model card, llama.cpp grids)
-  <root>           shared cross-model summaries
-research/          kernel and quantization investigations
-submissions/       historical self-reported platform payloads (incl. vllm-dense27-mtp4-gptq-int4.json)
+  qwen36-35a3/       MoE machine-readable summaries and engine grids
+  qwen36-27/         Dense summaries (dense27 model card, llama.cpp grids)
+  <root>             shared cross-model summaries
+research/            kernel and quantization investigations
+submissions/         historical self-reported platform payloads
 ```
 
-Model-specific files live under the model directory; cross-model contracts (benchmark format, setup, image/patch matrix) stay at the shared root. The [dense 27B whole-analysis section](#dense-qwen36-27--whole-analysis) above is the entry point for dense results; the MoE analysis sits above it.
+Model-specific files live under the family directory; cross-model contracts
+(benchmark format, setup, image/patch matrix) stay at the shared root. A new
+architecture gets a new family folder, not a new cookbook repo.
 
 Code is MIT licensed. Measurement reports and prose are CC BY 4.0. See [LICENSE](LICENSE).

@@ -1,6 +1,36 @@
 # vLLM XPU Image and Patch Matrix
 
-## Current supported recipe
+This cookbook has **two vLLM generations**. Pick the family first.
+
+| Family | Digest | Patches | Do not apply |
+|---|---|---|---|
+| Qwen3.6 Pi / dense 27B | `…2c427ef477da…` | `patch_mtp_nightly.py` then `patch_mtp_boundary.py` | Nemotron grouped-topk / SSU |
+| Nemotron-3.5-Lightning DFlash | `…1da0a9548545…` | `patch_xpu_grouped_topk_native_v2.py` then SSU B8/W4 | Qwen MTP patches |
+
+Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
+public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.
+
+## Nemotron DFlash generation (2026-08-13)
+
+```text
+vllm/vllm-openai-xpu@sha256:1da0a95485455f08588c11080b9718992fd7d434c6a965d74654903a9d999c57
+vLLM 0.26.1rc1.dev668+g3ee2df303
+vllm-xpu-kernels 0.1.12.3
+```
+
+Runtime patches, in order: `patch_xpu_grouped_topk_native_v2.py`, then copy
+`ssu-b70-b8w4/*.json` into the SSU config dir. Optional local kernel rebuild:
+`at::zeros` grouped-GEMM atomic + Muse paged-decode tuple (local tag
+`vllm-openai-xpu:1da0a954-det0123`, **not** on Docker Hub).
+
+Models: `SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym` +
+`SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16`.
+Launcher: `benchmarks/nemotron35-30a3/launch-nemotron-dflash.sh`.
+Recipe: `docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md`.
+Do **not** apply `patch_mtp_nightly.py` / `patch_mtp_boundary.py` to this
+generation (those are Qwen3.6 MTP).
+
+## Current supported recipe (Qwen3.6 Pi matrix)
 
 Use this exact public image:
 

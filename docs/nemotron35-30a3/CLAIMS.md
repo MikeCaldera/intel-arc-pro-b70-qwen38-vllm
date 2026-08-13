@@ -1,0 +1,58 @@
+# Nemotron family — claims from observations
+
+Copy numbers from this page. If a sentence is not here, do not invent it.
+
+**Validation:** E2 self-report with raw evidence. Not independently reproduced.
+LocalMaxxing `APPROVED` = published self-report, not a platform rerun.
+
+**Evidence (private host):**
+`results/nemotron-dflash-bf16-n7-n5-20260813T082203Z-1407994/`
+(B70-DOCS Run 36). No-spec graph n=5 is a separate campaign on the same
+target / image family.
+
+**Hardware / stack**
+
+- One Intel Arc Pro B70 32 GB, C1 (`max_num_seqs=1`)
+- Configured cap **150 W**
+- Cache **explicitly off** (`--no-enable-prefix-caching`)
+- Public image `vllm/vllm-openai-xpu@sha256:1da0a95485455f08588c11080b9718992fd7d434c6a965d74654903a9d999c57`
+- vLLM `0.26.1rc1.dev668+g3ee2df303`, kernels `0.1.12.3`
+- Timing: client monotonic SSE
+  - decode = `(completion_tokens - 1) / (end - first)`
+  - input = `prompt_tokens / TTFT` (**cold input rate**, not isolated prefill,
+    not llama-bench `pp`)
+
+## Allowed headlines
+
+| Claim | Exact wording allowed |
+|---|---|
+| Representative DFlash decode | **186.61 t/s median** C1 client post-first at **p2048/g128**, n=5, range 174.60–201.83 |
+| DFlash long-prompt decode | **157.92 t/s median** at p8192/g128 n=5 (143.50–170.25) |
+| DFlash Lane 1 input | **7160 t/s median** cold input at **p8192/g1** n=5 (7117–7226) |
+| DFlash short-prompt input | **6456 t/s median** at p2048/g1 n=5 |
+| Window acceptance | **1830 / 3521 = 52.0%** at `n_spec=7` |
+| Matched-except-speculation | **1.81×** at **p8192/g128 only**: DFlash 157.92 vs no-spec 87.25, both n=5 |
+| No-spec graph floor | **93.00 / 87.25** t/s at p512/p8192 g128 n=5 (eager was 21.8) |
+| VRAM after DFlash load | **5826 MiB** `visible_avail` at 16K / U=0.90 |
+| Draw (DFlash n=5 windows) | cell averages ~149–160 W; peak interval-average **179.3 W**; pkg max **68.0 °C** |
+
+## Forbidden / withdrawn
+
+| Do not say | Why |
+|---|---|
+| “DFlash 10k prefill” | 10,371 → **10,349** is **no-spec n=3** cold input from p8192/**g128** TTFT |
+| Headline **194.6** | p512/g128 median, but family range **140.20–220.01** |
+| Isolated n=3 214 / 185 | Production `b70dense` respawned mid-load; superseded |
+| Native MTP works | Acceptance historically **0%** on this stack |
+| Faster than a 5090 / Spark / H100 | No matched C1 protocol on those SKUs |
+| Verified by LocalMaxxing | Record `cmsr9po4w000ams01e4fc5qhj` is a self-report |
+| 128K Nemotron vLLM | This campaign is **16K** |
+| Isolated engine prefill = 7160 | 7160 is prompt/TTFT |
+| Local image is required | Public digest is the reproduce default; `1da0a954-det0123` is **not** on Docker Hub |
+
+## HF ids (keep)
+
+- `SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym`
+- `SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16`
+
+Do not rename. They already state the conversion contract.

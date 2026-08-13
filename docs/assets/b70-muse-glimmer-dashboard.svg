@@ -77,6 +77,6 @@
     <text x="800" y="770">E2 provisional · self-reported, not independently reproduced</text>
     <text x="800" y="795">Timings: decode = engine timings.predicted_per_second, C1; prefill = llama-bench pp — never merged</text>
     <text x="800" y="820">Config: -c 131072 --parallel 1 -b 8192 -ub 8192 --spec-type draft-dflash --spec-draft-n-max 2 | Evidence: Run 33/34/35</text>
-    <text x="800" y="845">vLLM blocked: FP8-block 34.4 GB no-fit, XPU no FP8 kernel, no INT4 exists</text>
+    <text x="800" y="845">Public path: llama.cpp SYCL. vLLM Muse is experimental overlay + n=3 only — not this dashboard</text>
   </g>
 </svg>

@@ -79,13 +79,30 @@ reference (e.g. perplexity or task benchmarks) is a separate, not-yet-done step.
   `xe.ko`); fixed by restoring the stock module, purging NVIDIA, reinstalling
   the 29 kernel stack. Always run the §8.1 gates before loading.
 
-## vLLM / FP8 status (still blocked on this card)
+## vLLM status (2026-08-13 — experimental, not the public path)
 
-- `RedHatAI/Muse-Glimmer-30B-FP8-block` = **34.4 GB** — doesn't fit 32 GB VRAM.
-- vLLM XPU has **no FP8 linear kernel** (`KeyError: PlatformEnum.XPU`).
-- NVFP4/MXFP4 are Blackwell-class; no GPTQ-INT4 exists yet.
-- → llama.cpp GGUF is the only path; the new vLLM Muse support (0.27.0+) needs a
-  GPTQ-INT4 quant (conversion blocked: BF16 base 56 GB doesn't fit disk).
+llama.cpp GGUF + DFlash n2 remains the **recommended public recipe**.
+
+What changed after the 2026-08-10 “vLLM blocked” note:
+
+- **Architecture smoke (local overlay):** vLLM PR #51655 Python overlay on the
+  older Pi digest can load Muse. Text completions and a vision smoke passed.
+  Chat still leaks reasoning/channel text into `content`. Not a pullable image.
+- **INT4 dispatch:** the `cyankiwi` compressed-tensors W4A16 artifact selected
+  `XPUwNa16LinearKernel`. A leftover `hf_quant_config.json` / NVFP4-style
+  metadata still fails closed — same class of trap as Nemotron DFlash.
+- **Paged-decode tuple:** missing `16,128,64,false,true,false` aborted Muse
+  text decode after load. That one-line kernel config is in the local
+  `1da0a954-det0123` rebuild and is on the Intel PR list. It is **not** the
+  Nemotron grouped-topk / SSU / graph stack — Muse is dense, not LatentMoE.
+- **Speed:** a text-only n=3 C1 screen at 150 W measured **21.34 / 24.60**
+  client post-first at p512/p8192 g128. That is **slower** than llama.cpp
+  DFlash **26.8 / 22.9** at 128K, and it is n=3. **PROVISIONAL — NOT A
+  HEADLINE.** Evidence: `research/b70-vllm-muse-int4/PLAN.md`.
+
+Still true: FP8-block 34.4 GB does not fit; XPU has no FP8 linear kernel.
+Do not apply Nemotron `grouped_topk` / SSU patches to Muse. Revisit vLLM
+Muse after #51655 merges and a public XPU image exists.
 
 ## LocalMaxxing submission (2026-08-10)
 

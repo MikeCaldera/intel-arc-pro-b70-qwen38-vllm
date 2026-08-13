@@ -33,7 +33,7 @@ speculator.
 | Source BF16 | `nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16` |
 | Source DFlash | `nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4-DFlash` |
 | Runtime patches | `patches/patch_xpu_grouped_topk_native_v2.py`, `patches/ssu-b70-b8w4/` |
-| Context / batch / seqs | 16,384 / 8,192 / `max_num_seqs=1` |
+| Context / batch / seqs | **120,000** serving limit / 8,192 / `max_num_seqs=1`. Speed card remains the isolated 16K n=5 matrix |
 | Cache | **explicitly off** (`--no-enable-prefix-caching`) |
 | Power | configured **150 W** |
 
@@ -59,7 +59,10 @@ Canonical evidence (private host log):
 - Representative decode for any single scalar: **186.6 t/s** (p2048/g128).
   Do **not** headline p512 194.6 (41% family range).
 - Window DFlash acceptance **1830/3521 = 52.0%**.
-- After load: 5826 MiB `visible_avail`.
+- After load (16K speed card): 5826 MiB `visible_avail`.
+- Context **capacity** (Run 38, not a speed card): `max-model-len=120000`
+  loaded (5328 MiB free, KV 295,000) and completed staged C1 requests through
+  **p119872+g32 = 119,904** tokens. **128K was not run.**
 - Cell-window draw ~149–160 W; peak interval-average 179.3 W; pkg max 68.0 °C.
   Raw `energy1_input` / temp samples are in the private Run 36 directory
   (`monitor.jsonl`); not mirrored in this public repo.

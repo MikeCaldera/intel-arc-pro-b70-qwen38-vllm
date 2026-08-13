@@ -7,8 +7,9 @@ LocalMaxxing `APPROVED` = published self-report, not a platform rerun.
 
 **Evidence (private host):**
 `results/nemotron-dflash-bf16-n7-n5-20260813T082203Z-1407994/`
-(B70-DOCS Run 36). No-spec graph n=5 is a separate campaign on the same
-target / image family.
+(B70-DOCS Run 36 speed card). Capacity ladder:
+`results/nemotron-dflash-ctx-capacity-20260813T103627Z-1501089/` (Run 38).
+No-spec graph n=5 is a separate campaign on the same target / image family.
 
 **Hardware / stack**
 
@@ -33,7 +34,8 @@ target / image family.
 | Window acceptance | **1830 / 3521 = 52.0%** at `n_spec=7` |
 | Matched-except-speculation | **1.81×** at **p8192/g128 only**: DFlash 157.92 vs no-spec 87.25, both n=5 |
 | No-spec graph floor | **93.00 / 87.25** t/s at p512/p8192 g128 n=5 (eager was 21.8) |
-| VRAM after DFlash load | **5826 MiB** `visible_avail` at 16K / U=0.90 |
+| VRAM after DFlash load | **5826 MiB** `visible_avail` at **16K speed card** / U=0.90 (Run 36) |
+| DFlash capacity ceiling (completed) | **119,904** tokens at `max-model-len=120000` (p119872+g32, n=1). After-load **5328 MiB**, KV **295,000** (Run 38) |
 | Draw (DFlash n=5 windows) | cell averages ~149–160 W; peak interval-average **179.3 W**; pkg max **68.0 °C** |
 
 ## Forbidden / withdrawn
@@ -46,8 +48,10 @@ target / image family.
 | Native MTP works | Acceptance historically **0%** on this stack |
 | Faster than a 5090 / Spark / H100 | No matched C1 protocol on those SKUs |
 | Verified by LocalMaxxing | Record `cmsr9po4w000ams01e4fc5qhj` is a self-report |
-| 128K Nemotron vLLM | This campaign is **16K** |
+| 128K Nemotron vLLM | **Not run.** Isolated DFlash completed **119,904** tokens at `max-model-len=120000` (Run 38). Speed card is still the 16K n=5 matrix |
+| Capacity decode rates (g32) | Run 38 TTFT / post-first numbers are diagnostics on n=1 g32 cells |
 | Isolated engine prefill = 7160 | 7160 is prompt/TTFT |
+| “16K budget → 9874 / 10k prefill” | n=3 screen only. Fresh n=5 at batched=16384 was **6096** (−15% vs 7160) and decode dropped to 167. Keep batched=8192 |
 | Local image is required | Public digest is the reproduce default; `1da0a954-det0123` is **not** on Docker Hub |
 
 ## HF ids (keep)

@@ -68,7 +68,7 @@ docker run --name "$CONTAINER" --rm --network host \
     exec vllm serve /model \
       --served-model-name $SERVED \
       --dtype float16 --quantization gptq \
-      --max-model-len 16384 --max-num-seqs 1 --max-num-batched-tokens 8192 \
+      --max-model-len 120000 --max-num-seqs 1 --max-num-batched-tokens 8192 \
       --gpu-memory-utilization 0.90 --no-enable-prefix-caching \
       --language-model-only --async-scheduling \
       --speculative-config '$SPEC' \

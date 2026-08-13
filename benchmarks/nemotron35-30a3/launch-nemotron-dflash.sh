@@ -4,9 +4,10 @@
 # WHEN TO USE: serve the published GPTQ INT4 G64 target with the published
 #   BF16 DFlash draft on one B70. Isolated n=5 evidence is in
 #   docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md.
-# WHAT IT DOES: applies native grouped-topk v2 + B70 SSU B8/W4 inside the
-#   pinned public image, then starts vLLM with XPU graphs, async scheduling,
-#   cache off, and method=dflash.
+# WHAT IT DOES: applies native grouped-topk v2 (vllm#52159) + B70 SSU B8/W4
+#   inside the pinned public image, then starts vLLM with XPU graphs, async
+#   scheduling, cache off, and method=dflash. Kernel at::zeros (kernels#524)
+#   is optional and is NOT applied here (needs a kernels rebuild).
 # OUTPUT: OpenAI-compatible endpoint on PORT.
 # SAFETY: refuses another inference process; does not change host power.
 #

@@ -92,9 +92,10 @@ What changed after the 2026-08-10 “vLLM blocked” note:
   `XPUwNa16LinearKernel`. A leftover `hf_quant_config.json` / NVFP4-style
   metadata still fails closed — same class of trap as Nemotron DFlash.
 - **Paged-decode tuple:** missing `16,128,64,false,true,false` aborted Muse
-  text decode after load. That one-line kernel config is in the local
-  `1da0a954-det0123` rebuild and is on the Intel PR list. It is **not** the
-  Nemotron grouped-topk / SSU / graph stack — Muse is dense, not LatentMoE.
+  text decode after load. The one-line add is
+  [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524)
+  / `patches/vllm-xpu-kernels/0002-muse-paged-decode-tuple.py`. It is **not**
+  the Nemotron grouped-topk / SSU / graph stack — Muse is dense, not LatentMoE.
 - **Speed:** a text-only n=3 C1 screen at 150 W measured **21.34 / 24.60**
   client post-first at p512/p8192 g128. That is **slower** than llama.cpp
   DFlash **26.8 / 22.9** at 128K, and it is n=3. **PROVISIONAL — NOT A

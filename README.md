@@ -383,7 +383,8 @@ Artifacts (canonical two-i account):
 - Dashboard: [docs/assets/b70-nemotron-dflash-dashboard.svg](docs/assets/b70-nemotron-dflash-dashboard.svg)
 - No-spec recipe: [docs/nemotron35-30a3/NEMOTRON-B70.md](docs/nemotron35-30a3/NEMOTRON-B70.md)
 - Launchers: `launch-nemotron-dflash.sh TARGET DRAFT 8001` / `launch-nemotron-graph.sh TARGET 8001`
-- Patches: `patches/patch_xpu_grouped_topk_native_v2.py`, `patches/ssu-b70-b8w4/`
+- Runtime patches: `patches/patch_xpu_grouped_topk_native_v2.py`, `patches/ssu-b70-b8w4/`
+- Open PRs (2026-08-13): [vllm#52159](https://github.com/vllm-project/vllm/pull/52159), [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524). Source copies: `patches/vllm-xpu-kernels/`
 
 ## Muse: Glimmer-30B — llama.cpp analysis (2026-08-10, E2 provisional)
 

@@ -44,7 +44,7 @@ No-spec graph n=5 is a separate campaign on the same target / image family.
 |---|---|
 | “DFlash 10k prefill” | 10,371 → **10,349** is **no-spec n=3** cold input from p8192/**g128** TTFT |
 | Headline **194.6** | p512/g128 median, but family range **140.20–220.01** |
-| Isolated n=3 214 / 185 | Production `b70dense` respawned mid-load; superseded |
+| Isolated n=3 214 / 185 | Another inference container respawned mid-load; superseded |
 | Native MTP works | Acceptance historically **0%** on this stack |
 | Faster than a 5090 / Spark / H100 | No matched C1 protocol on those SKUs |
 | Verified by LocalMaxxing | Record `cmsr9po4w000ams01e4fc5qhj` is a self-report |
@@ -52,7 +52,7 @@ No-spec graph n=5 is a separate campaign on the same target / image family.
 | Capacity decode rates (g32) | Run 38 TTFT / post-first numbers are diagnostics on n=1 g32 cells |
 | Isolated engine prefill = 7160 | 7160 is prompt/TTFT |
 | “16K budget → 9874 / 10k prefill” | n=3 screen only. Fresh n=5 at batched=16384 was **6096** (−15% vs 7160) and decode dropped to 167. Keep batched=8192 |
-| Local image is required | Public digest is the reproduce default; `1da0a954-det0123` is **not** on Docker Hub |
+| A local Docker tag is required | Public digest is the reproduce default. Kernel `at::zeros` is [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524) + `patches/vllm-xpu-kernels/` |
 
 ## HF ids (keep)
 

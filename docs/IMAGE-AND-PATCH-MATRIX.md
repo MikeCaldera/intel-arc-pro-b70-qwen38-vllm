@@ -19,9 +19,14 @@ vllm-xpu-kernels 0.1.12.3
 ```
 
 Runtime patches, in order: `patch_xpu_grouped_topk_native_v2.py`, then copy
-`ssu-b70-b8w4/*.json` into the SSU config dir. Optional local kernel rebuild:
-`at::zeros` grouped-GEMM atomic + Muse paged-decode tuple (local tag
-`vllm-openai-xpu:1da0a954-det0123`, **not** on Docker Hub).
+`ssu-b70-b8w4/*.json` into the SSU config dir. That Python router change is
+also [vllm#52159](https://github.com/vllm-project/vllm/pull/52159).
+
+Optional **source** kernel edits (need a `vllm-xpu-kernels` rebuild, **not**
+a local Docker tag): `patches/vllm-xpu-kernels/0001-zero-xe2-grouped-gemm-atomic.py`
+then `0002-muse-paged-decode-tuple.py` —
+[vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524).
+`0001` is for temperature-0 graph-replay determinism. `0002` is Muse-only.
 
 Models: `SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym` +
 `SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16`.

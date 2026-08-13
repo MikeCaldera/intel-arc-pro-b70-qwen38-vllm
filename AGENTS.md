@@ -157,12 +157,36 @@ Current machine-readable result: `results/cache-spec-matrix-20260808-summary.jso
 
 | Stack | Order | File | Purpose |
 |---|---:|---|---|
-| Current pinned nightly | 1 | `patches/patch_mtp_nightly.py` | Build the preserved BF16 MTP draft outside the target GPTQ quant config |
-| Current pinned nightly | 2 | `patches/patch_mtp_boundary.py` | Complete an exact-128K partial final MTP4 group without padding |
+| Current pinned nightly (Qwen Pi) | 1 | `patches/patch_mtp_nightly.py` | Build the preserved BF16 MTP draft outside the target GPTQ quant config |
+| Current pinned nightly (Qwen Pi) | 2 | `patches/patch_mtp_boundary.py` | Complete an exact-128K partial final MTP4 group without padding |
+| Nemotron DFlash (newer digest) | 1 | `patches/patch_xpu_grouped_topk_native_v2.py` | XPU native grouped-topk + `torch.compiler.disable` ([vllm#52159](https://github.com/vllm-project/vllm/pull/52159)) |
+| Nemotron DFlash | 2 | `patches/ssu-b70-b8w4/` | B70 SSU B8/W4 JSON (device-specific, ~1%) |
+| Optional kernels rebuild | — | `patches/vllm-xpu-kernels/0001-*.py` + `0002-*.py` | `at::zeros` + Muse tuple ([vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524)) |
 | Historical local vLLM 0.21 | 1 | `patches/patch_xpu_int4_moe_v4.py` | GPTQ uint8/int8 native-int4 load correction |
 | Historical local vLLM 0.21 | 2–4 | `patches/patch_mtp_bf16_draft.py` | BF16 draft, obsolete kwarg, and GDN metadata-guard corrections |
 
-The current patches are idempotent and fail closed when their source anchors differ. Patch 2 changes only a truncated final speculative group. Full five-token MTP4 groups are unchanged.
+The current patches are idempotent and fail closed when their source anchors differ. Qwen patch 2 changes only a truncated final speculative group. Full five-token MTP4 groups are unchanged. Nemotron kernel scripts in `patches/vllm-xpu-kernels/` are **source** edits; they do not rebuild a `.so` and are not a local Docker tag.
+
+## 5.1 Public-doc hygiene (mandatory)
+
+This repo is the **public** reproduce path. Never write:
+
+- host-only systemd units (`vllm-dense-profile`, `llama-profile`, `llama-profile.service`)
+- host-only container names (`b70dense`, `b70nightly`) as a prerequisite
+- LAN IPs, SSH aliases (`desktop-b70`), `/mnt/models*`, `/home/sergio/...`
+- a local Docker tag (`1da0a954-det0123` or similar) as required
+
+Empty-GPU language must stay generic: stop any other `vllm` / `llama-server`
+process **and** any container or unit that would respawn it. `docker rm` alone
+is not enough if something restarts the engine.
+
+Hard-coded `hwmon4` is this-host evidence, not a portable recipe. Discover
+`/sys/class/hwmon/hwmon*/name` in new commands.
+
+Open PRs that belong on the Nemotron page:
+
+- https://github.com/vllm-project/vllm/pull/52159
+- https://github.com/vllm-project/vllm-xpu-kernels/pull/524
 
 The repaired current request completed p130944/g128 with finish reason `length`, zero cache hits, 2,619 MiB free after load, and 165,961 tokens of logged KV capacity. Public artifact: `results/realworld-pi-20260808-summary.json`.
 

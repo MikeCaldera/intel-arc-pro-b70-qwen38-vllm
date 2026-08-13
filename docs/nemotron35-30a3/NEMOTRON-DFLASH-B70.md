@@ -25,14 +25,14 @@ speculator.
 | Component | Exact tested value |
 |---|---|
 | Public image digest | `vllm/vllm-openai-xpu@sha256:1da0a95485455f08588c11080b9718992fd7d434c6a965d74654903a9d999c57` |
-| Local derived tag used here | `vllm-openai-xpu:1da0a954-det0123` (grouped-GEMM `at::zeros` + Muse paged-decode tuple baked in). **Not on Docker Hub.** Reproduce by applying those two kernel edits to the public digest, or run the public digest if you accept the graph-determinism caveat. |
 | vLLM | `0.26.1rc1.dev668+g3ee2df303` |
 | `vllm-xpu-kernels` | `0.1.12.3` |
 | Target | [`SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym`](https://huggingface.co/SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym) |
 | Draft | [`SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16`](https://huggingface.co/SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16) |
 | Source BF16 | `nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16` |
 | Source DFlash | `nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4-DFlash` |
-| Runtime patches | `patches/patch_xpu_grouped_topk_native_v2.py`, `patches/ssu-b70-b8w4/` |
+| Runtime (in launcher) | `patches/patch_xpu_grouped_topk_native_v2.py` + `patches/ssu-b70-b8w4/` |
+| Open upstream PRs (2026-08-13) | [vllm#52159](https://github.com/vllm-project/vllm/pull/52159) (XPU `grouped_topk` compile disable) · [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524) (`at::zeros` + Muse tuple) |
 | Context / batch / seqs | **120,000** serving limit / 8,192 / `max_num_seqs=1`. Speed card remains the isolated 16K n=5 matrix |
 | Cache | **explicitly off** (`--no-enable-prefix-caching`) |
 | Power | configured **150 W** |
@@ -101,19 +101,28 @@ prefill.”
 
 ### 1. Empty GPU
 
-One engine only. ~31,000+ MiB `visible_avail`. Stop any production
-`vllm-dense-profile` / `llama-profile` and pin `Restart=no` if those units
-exist. `docker rm` alone will respawn a `Restart=on-failure` unit.
+One engine only. ~31,000+ MiB `visible_avail` on an empty B70. Stop any
+other `vllm` / `llama-server` process **and** any container that would
+respawn it. `docker rm` alone is not enough if a systemd unit or compose
+stack restarts the engine.
 
-### 2. Pull the public image
+### 2. Pull the public image (this is the reproduce default)
 
 ```bash
 docker pull vllm/vllm-openai-xpu@sha256:1da0a95485455f08588c11080b9718992fd7d434c6a965d74654903a9d999c57
 ```
 
-If you have the local det rebuild (`1da0a954-det0123`), use that tag so the
-grouped-GEMM atomic is `at::zeros`. Otherwise apply that one-word kernel fix
-before treating graph replay as deterministic.
+The launcher then applies the **Python** router fix in-container
+(`patches/patch_xpu_grouped_topk_native_v2.py` — same change as
+[vllm#52159](https://github.com/vllm-project/vllm/pull/52159) plus the
+measured native XPU body). That is enough to **serve** this recipe.
+
+Optional, after a kernels rebuild only: apply
+`patches/vllm-xpu-kernels/0001-zero-xe2-grouped-gemm-atomic.py` so
+temperature-0 graph replay is deterministic
+([vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524)).
+The Muse paged-decode tuple in the same PR is **not** needed for Nemotron.
+Do **not** treat a local Docker tag as a prerequisite.
 
 ### 3. Download the two artifacts
 
@@ -181,3 +190,7 @@ though the command snippet and notes carry `method=dflash` n=7.
 
 - 2026-08-13: isolated n=5 DFlash proof. n=3 screen superseded.
 - 2026-08-13: HF artifacts published under `SergiioB/` (canonical two-i account).
+- 2026-08-13: upstream PRs opened — [vllm#52159](https://github.com/vllm-project/vllm/pull/52159),
+  [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524).
+  Source copies live in `patches/vllm-xpu-kernels/`. Launcher already applies
+  the Python router patch; kernel `at::zeros` still needs a rebuild.

@@ -51,30 +51,75 @@ Add to `~/.pi/agent/models.json` under `providers` (this is the real catalog;
     "supportsTools": true,
     "reasoning": true,
     "thinkingLevelMap": {
-      "off": "none", "minimal": "low", "low": "low",
-      "medium": "medium", "high": "xhigh", "xhigh": "xhigh", "max": "xhigh"
+      "off": "none", "minimal": null, "low": "low", "medium": "medium",
+      "high": "xhigh", "xhigh": "xhigh", "max": null
     },
-    "compat": { "supportsDeveloperRole": false, "maxTokensField": "max_tokens" },
+    "compat": {
+      "supportsDeveloperRole": false,
+      "supportsReasoningEffort": true,
+      "maxTokensField": "max_tokens"
+    },
     "contextWindow": 131072,
     "maxTokens": 120000
   }]
 }
 ```
 
-## 3. Use it
+## 3. Thinking levels (Qwen chat-template translation)
+
+The Qwen3.5 chat template gates thinking via `chat_template_kwargs.enable_thinking`
+and takes an effort from `reasoning_effort` (low/medium/xhigh). Add a small
+`before_provider_request` extension so pi's levels reach the template
+correctly — `~/.pi/agent/extensions/qwen38-vllm-thinking.ts`:
+
+```ts
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+
+const QWEN_MODEL = "qwen38"; // match your model id
+
+export default function (pi: ExtensionAPI) {
+  pi.on("before_provider_request", (event) => {
+    const payload = event.payload as Record<string, unknown>;
+    const model = String(payload.model ?? "").toLowerCase();
+    if (!model.includes(QWEN_MODEL)) return;
+
+    const effort = payload.reasoning_effort;
+    const enabled = typeof effort === "string" && effort !== "none";
+
+    payload.chat_template_kwargs = {
+      ...((payload.chat_template_kwargs as Record<string, unknown>) ?? {}),
+      enable_thinking: enabled,
+      preserve_thinking: true,
+    };
+    if (!enabled) delete payload.reasoning_effort; // off = enable_thinking:false only
+  });
+}
+```
+
+## 4. Use it
 
 ```bash
 pi --provider b70-vllm --model qwen38 --thinking medium
-# non-interactive / scripted:
-pi -p --provider b70-vllm --model qwen38 --thinking medium -nc -ne -ns "task..."
+# non-interactive / scripted (load the extension explicitly):
+pi -p --provider b70-vllm --model qwen38 --thinking medium -nc -ne -ns \
+  -e ~/.pi/agent/extensions/qwen38-vllm-thinking.ts "task..."
 ```
 
-Verified: the agent plans, emits tool calls that vLLM parses (qwen3_xml),
-pi executes `write`/`bash`/`edit`, files appear on disk.
+Verified behavior (payload-level, 2026-08-16):
+
+| `--thinking` | `reasoning_effort` | `chat_template_kwargs` |
+|---|---|---|
+| off | — | `enable_thinking: false, preserve_thinking: true` |
+| low | `low` | `enable_thinking: true, preserve_thinking: true` |
+| medium | `medium` | `enable_thinking: true, preserve_thinking: true` |
+| xhigh | `xhigh` | `enable_thinking: true, preserve_thinking: true` |
+
+The agent plans, emits qwen3_xml tool calls that vLLM parses, pi executes
+`write`/`bash`/`edit`, files appear on disk.
 
 Notes:
-- `--thinking medium|high` maps to vLLM `reasoning_effort`; reasoning text
-  arrives inside `content` as a `<think>…</think>` block on this stack.
+- Reasoning text arrives inside `content` as a `<think>…</think>` block on
+  this stack; the streaming `usage` does not expose reasoning-token counts.
 - Agent decode runs at ~30-50 tok/s (MTP4 acceptance ~45-60% on tool/agentic
   turns); a deep single-file game task takes minutes, not seconds.
 - Full working-setup record incl. failure ledger:

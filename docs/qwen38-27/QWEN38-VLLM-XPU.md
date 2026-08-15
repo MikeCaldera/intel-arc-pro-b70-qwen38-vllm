@@ -163,3 +163,8 @@ LocalMaxxing submission id `cmsur82fz06svms01ga1f0z83` APPROVED.
 ## Evidence and gate
 - Status: **PROVISIONAL — NOT FOR PUBLIC HEADLINE** (E2 self-reported, independent reproduction pending).
 - The raw run directory, `summary.json`, `tables.md`, and `claims-audit-20260815.md` serve as verifiable evidence.
+
+## 10. Running the pi coding agent on this model
+See [PI-AGENT-BACKEND.md](PI-AGENT-BACKEND.md) — vLLM flags for tool calling
+(`--enable-auto-tool-choice --tool-call-parser qwen3_xml`), the pi
+`models.json` provider entry, and verified agent usage.

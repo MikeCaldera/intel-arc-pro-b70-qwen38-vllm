@@ -6,6 +6,7 @@ This cookbook has **two vLLM generations**. Pick the family first.
 |---|---|---|---|
 | Qwen3.6 Pi / dense 27B | `…2c427ef477da…` | `patch_mtp_nightly.py` then `patch_mtp_boundary.py` | Nemotron grouped-topk / SSU |
 | Nemotron-3.5-Lightning DFlash | `…1da0a9548545…` | `patch_xpu_grouped_topk_native_v2.py` then SSU B8/W4 | Qwen MTP patches |
+| Qwen3.8-27B | `…f01e24f6c7ff…` | `patch_mtp_nightly.py` then `patch_mtp_boundary.py` | none |
 
 Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
 public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.

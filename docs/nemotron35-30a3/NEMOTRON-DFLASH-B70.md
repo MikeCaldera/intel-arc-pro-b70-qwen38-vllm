@@ -46,6 +46,8 @@ Canonical evidence (private host log):
 `results/nemotron-dflash-bf16-n7-n5-20260813T082203Z-1407994/`
 (benchmark-history Run 36).
 
+![Nemotron DFlash advanced card — speed, matched speculation, capacity](../assets/b70-nemotron-dflash-advanced-dashboard.svg)
+
 ![Nemotron DFlash isolated n=5 dashboard](../assets/b70-nemotron-dflash-dashboard.svg)
 
 | Cell | Metric | n | median | min | max | acceptance |

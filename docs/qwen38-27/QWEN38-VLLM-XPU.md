@@ -168,3 +168,44 @@ LocalMaxxing submission id `cmsur82fz06svms01ga1f0z83` APPROVED.
 See [PI-AGENT-BACKEND.md](PI-AGENT-BACKEND.md) — vLLM flags for tool calling
 (`--enable-auto-tool-choice --tool-call-parser qwen3_xml`), the pi
 `models.json` provider entry, and verified agent usage.
+
+## 11. Concurrency & pointer-safety fixes (legacy pinned nightly)
+
+The two-patch stack above is **single-stream (C1) only**. With 2+ requests in
+flight on XPU, the compiled `gdn_attention` op rejects mixed spec + non-spec
+batches and kills the engine:
+
+```
+RuntimeError: causal_conv1d does not support spec-decode and non-spec
+(prefill + decode) tokens in the same invocation; the spec path and the
+non-spec path are mutually exclusive   -> EngineDeadError (all calls HTTP 500)
+```
+
+Additionally, some B70 boards return `torch.xpu.data_ptr()` addresses >= 2^63;
+storing them in an int64 slot raises `ValueError: Overflow when unpacking long
+long` -> HTTP 500 on the very first request. Both are fixed by two extra
+patches, apply AFTER the base two:
+
+1. `patch_mtp_ptr_wrap.py` (SHA-256: `4dded2ca0f40fcb93392cab7c83456cd320b9910cd6c5ba5d43d48352733e643`) — wraps `data_ptr` results to signed int64 (same bit pattern) in `vllm/v1/worker/mamba_utils.py`.
+2. `patch_gdn_split_mixed.py` (SHA-256: `16c1fa76952e121c87719c29995d64887c050d310447cb15698880dc8c9e49e5`) — splits mixed spec/non-spec `gdn_attention` invocations into two calls (env `B70_SPLIT_MIXED_GDN=1`, default ON on XPU).
+
+Both are **verified on the legacy Qwen pinned nightly**
+(`vllm/vllm-openai-xpu@sha256:2c427ef477da…`, vLLM `0.26.1rc1.dev457`,
+kernels `0.1.12`) serving this Qwen3.8-27B model with MTP4. They anchor to
+that nightly and fail closed when the source anchors differ (see
+`AGENTS.md` §5).
+
+### Gate verification (same model, MTP4, legacy nightly)
+
+| Check | with both fixes | without `gdn_split` |
+|---|---|---|
+| Quality A (45) | 45/45 | 45/45 (single stream) |
+| Sequential B (40) | 40/40 | 40/40 |
+| Concurrent C (8) | **8/8** | **0/8 → EngineDeadError** |
+| Long context D (8K/32K) | **OK** | **HTTP 500** |
+| MTP ratio | 0.58-0.61 | 0.58 |
+
+Without `patch_gdn_split_mixed.py` the engine dies on the concurrent block and
+every request afterwards returns HTTP 500. These patches are required for
+concurrent serving on the whole Qwen Pi/nightly family (Qwen3.6-27B and
+Qwen3.8-27B both reproduce the same crash).

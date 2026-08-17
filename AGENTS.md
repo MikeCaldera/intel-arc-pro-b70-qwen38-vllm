@@ -159,6 +159,8 @@ Current machine-readable result: `results/cache-spec-matrix-20260808-summary.jso
 |---|---:|---|---|
 | Current pinned nightly (Qwen Pi) | 1 | `patches/patch_mtp_nightly.py` | Build the preserved BF16 MTP draft outside the target GPTQ quant config |
 | Current pinned nightly (Qwen Pi) | 2 | `patches/patch_mtp_boundary.py` | Complete an exact-128K partial final MTP4 group without padding |
+| Current pinned nightly (Qwen Pi) | 3 | `patches/patch_mtp_ptr_wrap.py` | Wrap XPU `data_ptr` >= 2^63 to signed int64 (HTTP 500 fix for concurrent MTP on B70) |
+| Current pinned nightly (Qwen Pi) | 4 | `patches/patch_gdn_split_mixed.py` | Split mixed spec + non-spec `gdn_attention` calls on XPU (EngineDeadError fix, env `B70_SPLIT_MIXED_GDN=1`) |
 | Nemotron DFlash (newer digest) | 1 | `patches/patch_xpu_grouped_topk_native_v2.py` | XPU native grouped-topk + `torch.compiler.disable` ([vllm#52159](https://github.com/vllm-project/vllm/pull/52159)) |
 | Nemotron DFlash | 2 | `patches/ssu-b70-b8w4/` | B70 SSU B8/W4 JSON (device-specific, ~1%) |
 | Optional kernels rebuild | — | `patches/vllm-xpu-kernels/0001-*.py` + `0002-*.py` | `at::zeros` + Muse tuple ([vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524)) |

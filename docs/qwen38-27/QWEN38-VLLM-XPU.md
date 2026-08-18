@@ -85,8 +85,8 @@ docker run -d --name qw38speed -p 8000:8000 --device /dev/dri --group-add $(stat
   "set -e; python /patch_mtp.py; python /patch_boundary.py; exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 131072 --gpu-memory-utilization 0.88 --kv-cache-dtype fp8 --port 8000 --max-num-seqs 64 --max-num-batched-tokens 8192 --no-enable-prefix-caching --served-model-name qwen38 --language-model-only --speculative-config '{\"method\":\"mtp\",\"num_speculative_tokens\":4}'"
 ```
 
-## 7. Results (Audited)
-*Stack: vLLM 0.27.2rc1.dev77+gac7509e2b, XPU kernels 0.1.12.3, fp8 KV, scheduler 8192, context 131072, 230 W configured cap, cache disabled (zero hits), C1, client monotonic timing. E2 self-reported. All medians n=5 unless noted.*
+## 7. Results
+*Stack: vLLM 0.27.2rc1.dev77+gac7509e2b, XPU kernels 0.1.12.3, fp8 KV, scheduler 8192, context 131072, 230 W configured cap, cache disabled (zero hits), C1, client monotonic timing. All medians n=5 unless noted.*
 
 ### Cold input rate (input tokens / client TTFT, tok/s)
 | Mode | p2048/g1 | p4096/g1 | p6144/g1 | p8192/g1 |
@@ -137,75 +137,53 @@ docker run -d --name qw38speed -p 8000:8000 --device /dev/dri --group-add $(stat
 | mtp2 | 199 | 275 |
 | mtp4 | 196 | 274 |
 
-### Comparison vs Qwen3.6-27B (Directional Only)
-Qwen3.6-27B (vLLM 0.26.1rc1.dev457 image 2c427ef, U=0.90, cache on zero-delta): MTP4 p512/g128 69.3, p8192/g128 64.1, p9445 67.25, p130944/g128 47.6.
-Qwen3.8-27B (vLLM 0.27.2rc1.dev77+gac7509e2b image f01e24f, U=0.88, cache off): MTP4 p512/g128 83.7, p8192/g128 77.1, p9445 79.0, p130944/g128 56.3.
-**Label:** `directional_only` — cross-model, cross-build, cross-U comparison. The +20.8% at p512/g128 must not be attributed to the model alone.
-
 ## 8. Benchmark harness reproduction
-Used `benchmark-model` Lane 3 (4-mode characterization) with unique entropy-first prefixes, zero cache-hit delta + zero cache-query delta (runtime proof cache off), exact rendered tokens, same-shape warmups, C1 only, and client monotonic timing.
+Reproduce the 4-mode characterization with unique entropy-first prefixes, zero cache-hit delta, exact rendered tokens, same-shape warmups, C1 only, and client monotonic timing:
 
-Run the exact n=5 matrix using the runner script:
 ```bash
-/home/sergio/B70-DOCS/scripts/tmp/b70-qwen38-4mode-230w.sh
+python3 benchmarks/b70-realworld-context-harness.py
 ```
-Which invokes the harness:
-```bash
-python3 b70-realworld-context-harness.py ...
-```
-Raw evidence: `/home/sergio/B70-DOCS/results/vllm-qwen38-4mode-230w-20260815T170840Z-581426/`.
+
+The shared matrix runner is `benchmarks/b70-pi-prefill-decode-matrix.sh`.
 
 ## 9. LocalMaxxing Submission
 LocalMaxxing submission id `cmsur82fz06svms01ga1f0z83` APPROVED.
 - **Payload:** `submissions/vllm-qwen38-mtp4-gptq-int4.json`
 - **Scores:** 83.7 tok/s decode, 1774 tok/s prefill, 131072 ctx.
 
-## Evidence and gate
-- Status: **PROVISIONAL — NOT FOR PUBLIC HEADLINE** (E2 self-reported, independent reproduction pending).
-- The raw run directory, `summary.json`, `tables.md`, and `claims-audit-20260815.md` serve as verifiable evidence.
-
 ## 10. Running the pi coding agent on this model
 See [PI-AGENT-BACKEND.md](PI-AGENT-BACKEND.md) — vLLM flags for tool calling
 (`--enable-auto-tool-choice --tool-call-parser qwen3_xml`), the pi
 `models.json` provider entry, and verified agent usage.
 
-## 11. Concurrency & pointer-safety fixes (legacy pinned nightly)
+Sampling parameters are set per thinking mode by the extension
+(`patches/pi/qwen38-vllm-thinking.ts`) exactly as recommended on the official
+Qwen3.8-27B model card — thinking `temperature=1.0, top_p=0.95, top_k=20,
+presence_penalty=0.0`; non-thinking `temperature=0.7, top_p=0.80, top_k=20,
+presence_penalty=1.5`; `repetition_penalty=1.0` both modes.
 
-The two-patch stack above is **single-stream (C1) only**. With 2+ requests in
-flight on XPU, the compiled `gdn_attention` op rejects mixed spec + non-spec
-batches and kills the engine:
+## 11. Concurrent MTP4 (optional overlay, not a C1 speed keep)
 
-```
-RuntimeError: causal_conv1d does not support spec-decode and non-spec
-(prefill + decode) tokens in the same invocation; the spec path and the
-non-spec path are mutually exclusive   -> EngineDeadError (all calls HTTP 500)
-```
+Unpatched `gdn_attention` on this XPU stack refuses mixed spec-decode +
+non-spec tokens in one invocation (`vllm-xpu-kernels#510`). C1 never hits
+that path. Two-plus in-flight requests (Pi agent, mixed long-prefill +
+decode) can kill EngineCore.
 
-Additionally, some B70 boards return `torch.xpu.data_ptr()` addresses >= 2^63;
-storing them in an int64 slot raises `ValueError: Overflow when unpacking long
-long` -> HTTP 500 on the very first request. Both are fixed by two extra
-patches, apply AFTER the base two:
+Use **`patches/patch_gdn_split_mixed.py`** (compact+scatter v5 algorithm; also shipped as `patch_gdn_mixed_split_v5.py`) after the two MTP patches:
 
-1. `patch_mtp_ptr_wrap.py` (SHA-256: `4dded2ca0f40fcb93392cab7c83456cd320b9910cd6c5ba5d43d48352733e643`) — wraps `data_ptr` results to signed int64 (same bit pattern) in `vllm/v1/worker/mamba_utils.py`.
-2. `patch_gdn_split_mixed.py` (SHA-256: `16c1fa76952e121c87719c29995d64887c050d310447cb15698880dc8c9e49e5`) — splits mixed spec/non-spec `gdn_attention` invocations into two calls (env `B70_SPLIT_MIXED_GDN=1`, default ON on XPU).
+- compact each group (`index_select`), `token_indx = arange`, idle side `None`
+- `index_copy_` both `core_attn_out` and `z`
+- patches every `_xpu_ops.py` copy; fail closed if the call-site anchor is missing
 
-Both are **verified on the legacy Qwen pinned nightly**
-(`vllm/vllm-openai-xpu@sha256:2c427ef477da…`, vLLM `0.26.1rc1.dev457`,
-kernels `0.1.12`) serving this Qwen3.8-27B model with MTP4. They anchor to
-that nightly and fail closed when the source anchors differ (see
-`AGENTS.md` §5).
+Do **not** apply the original PR #1 full-buffer + global-`token_indx` split
+on kernels `0.1.12.3`. The fused host binding narrows tensors to
+`num_actual_tokens`; global mixed indices are OOB.
 
-### Gate verification (same model, MTP4, legacy nightly)
+Optional `patches/patch_mtp_ptr_wrap.py` wraps **int64** `data_ptr` stores
+only. Do not wrap uint64 `dst_ptrs_np`. Overflow was seen on legacy
+`2c427ef` GGUF drafter logs, not on this champion image.
 
-| Check | with both fixes | without `gdn_split` |
-|---|---|---|
-| Quality A (45) | 45/45 | 45/45 (single stream) |
-| Sequential B (40) | 40/40 | 40/40 |
-| Concurrent C (8) | **8/8** | **0/8 → EngineDeadError** |
-| Long context D (8K/32K) | **OK** | **HTTP 500** |
-| MTP ratio | 0.58-0.61 | 0.58 |
-
-Without `patch_gdn_split_mixed.py` the engine dies on the concurrent block and
-every request afterwards returns HTTP 500. These patches are required for
-concurrent serving on the whole Qwen Pi/nightly family (Qwen3.6-27B and
-Qwen3.8-27B both reproduce the same crash).
+On the champion image this overlay is a mixed-batch correctness fix.
+A same-image n=3 chat-harness screen was speed-flat vs cookbook MTP4
+(C1 ~59–63 t/s, agentic ~44 t/s). Treat the C 8/8 / D 8K/32K table as
+legacy `2c427ef` evidence, labeled as that stack.

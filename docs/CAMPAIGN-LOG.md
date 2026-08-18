@@ -2,8 +2,7 @@
 
 The full narrative of how we got from "vLLM is 7× slower than llama.cpp"
 (Run 14) to "vLLM MTP beats llama.cpp on MoE" (Run 18) to a complete measured
-map (Run 19). Each entry is a real benchmark run; full raw data and the
-authoritative narrative live in the private B70-DOCS repo.
+map (Run 19). Each entry is a real benchmark run.
 
 ## TL;DR arc
 
@@ -80,6 +79,4 @@ Combined with three load-path patches (BF16 draft, kwarg strip), MTP runs →
 
 ## Full data
 
-Raw JSONs for every run, the authoritative private narrative, and all serve
-logs live in the B70-DOCS repo (private — contains host IPs/paths). This public
-repo carries the patches, harnesses, and the headline results.
+This repo carries the patches, harnesses, and the headline results.

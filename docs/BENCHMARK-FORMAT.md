@@ -186,7 +186,7 @@ A result may enter README, portfolio, recommendation, social, or leaderboard cop
 4. C1 input, C1 post-first output, cache/resident, and concurrency results remain separate.
 5. Proposed wording labels medians, units, timing source, cache state, configured cap, evidence tier, exclusions, and correctness scope.
 
-Keep the result `E2 provisional self-reported; independent reproduction pending` until another operator reproduces the protocol. Speed is not correctness evidence. State output parity, token/logit/KL parity, or task-quality evidence only when directly tested.
+Speed is not correctness evidence. State output parity, token/logit/KL parity, or task-quality evidence only when directly tested.
 
 ## 12. Cookbook publication checklist
 

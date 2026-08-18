@@ -16,5 +16,4 @@ power-gated.
 (It may still help dense llama.cpp decode, which genuinely scales +18-30% from
 150→230W — but that is a different workload.)
 
-See B70-DOCS `docs/benchmark-history.md` Run 24, and
-`scripts/tmp/b70-power-ab-prefill.py` for the refuting harness.
+The paired 150 W vs 230 W A/B above is the refuting evidence.

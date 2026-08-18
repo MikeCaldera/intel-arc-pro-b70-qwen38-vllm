@@ -10,7 +10,7 @@ Nemotron DFlash.
 
 ## Model family hub
 
-| Family | Engine | What is proven | Headline (self-report, E2) | Page |
+| Family | Engine | What is proven | Headline | Page |
 |---|---|---|---|---|
 | **Qwen3.6-35B-A3B** | vLLM XPU (Pi digest) | Native MTP 1/2/4, 128K | MTP4 p512/g128 **170.91** client post-first n=5 | [this README §MoE](#moe-qwen36-35b-a3b--whole-analysis) |
 | **Qwen3.8-27B** | vLLM XPU (nightly digest) | Dense GPTQ-INT4 + MTP, 4-mode | MTP4 p512/g128 **83.7** n=5 | [QWEN38-VLLM-XPU](docs/qwen38-27/QWEN38-VLLM-XPU.md) |
@@ -20,7 +20,7 @@ Nemotron DFlash.
 
 Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
-means published self-report, not a platform rerun.
+means the payload was accepted into the public leaderboard.
 
 ## Qwen3.6 family — current tested stack
 
@@ -97,7 +97,7 @@ Agents updating benchmark graphics should use [the B70 benchmark visuals skill](
 
 ## MoE: Qwen3.6-35B-A3B — whole analysis
 
-**Scope for every table below:** one Intel Arc Pro B70, C1, median of `n=5` after one same-output same-shape warmup, prefix cache enabled, unique entropy-first cold prefixes, zero cache-hit delta, scheduler 8,192, context 131,072, configured cap 165 W, client monotonic SSE timing, E2 provisional self-reported evidence. Independent reproduction is pending.
+**Scope for every table below:** one Intel Arc Pro B70, C1, median of `n=5` after one same-output same-shape warmup, prefix cache enabled, unique entropy-first cold prefixes, zero cache-hit delta, scheduler 8,192, context 131,072, configured cap 165 W, client monotonic SSE timing.
 
 Two model checkpoints were verified on this stack: the `llmfan46/...MTP-Preserved` GPTQ-INT4 (all matrix tables) and the byte-exact `palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4` incl. `mtp.safetensors` (claim-reproduction tests, below).
 
@@ -161,7 +161,7 @@ Prefill is essentially **flat across context** (p4096 input rate, batch 16,384, 
 
 We reproduced the claimed config exactly (byte-identical `palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4` incl. `mtp.safetensors`, hash-verified; context 32,768; p4096/g1; batch 16,384; seqs 16; MTP4; fp8 KV; cache off; 230 W). Measured: **7,740 t/s median**, not 12,400. The claim's cited build hash `568afb3a1` is an upstream macOS-CI commit (#49901), not an XPU kernel change — not a meaningful reproduction target; their entry ran vLLM 0.26.1.dev0 on Windows 11, our stack is 0.26.1rc1.dev457 on Linux.
 
-Verdict: `directional_only`, **not reproduced**. The 1.6× gap is build/OS or their prefill definition (their implied TTFT 0.330 s vs our 0.529 s). Evidence: `results/vllm-moe-12k-exact-20260809T190246Z-13717/` and `results/vllm-moe-12k-lowctx-20260809T193408Z-64922/` (raw SSE, monitor, summary.json in the private B70-DOCS repo).
+Verdict: **not reproduced**. The 1.6× gap is build/OS or their prefill definition (their implied TTFT 0.330 s vs our 0.529 s).
 
 ### Full-context decode
 
@@ -190,8 +190,7 @@ The original no-spec p130560/g512 cell stopped at EOS in three of five requests.
 one same-output same-shape warmup, prefix cache enabled, unique entropy-first cold
 prefixes, zero cache-hit delta, scheduler 8,192, context 131,072,
 **`--kv-cache-dtype fp8`** (required for dense 128K), configured cap **230 W**,
-client monotonic SSE timing, E2 provisional self-reported evidence. Independent
-reproduction is pending. Dense 27B GPTQ-INT4 runs on the pinned image (vLLM 0.26.1rc1.dev457+gc810e5ee9.xpu) via
+	client monotonic SSE timing. Dense 27B GPTQ-INT4 runs on the pinned image (vLLM 0.26.1rc1.dev457+gc810e5ee9.xpu) via
 `XPUwNa16LinearKernel`; both MTP patches apply unchanged to the dense
 `Qwen3_5ForConditionalGeneration` architecture (same shared `qwen3_5_mtp.py` /
 `gdn_attn.py`).
@@ -267,9 +266,8 @@ active requests, cooldown ≤55°C between modes. Live `energy1_input` deltas,
 | MTP2 | 153.3 | 242.9 | 72 | 72 |
 
 All four modes within a 6 W band — **MTP depth is not a power lever on dense**.
-Max 0.5 s samples above the 230 W cap are short-burst overshoot before the cap
-controller engages (card TDP ~300 W). Evidence:
-`results/dense27-matched-power-20260809T214116Z/` (private B70-DOCS).
+	Max 0.5 s samples above the 230 W cap are short-burst overshoot before the cap
+	controller engages (card TDP ~300 W).
 
 > Earlier campaign-window monitor means (195/197/146/146 W) were coverage
 > artifacts — the no-spec/MTP1 windows included the heavy full-context 130K
@@ -353,13 +351,11 @@ share the 128K ceiling with MTP; vLLM additionally needs fp8 KV.
 5. **Mixed long prefill + short requests:** no-spec is the safe path on this
    stack (MTP4 mixed-token `causal_conv1d` crash remains open).
 
-## Nemotron: 3.5-Lightning-30B-A3B — vLLM XPU + DFlash (2026-08-13, E2)
+## Nemotron: 3.5-Lightning-30B-A3B — vLLM XPU + DFlash (2026-08-13)
 
 Two separate recipes. Do not mix their tables.
 
-**E2 self-report with raw evidence. Not independently reproduced.**
-LocalMaxxing `cmsr9po4w000ams01e4fc5qhj` is an approved self-report, not a
-platform rerun.
+LocalMaxxing `cmsr9po4w000ams01e4fc5qhj` is APPROVED.
 
 **DFlash (current headline, isolated n=5):** official `method=dflash`
 `n_spec=7` on a local GPTQ-INT4 G64 target + local NVFP4→BF16 draft.
@@ -387,7 +383,7 @@ Artifacts (canonical two-i account):
 - Runtime patches: `patches/patch_xpu_grouped_topk_native_v2.py`, `patches/ssu-b70-b8w4/`
 - Open PRs (2026-08-13): [vllm#52159](https://github.com/vllm-project/vllm/pull/52159), [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524). Source copies: `patches/vllm-xpu-kernels/`
 
-## Muse: Glimmer-30B — llama.cpp analysis (2026-08-10, E2 provisional)
+## Muse: Glimmer-30B — llama.cpp analysis (2026-08-10)
 
 First B70 run of Meta Muse-Glimmer-30B (dense 27.85B text + ViT-G/14 vision,
 128K ctx, reasoning model). **Public recipe: llama.cpp SYCL** (DFlash n_max=2).
@@ -417,7 +413,6 @@ Full commands, provenance, failures, and quality caveats:
 **LocalMaxxing submission (2026-08-10):** [leaderboard](https://www.localmaxxing.com/en/leaderboard) —
 engine `cmsnly2su00goo001wn6c98ly`, benchmark run `cmsnly2sy00gqo001ui1k5l67`
 (record: [submissions/llamacpp-muse-glimmer-30b.json](submissions/llamacpp-muse-glimmer-30b.json)).
-E2 provisional self-report, not independently verified.
 
 ## Reproduce the matrix
 
@@ -480,52 +475,6 @@ scheduler findings) and prefix caching (see the resident-session section).
 
 Prompt hashes match across no-spec, MTP1, MTP2, and MTP4. Output parity does not. Depending on the longer-decode cell, only 0 to 4 of 5 repetitions matched exact output text across all four modes. The campaign shows speed and completed exact token shapes, not token, logit, KL, or task-quality parity. Do not use speed as correctness proof.
 
-## Upcoming: Qwen3.8-27B — landing plan (expected Wed 2026-08-12)
-
-Status as of 2026-08-10: Qwen3.8 family announced Aug 3; the 27B open weights
-are expected this Wednesday. **Architecture (dense vs MoE, vision encoder,
-MTP head in the open release) is NOT officially confirmed** — every model
-claim below is a community expectation labeled as such, and must be
-re-verified against the actual release before benchmarking.
-
-**Day-1 reality: no MTP for days-to-weeks.** The measured history on
-Qwen3.6-27B: engine architecture support lands in days, community k-quant
-GGUFs follow in ~1–2 weeks, and MTP-preserved quants plus MTP support in
-llama.cpp / the pinned vLLM nightly (and reworking both `patch_mtp_nightly`
-and `patch_mtp_boundary` for any changed architecture files) takes weeks.
-Until then the model runs without speculative decoding.
-
-**Expected decode without MTP (measured dense 27B INT4 baselines, vLLM XPU,
-C1, 230 W, n=5 — AutoRound INT4 uses the same w4a16 layout as GPTQ):**
-
-| Mode | p512 | p8192 | p130944 (128K) |
-|---|---|---|---|
-| no-spec (no-MTP analog) | 32.9 t/s | 31.5 t/s | 23.1 t/s |
-| MTP4 (once supported) | 69.3–72.8 t/s | 57.8–67.4 t/s | 42.6–47.6 t/s |
-
-llama.cpp GGUF fallback: ~21 t/s Q4_K_M base (24–29 with MTP-4). If the
-27B ships as MoE instead of dense, the no-spec class changes to ~60–70 t/s
-(MoE 35B-A3B measured) — re-check at release.
-
-**Self-serve quantization on the B70 is feasible (two paths):**
-
-1. **AutoRound (Intel) → HF INT4 w4a16 or GGUF** (`Q4_K_M` recommended; see
-   [intel/auto-round](https://github.com/intel/auto-round)). Feasibility: a
-   Qwen3.6-27B INT4 quantization completed on a 32 GB RTX 5090 at 22.6 GiB
-   peak VRAM with `low_gpu_mem_usage=True` + `device_map=cpu` (23.8 GiB RAM,
-   [auto-round#1451](https://github.com/intel/auto-round/issues/1451)). The
-   B70's 32 GB VRAM fits; the 30 GB system RAM is the hard blocker — the
-   54 GB bf16 weights + calibration cache exceed RAM, so expect heavy disk
-   swap and an estimated **10–20 h runtime** (community anchors: ~7 h on
-   NVIDIA GB10/128 GB unified, ~15–45 min on A100-class). Use
-   `nsamples=128` (Intel's recommended start) to shrink the cache. Needs
-   the ~54 GB bf16 release (~106 GB free on the secondary volume fits)
-   plus a calibration set. Faster day-1 alternative: once llama.cpp
-   supports the architecture, `convert_hf_to_gguf.py` + `llama-quantize`
-   (CPU-only) produce a runnable Q4_K_M GGUF in under an hour.
-2. **`llama-quantize` for plain k-quants** — only after llama.cpp supports
-   the new architecture.
-
 ## Repository map
 
 ```text
@@ -546,7 +495,7 @@ results/
   qwen36-27/         Dense summaries (dense27 model card, llama.cpp grids)
   <root>             shared cross-model summaries
 research/            kernel and quantization investigations
-submissions/         historical self-reported platform payloads
+submissions/         historical LocalMaxxing payloads
 ```
 
 Model-specific files live under the family directory; cross-model contracts

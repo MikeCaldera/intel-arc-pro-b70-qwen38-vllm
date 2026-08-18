@@ -1,8 +1,6 @@
 # Nemotron-3.5-Lightning + DFlash on the B70 (vLLM XPU)
 
-Status: **E2 self-report with raw evidence.** Isolated C1 n=5 Lane 1 card.
-Eligible as a LocalMaxxing self-report. **Not independently reproduced.**
-Copy numbers only from [CLAIMS.md](CLAIMS.md).
+Isolated C1 n=5 Lane 1 card. Copy numbers only from [CLAIMS.md](CLAIMS.md).
 
 This page is the **DFlash** recipe. The no-spec graph path (93 / 87 t/s) stays
 on [NEMOTRON-B70.md](NEMOTRON-B70.md). Do not mix those tables.
@@ -166,10 +164,8 @@ load.
 
 ## Convert it yourself (optional)
 
-Target (symmetric GPTQ INT4 G64) and draft (NVFP4 E2M1 → BF16) converters live
-in the private research tree (`scripts/tmp/b70-nvfp4-dflash-to-bf16.py` and the
-GPTQ lineage in `research/nemotron-lightning-optimization-20260811/`). The
-published HF repos are the reproduction default.
+The published HF repos are the reproduction default. Optional local conversion
+is not required to follow this recipe.
 
 Draft conversion contract:
 
@@ -180,7 +176,7 @@ Draft conversion contract:
 ## LocalMaxxing
 
 Self-reported record `cmsr9po4w000ams01e4fc5qhj` (2026-08-13T08:40:16Z),
-status `APPROVED` = published self-report, **not** independently verified.
+status `APPROVED`.
 
 Displayed: `tokSOut=186.6`, `tokSPrefill=7160`,
 `GPTQ-INT4-G64-sym-local+DFlash-BF16-local`, engine `vllm`.

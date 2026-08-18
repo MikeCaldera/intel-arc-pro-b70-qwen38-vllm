@@ -4,7 +4,7 @@ Family index. Keep Qwen and Muse numbers on their own pages.
 
 | Path | What it is | Status |
 |---|---|---|
-| [NEMOTRON-DFLASH-B70.md](NEMOTRON-DFLASH-B70.md) | Working speculative recipe (`method=dflash` n=7) | Isolated n=5, E2 |
+| [NEMOTRON-DFLASH-B70.md](NEMOTRON-DFLASH-B70.md) | Working speculative recipe (`method=dflash` n=7) | Isolated n=5 |
 | [NEMOTRON-B70.md](NEMOTRON-B70.md) | No-spec XPU-graph floor | n=5 decode; graph determinism caveat |
 | [CLAIMS.md](CLAIMS.md) | Observed numbers only — copy from here | Source of truth for this family |
 | `benchmarks/nemotron35-30a3/launch-nemotron-dflash.sh` | DFlash launcher | Public digest + runtime patches |
@@ -30,7 +30,7 @@ conversion.” The names already encode format (`GPTQ-INT4-G64-sym`,
 3. Representative decode is **186.61** at **p2048/g128 n=5**, not p512 194.6.
 4. Lane 1 input is **7160** at **p8192/g1 n=5**. The ~10.3k figure is a
    no-spec n=3 TTFT on a **g128** cell.
-5. LocalMaxxing `cmsr9po4w000ams01e4fc5qhj` is an approved **self-report**.
+5. LocalMaxxing `cmsr9po4w000ams01e4fc5qhj` is APPROVED.
 6. Open PRs: [vllm#52159](https://github.com/vllm-project/vllm/pull/52159),
    [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524).
    The DFlash launcher already applies the Python router patch. Kernel

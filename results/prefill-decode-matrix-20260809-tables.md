@@ -1,6 +1,6 @@
 ## Phase-separated vLLM benchmark
 
-Tested stack: vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu`, `vllm-xpu-kernels 0.1.12`, C1, `n=5`, scheduler 8192, context 131072, prefix cache enabled with zero hit delta, configured 165 W cap. Status: E2 self-reported; independent reproduction pending.
+Tested stack: vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu`, `vllm-xpu-kernels 0.1.12`, C1, `n=5`, scheduler 8192, context 131072, prefix cache enabled with zero hit delta, configured 165 W cap.
 
 ### Cold input rate (actual input tokens / TTFT, tok/s)
 

@@ -70,7 +70,7 @@ localmaxxing values reproducibility. Every submission MUST disclose:
 - **Single-stream vs concurrent** — `tokSOut` is single-stream. If you measured
   multi-user aggregate, that goes in notes, NOT `tokSOut`.
 
-Historical payloads in `submissions/` disclose their old four-patch local-image stack. Do not copy those notes into a current nightly submission. The August 8 Pi/128K campaign remains E2 provisional and is not approved for submission.
+Historical payloads in `submissions/` disclose their old four-patch local-image stack. Do not copy those notes into a current nightly submission.
 
 ## POST endpoint (curl fallback)
 

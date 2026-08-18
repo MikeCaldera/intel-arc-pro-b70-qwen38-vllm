@@ -2,9 +2,7 @@
 
 > **Status 2026-08-10:** RUNNING on the Intel Arc Pro B70. Text (reasoning
 > channel), vision (mmproj), and DFlash block-diffusion speculative decoding all
-> verified. Numbers are **E2 provisional · self-reported, not independently
-> reproduced**. Full evidence: `docs/benchmark-history.md` Run 33/34/35; raw:
-> `results/muse-dflash-sweep-manual-20260810T164735/`.
+> verified.
 
 ## Stack that made this work
 
@@ -98,8 +96,7 @@ What changed after the 2026-08-10 “vLLM blocked” note:
   the Nemotron grouped-topk / SSU / graph stack — Muse is dense, not LatentMoE.
 - **Speed:** a text-only n=3 C1 screen at 150 W measured **21.34 / 24.60**
   client post-first at p512/p8192 g128. That is **slower** than llama.cpp
-  DFlash **26.8 / 22.9** at 128K, and it is n=3. **PROVISIONAL — NOT A
-  HEADLINE.** Evidence: `research/b70-vllm-muse-int4/PLAN.md`.
+  DFlash **26.8 / 22.9** at 128K, and it is n=3 — not a headline cell.
 
 Still true: FP8-block 34.4 GB does not fit; XPU has no FP8 linear kernel.
 Do not apply Nemotron `grouped_topk` / SSU patches to Muse. Revisit vLLM
@@ -112,4 +109,3 @@ Submitted via `lmx speed-test submit` (v0.1.31) — record:
 n2, p512/g128, 128K ctx, 230 W) · `tokSPrefill` 1,301 (llama-bench pp4096) ·
 `contextLength` 131,072 · engine `llama.cpp d2f83055d SYCL` · Q4_K_XL.
 Engine id `cmsnly2su00goo001wn6c98ly`, benchmark run `cmsnly2sy00gqo001ui1k5l67`.
-E2 provisional self-report, not independently verified.

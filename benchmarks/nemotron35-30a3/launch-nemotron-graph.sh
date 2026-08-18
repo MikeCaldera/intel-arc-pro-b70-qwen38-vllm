@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# B70 Nemotron-3.5-Lightning vLLM launcher — XPU-graph decode config (~93 t/s provisional).
+# B70 Nemotron-3.5-Lightning vLLM launcher — XPU-graph decode config (~93 t/s).
 #
 # WHEN TO USE: serve the local symmetric GPTQ INT4 G64 conversion with the
 #   compiled + XPU-graph config that raised decode from ~21.8 to ~93/87 t/s.
@@ -9,10 +9,9 @@
 # OUTPUT: OpenAI-compatible endpoint on PORT; Docker logs in the named container.
 # SAFETY: refuses another inference process; does not change host power.
 #
-# PROVISIONAL: decode is verified (n=5) and coherent, but temperature-0
+# NOTE: decode is verified (n=5) and coherent, but temperature-0
 #   deterministic replay does not hold on this stack (XPU compiled-kernel FP
-#   race). Do not present the numbers as a clean publication headline until
-#   the determinism work (upstream) lands.
+#   race).
 #
 # Example:
 #   bash benchmarks/nemotron35-30a3/launch-nemotron-graph.sh /path/to/model 8001

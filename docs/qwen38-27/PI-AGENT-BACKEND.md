@@ -122,5 +122,3 @@ Notes:
   this stack; the streaming `usage` does not expose reasoning-token counts.
 - Agent decode runs at ~30-50 tok/s (MTP4 acceptance ~45-60% on tool/agentic
   turns); a deep single-file game task takes minutes, not seconds.
-- Full working-setup record incl. failure ledger:
-  `B70-DOCS/research/qwen38-pi-agent-backend-20260816.md`.

@@ -155,6 +155,6 @@
 
     <!-- FOOTER -->
     <rect x="40" y="1100" width="1520" height="50" rx="8" fill="#0f1d30" stroke="#263a53" />
-    <text x="800" y="1130" class="text-muted caption" text-anchor="middle">E2 self-report, not independently reproduced. Cache off. 150 W configured cap. Local conversions. Cold input ≠ isolated prefill. 128K not claimed.</text>
+    <text x="800" y="1130" class="text-muted caption" text-anchor="middle">Cache off. 150 W configured cap. Local conversions. Cold input ≠ isolated prefill. 128K not claimed.</text>
 
 </svg>

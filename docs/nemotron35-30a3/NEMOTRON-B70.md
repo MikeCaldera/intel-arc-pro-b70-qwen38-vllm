@@ -72,10 +72,8 @@ inside the container before `vllm serve`. The server imports vLLM from
 The artifact is a local conversion; there is no official GPTQ. Contract:
 4-bit, symmetric, group 64, signed range [-8,7], stored `signed+8` low-first
 nibbles, BF16 scales, zero-filled qzeros, `g_idx = arange(K)//64`, norms
-(excluded 1D) kept BF16. Converter: `b70-nemotron-mtp-head-gptq.py` lineage —
-see `research/nemotron-lightning-optimization-20260811/10-vllm-gptq-readiness-20260812.md`
-and `11-session-log-20260812.md` for the full contract, manifest, and the
-MTP-head variant (which exists but is NOT usable yet: 0% draft acceptance).
+(excluded 1D) kept BF16. The published HF GPTQ repo is the reproduction default.
+The MTP-head variant exists but is not usable yet (0% draft acceptance).
 
 ## LocalMaxxing
 

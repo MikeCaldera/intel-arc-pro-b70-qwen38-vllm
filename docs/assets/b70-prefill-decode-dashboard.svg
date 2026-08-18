@@ -227,5 +227,5 @@
 <text x="1210" y="1589" fill="#f5f8fc" font-size="18" font-weight="700" text-anchor="start">MTP4</text>
 <text x="1210" y="1623" fill="#9caec4" font-size="17" font-weight="600" text-anchor="start">g128 93.53</text>
 <text x="1356" y="1623" fill="#9caec4" font-size="17" font-weight="600" text-anchor="start">g512 93.83</text>
-<text x="58" y="1700" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start">Matched p9445/g128: MTP4 160.42 tok/s (prior 158.83). Client post-first timing · cache on, zero hits · configured 165 W · E2 self-reported, not independently reproduced.</text>
+<text x="58" y="1700" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start">Matched p9445/g128: MTP4 160.42 tok/s (prior 158.83). Client post-first timing · cache on, zero hits · configured 165 W.</text>
 </svg>

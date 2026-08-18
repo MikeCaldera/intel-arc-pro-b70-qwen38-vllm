@@ -158,6 +158,4 @@ already optimal (MoE on GPTQ-Int4) or architectural (GDN bottleneck).
 - [AesSedai/Qwen3.5-35B-A3B-GGUF](https://huggingface.co/AesSedai/Qwen3.5-35B-A3B-GGUF) — MoE-specific KLD
 - [IST-DASLab/gptq-gguf-toolkit](https://github.com/IST-DASLab/gptq-gguf-toolkit) — GPTQ vs K-quant at matched bitwidths
 - [GPTQModel](https://github.com/modelcloud/gptqmodel) — quantization tool
-- B70-DOCS `results/vllm-mxfp4-summary-20260805.md` — MXFP4 Run 13 results
-- B70-DOCS `research/vllm-021-campaign-20260806.md` — full 19-run campaign log
 - [OCP Microscaling Formats (MX) Specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-specification-pdf-html)

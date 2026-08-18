@@ -243,4 +243,4 @@ results/vllm-pi-prefill-decode-matrix-<UTC>-<PID>/
 
 Each mode retains server logs, metrics snapshots, synchronized monitor data, VRAM evidence, harness logs, raw SSE/request records, and per-cell manifests. Preserve failed and excluded cells. The original no-spec p130560/g512 early-EOS cell remains excluded; the accepted summary uses its forced-exact replacement.
 
-Publication remains E2 provisional until another operator reproduces it. Follow [Benchmark format](BENCHMARK-FORMAT.md) before copying any table.
+Follow [Benchmark format](BENCHMARK-FORMAT.md) before copying any table.

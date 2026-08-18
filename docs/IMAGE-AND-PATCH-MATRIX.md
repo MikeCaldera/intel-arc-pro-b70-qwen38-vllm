@@ -1,12 +1,19 @@
 # vLLM XPU Image and Patch Matrix
 
-This cookbook has **two vLLM generations**. Pick the family first.
+This cookbook has **separate vLLM generations**. Pick the **family** first,
+then apply **only** that row’s “Apply” list. The last column is a
+**denylist**, not a second patch list.
 
-| Family | Digest | Patches | Do not apply |
+- **Qwen** (3.6 or 3.8) uses the **Qwen MTP** patches. Never put Nemotron
+  grouped-topk / SSU on a Qwen image.
+- **Nemotron DFlash** uses the **Nemotron** router + SSU patches. Never put
+  Qwen `patch_mtp_nightly.py` / `patch_mtp_boundary.py` on a Nemotron image.
+
+| Family | Image digest | Apply, in this order | Never apply on this family |
 |---|---|---|---|
-| Qwen3.6 Pi / dense 27B | `…2c427ef477da…` | `patch_mtp_nightly.py` then `patch_mtp_boundary.py` | Nemotron grouped-topk / SSU |
-| Nemotron-3.5-Lightning DFlash | `…1da0a9548545…` | `patch_xpu_grouped_topk_native_v2.py` then SSU B8/W4 | Qwen MTP patches |
-| Qwen3.8-27B | `…f01e24f6c7ff…` | `patch_mtp_nightly.py` then `patch_mtp_boundary.py` | none |
+| Qwen3.6 Pi / dense 27B | `…2c427ef477da…` | Qwen MTP: `patch_mtp_nightly.py` then `patch_mtp_boundary.py` | Nemotron grouped-topk / SSU (Nemotron-only) |
+| Nemotron-3.5-Lightning DFlash | `…1da0a9548545…` | Nemotron: `patch_xpu_grouped_topk_native_v2.py` then SSU B8/W4 | Qwen MTP patches (Qwen-only) |
+| Qwen3.8-27B | `…f01e24f6c7ff…` | Qwen MTP: `patch_mtp_nightly.py` then `patch_mtp_boundary.py`. Optional mixed-batch: compact+scatter `patch_gdn_mixed_split_v5.py` | Nemotron grouped-topk / SSU. Original full-buffer `patch_gdn_split_mixed` (OOB on kernels 0.1.12.3). Draft INT4 S+M1 stays research until a same-image n=5 + accept-counter card |
 
 Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
 public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.

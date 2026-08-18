@@ -161,3 +161,29 @@ Sampling parameters are set per thinking mode by the extension
 Qwen3.8-27B model card — thinking `temperature=1.0, top_p=0.95, top_k=20,
 presence_penalty=0.0`; non-thinking `temperature=0.7, top_p=0.80, top_k=20,
 presence_penalty=1.5`; `repetition_penalty=1.0` both modes.
+
+## 11. Concurrent MTP4 (optional overlay, not a C1 speed keep)
+
+Unpatched `gdn_attention` on this XPU stack refuses mixed spec-decode +
+non-spec tokens in one invocation (`vllm-xpu-kernels#510`). C1 never hits
+that path. Two-plus in-flight requests (Pi agent, mixed long-prefill +
+decode) can kill EngineCore.
+
+Use **`patches/patch_gdn_split_mixed.py`** (compact+scatter v5 algorithm; also shipped as `patch_gdn_mixed_split_v5.py`) after the two MTP patches:
+
+- compact each group (`index_select`), `token_indx = arange`, idle side `None`
+- `index_copy_` both `core_attn_out` and `z`
+- patches every `_xpu_ops.py` copy; fail closed if the call-site anchor is missing
+
+Do **not** apply the original PR #1 full-buffer + global-`token_indx` split
+on kernels `0.1.12.3`. The fused host binding narrows tensors to
+`num_actual_tokens`; global mixed indices are OOB.
+
+Optional `patches/patch_mtp_ptr_wrap.py` wraps **int64** `data_ptr` stores
+only. Do not wrap uint64 `dst_ptrs_np`. Overflow was seen on legacy
+`2c427ef` GGUF drafter logs, not on this champion image.
+
+On the champion image this overlay is a mixed-batch correctness fix.
+A same-image n=3 chat-harness screen was speed-flat vs cookbook MTP4
+(C1 ~59–63 t/s, agentic ~44 t/s). Treat the C 8/8 / D 8K/32K table as
+legacy `2c427ef` evidence, labeled as that stack.

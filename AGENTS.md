@@ -159,7 +159,9 @@ Current machine-readable result: `results/cache-spec-matrix-20260808-summary.jso
 |---|---:|---|---|
 | Current pinned nightly (Qwen Pi) | 1 | `patches/patch_mtp_nightly.py` | Build the preserved BF16 MTP draft outside the target GPTQ quant config |
 | Current pinned nightly (Qwen Pi) | 2 | `patches/patch_mtp_boundary.py` | Complete an exact-128K partial final MTP4 group without padding |
-| Qwen3.8 research only | — | `patches/patch_draft_lmhead_int4.py` / `patch_draft_mtp_int4.py` | Draft-side INT4 RTN. Env off by default. Same-image n=3 screen exists; not a cookbook keep until n=5 + accept counters. |
+| Qwen3.8 champion `f01e24f6` (optional Cn) | 3 | `patches/patch_gdn_mixed_split_v5.py` (also `patch_gdn_split_mixed.py`) | Compact+scatter mixed spec/non-spec `gdn_attention`. Mixed-batch keep; C1 speed-flat vs cookbook MTP4. |
+| Qwen3.8 champion `f01e24f6` (optional MTP speed) | 4 | `patches/patch_draft_lmhead_int4.py` then `patch_draft_mtp_int4.py` | Draft-side INT4 RTN (S+M1). Env off unless set. Same-image n=5: p512/g128 112.65 vs 81.20 (+38.7%), p8192/g128 103.63 vs 77.52 (+33.7%), short agentic +32.8%. Speed only; accept 95.9%→94.4%. |
+| Optional / legacy boards | — | `patches/patch_mtp_ptr_wrap.py` | Int64 `data_ptr` wrap only. Do not wrap uint64 `dst_ptrs`. Fail closed. |
 | Nemotron DFlash (newer digest) | 1 | `patches/patch_xpu_grouped_topk_native_v2.py` | XPU native grouped-topk + `torch.compiler.disable` ([vllm#52159](https://github.com/vllm-project/vllm/pull/52159)) |
 | Nemotron DFlash | 2 | `patches/ssu-b70-b8w4/` | B70 SSU B8/W4 JSON (device-specific, ~1%) |
 | Optional kernels rebuild | — | `patches/vllm-xpu-kernels/0001-*.py` + `0002-*.py` | `at::zeros` + Muse tuple ([vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524)) |

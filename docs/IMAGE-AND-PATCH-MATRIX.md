@@ -13,7 +13,7 @@ then apply **only** that row’s “Apply” list. The last column is a
 |---|---|---|---|
 | Qwen3.6 Pi / dense 27B | `…2c427ef477da…` | Qwen MTP: `patch_mtp_nightly.py` then `patch_mtp_boundary.py` | Nemotron grouped-topk / SSU (Nemotron-only) |
 | Nemotron-3.5-Lightning DFlash | `…1da0a9548545…` | Nemotron: `patch_xpu_grouped_topk_native_v2.py` then SSU B8/W4 | Qwen MTP patches (Qwen-only) |
-| Qwen3.8-27B | `…f01e24f6c7ff…` | Qwen MTP: `patch_mtp_nightly.py` then `patch_mtp_boundary.py`. Optional mixed-batch: compact+scatter `patch_gdn_mixed_split_v5.py` | Nemotron grouped-topk / SSU. Original full-buffer `patch_gdn_split_mixed` (OOB on kernels 0.1.12.3). Draft INT4 S+M1 stays research until a same-image n=5 + accept-counter card |
+| Qwen3.8-27B | `…f01e24f6c7ff…` | Qwen MTP: `patch_mtp_nightly.py` then `patch_mtp_boundary.py`. Optional mixed-batch: compact+scatter `patch_gdn_mixed_split_v5.py`. Optional MTP speed: `patch_draft_lmhead_int4.py` then `patch_draft_mtp_int4.py` (`B70_DRAFT_LMHEAD_INT4=1`, `B70_DRAFT_MTP_INT4=1`) | Nemotron grouped-topk / SSU. Original full-buffer GDN split (OOB on kernels 0.1.12.3) |
 
 Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
 public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.

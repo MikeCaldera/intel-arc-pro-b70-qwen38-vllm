@@ -161,3 +161,11 @@ Sampling parameters are set per thinking mode by the extension
 Qwen3.8-27B model card — thinking `temperature=1.0, top_p=0.95, top_k=20,
 presence_penalty=0.0`; non-thinking `temperature=0.7, top_p=0.80, top_k=20,
 presence_penalty=1.5`; `repetition_penalty=1.0` both modes.
+
+## 11. Draft INT4 S+M1 (research, env default off)
+
+See [DRAFT-INT4-S-M1.md](DRAFT-INT4-S-M1.md). Do not headline +51% against
+this champion recipe. Pair with a compact+scatter GDN split if you also
+need mixed spec + prefill; the original full-buffer split is OOB on
+kernels 0.1.12.3.
+

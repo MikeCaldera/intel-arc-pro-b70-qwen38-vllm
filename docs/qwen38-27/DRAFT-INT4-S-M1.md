@@ -1,77 +1,74 @@
-# Qwen3.8-27B — Draft INT4 (S + M1) High-Throughput Variant
+# Qwen3.8-27B — Draft INT4 (S + M1) research variant
 
-Two extra runtime patches (apply after the base nightly patches **and** the
-concurrency/pointer-safety fixes) that quantize the **speculative-draft** side
-of MTP to INT4 g128 sym (GPTQ format), reusing the existing
-`torch.ops._xpu_C.int4_gemm_w4a16` kernel.
+Runtime patches that **requantize the speculative-draft side** of MTP to
+INT4 g128 symmetric (round-to-nearest, not Hessian GPTQ) and route those
+linears through `torch.ops._xpu_C.int4_gemm_w4a16`.
 
-**Lossless**: only the draft's own LM head / MTP module are quantized. The
-verification (target) LM head stays BF16, and draft tokens are verified
-against the target (greedy) — the emitted sequence is identical to the MTP4
-baseline.
+This is **not** the cookbook production recipe. The production Qwen3.8
+image is `vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f`
+(vLLM `0.27.2rc1.dev77+gac7509e2b`, kernels `0.1.12.3`). These patches
+were authored against the **legacy** `2c427ef` nightly (vLLM 0.26.1).
+They fail closed if `qwen3_5_mtp.py` anchors differ.
 
-- `patches/patch_draft_lmhead_int4.py` (SHA-256: `ffae41926d5f05f4f38bb985301b5e572092441d06d6063c8820a63a39b8cefc`) — **Phase S**: draft LM head INT4 copy (2.54 GB fp16 → 0.66 GB), removes ~7.6 GB/step of DRAM reads (4 draft passes). Env `B70_DRAFT_LMHEAD_INT4=1`.
-- `patches/patch_draft_mtp_int4.py` (SHA-256: `4df179c3e77fd7a248f9b9c0b60217c60caea14ebfd16b7860536fbff3b2a1e9`) — **Phase M1**: the MTP module's 5 linears to INT4 (0.85 GB → ~0.22 GB), removes ~2.6 GB/step. Env `B70_DRAFT_MTP_INT4=1`.
+## What is and is not lossless
 
-Both default **off** (exact baseline behavior when unset). Anchors are verified
-against the legacy Qwen pinned nightly (`vllm/vllm-openai-xpu@sha256:2c427ef477da…`,
-vLLM `0.26.1rc1.dev457`) and fail closed when they differ.
-
-## Launch
-
-```bash
-docker run -d --name b70-qwen38 -p 8010:8000 --device /dev/dri \
-  --group-add $(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p') \
-  -v /dev/dri:/dev/dri:ro -v /path/to/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16:/model:ro \
-  -v patches/patch_mtp_nightly.py:/patch_mtp.py:ro \
-  -v patches/patch_mtp_boundary.py:/patch_boundary.py:ro \
-  -v patches/patch_mtp_ptr_wrap.py:/patch_ptr_wrap.py:ro \
-  -v patches/patch_gdn_split_mixed.py:/patch_gdn_split.py:ro \
-  -v patches/patch_draft_lmhead_int4.py:/patch_loader_0.py:ro \
-  -v patches/patch_draft_mtp_int4.py:/patch_loader_1.py:ro \
-  -e VLLM_TARGET_DEVICE=xpu -e ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE -e ZE_AFFINITY_MASK=0 \
-  -e B70_MTP_BF16_DRAFT=1 -e VLLM_XPU_ENABLE_XPU_GRAPH=1 \
-  -e PYTORCH_ALLOC_CONF=expandable_segments:True \
-  -e B70_DRAFT_LMHEAD_INT4=1 -e B70_DRAFT_MTP_INT4=1 \
-  --entrypoint bash vllm/vllm-openai-xpu@sha256:2c427ef477da... -lc \
-  "set -e; python /patch_mtp.py; python /patch_boundary.py; python /patch_ptr_wrap.py; \
-   python /patch_gdn_split.py; python /patch_loader_0.py; python /patch_loader_1.py; \
-   exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 131328 \
-   --gpu-memory-utilization 0.88 --kv-cache-dtype fp8 --port 8000 --max-num-seqs 64 \
-   --max-num-batched-tokens 4096 --enable-prefix-caching --language-model-only \
-   --speculative-config '{\"method\":\"mtp\",\"num_speculative_tokens\":4}'"
-```
-
-`--device /dev/dri` + the render GID (not `--privileged`), `--max-num-batched-tokens 4096`
-(+6.6% long-prefill), fp8 KV, U=0.88 (U=0.90 fills the card with MTP4) and
-prefix caching are the recommended production flags.
-
-## Results (measured 2026-08-16/17, harness C1, n=5, 230 W, B70)
-
-Same Qwen3.8-27B GPTQ-INT4 model (gptqmodel 7.3.2 quant), legacy nightly + the
-six-patch stack above. `client post-first tok/s`, median n=5:
-
-| Cell | Baseline (2 patches, new image) | **+6 patches (legacy nightly)** |
-|---|---|---|
-| p512/g128 | 83.7 | **117.1** |
-| p8192/g128 | 77.1 | **105.7** |
-
-Same-stack component deltas (measured on the heavy AutoRound quant): Phase S
-itself +27% (p8192/g32 71 → 90.4), S+M1 adds +7-9% more (96.5-98.4). MTP
-acceptance stays 0.88-0.98; the emitted greedy sequences are identical.
-
-Gate (legacy nightly + Qwen3.8, full six-patch stack):
-
-| Check | Result |
+| Piece | After S+M1 |
 |---|---|
-| Quality A (45) | 45/45 |
-| Sequential B (40) | 40/40 |
-| Concurrent C (8) | 8/8 |
-| Long context D (8K/32K) | OK |
-| MTP ratio | 0.58-0.61 |
-| HumanEval pass@1 (164, executed) | 92.7% |
+| Target body (GPTQ-INT4) | unchanged |
+| Target / verify LM head | still FP16/BF16 |
+| Draft LM head copy | runtime INT4 g128 RTN |
+| Draft MTP 5 linears | runtime INT4 g128 RTN |
 
-**E2 self-reported** on a single dual-GPU test bench; independent
-reproduction pending. The patches are runtime monkey-patches on a pinned
-nightly — upstreaming the INT4 draft path would require a build change in
-`vllm-xpu-kernels` and is left as future work.
+Greedy **emitted** tokens can match the BF16-draft baseline because the
+target still verifies. Draft **logits are not** identical. Acceptance can
+drop. Do not call this a lossless speedup.
+
+## Hardware-feasible claim (not the original +51%)
+
+Decode on the B70 is GDDR6-bound. Quantizing a 2.5 GB vocab head that is
+reread on every draft pass is the right bottleneck class.
+
+The original PR table compared **83.7 (champion `f01e24f6`, 2 patches)**
+to **117.1 (legacy `2c427ef`, six patches, MBT 4096, prefix cache on)**.
+That is `not_comparable` / `best_cell_cross_result`, not a Phase S+M1 A/B.
+Do not headline +51% on the cookbook champion stack.
+
+Same-image n=3 screen on `f01e24f6` (2026-08-18,
+`B70-DOCS/results/qwen38-pr-ab-20260818T205619Z/`, C1 chat harness,
+configured 230 W, cache off, MBT 8192, **PROVISIONAL**):
+
+| Arm | p512/g128 median post-first | p8192/g1 input/TTFT | agentic 15-turn median |
+|---|---:|---:|---:|
+| cookbook MTP4 | 59.1 t/s (~p530) | 1748 t/s (~p4130) | 44.3 t/s |
+| v5 only | 62.7 | 1746 | 44.4 |
+| v5 + draft INT4 S+M1 | **83.9** | 1757 | **59.6** |
+
+Prefill is flat. The 83.9 cell matches the published cookbook Run 40 card
+(83.7 n=5 exact p512), it does **not** beat it. The +42% / +35% deltas
+are versus this campaign’s cookbook arm on the same chat harness, not
+versus 83.7. Acceptance counters were empty — do not claim lossless.
+
+Do not replace the cookbook C1 card with these n=3 numbers.
+
+## Required companion
+
+Stack with **GDN mixed-split v5** (`patches/patch_gdn_mixed_split_v5.py`),
+not the original PR #1 full-buffer split. The original split is OOB on
+kernels 0.1.12.3 (host `narrow` + global `token_indx`).
+
+Pointer wrap (`patch_mtp_ptr_wrap.py`) is optional and **int64-only**.
+Do not signed-wrap uint64 `dst_ptrs_np`.
+
+## Env
+
+- `B70_DRAFT_LMHEAD_INT4=1` — Phase S (default off)
+- `B70_DRAFT_MTP_INT4=1` — Phase M1 (default off)
+
+## Status
+
+**PROVISIONAL — NOT FOR PUBLIC HEADLINE.** Same-image (`f01e24f6`) n=3
+screen exists (table above). Still need n≥5 exact-token C1 plus
+`spec_decode` accepted/proposed counters before a recipe keep.
+
+Author self-report (E2, legacy image, +51%) is retained in the PR
+discussion. It is not a cookbook result card.

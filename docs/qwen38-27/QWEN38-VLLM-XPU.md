@@ -169,21 +169,50 @@ non-spec tokens in one invocation (`vllm-xpu-kernels#510`). C1 never hits
 that path. Two-plus in-flight requests (Pi agent, mixed long-prefill +
 decode) can kill EngineCore.
 
-Use **`patches/patch_gdn_split_mixed.py`** (compact+scatter v5 algorithm; also shipped as `patch_gdn_mixed_split_v5.py`) after the two MTP patches:
+Use **`patches/patch_gdn_mixed_split_v5.py`** (also shipped as
+`patch_gdn_split_mixed.py`, same compact+scatter v5 algorithm) after the
+two MTP patches:
 
 - compact each group (`index_select`), `token_indx = arange`, idle side `None`
 - `index_copy_` both `core_attn_out` and `z`
 - patches every `_xpu_ops.py` copy; fail closed if the call-site anchor is missing
 
-Do **not** apply the original PR #1 full-buffer + global-`token_indx` split
-on kernels `0.1.12.3`. The fused host binding narrows tensors to
+Do **not** apply the original full-buffer + global-`token_indx` split on
+kernels `0.1.12.3`. The fused host binding narrows tensors to
 `num_actual_tokens`; global mixed indices are OOB.
 
 Optional `patches/patch_mtp_ptr_wrap.py` wraps **int64** `data_ptr` stores
 only. Do not wrap uint64 `dst_ptrs_np`. Overflow was seen on legacy
 `2c427ef` GGUF drafter logs, not on this champion image.
 
-On the champion image this overlay is a mixed-batch correctness fix.
-A same-image n=3 chat-harness screen was speed-flat vs cookbook MTP4
-(C1 ~59–63 t/s, agentic ~44 t/s). Treat the C 8/8 / D 8K/32K table as
-legacy `2c427ef` evidence, labeled as that stack.
+Same-image n=5 on this champion stack: C1 decode **speed-flat** vs
+cookbook MTP4 (81.37 vs 81.20 tok/s median at p512/g128). Mixed
+decode-first + long prefill: cookbook EngineCore dead, v5 **3/3 alive**.
+
+## 12. Draft INT4 S+M1 (optional Qwen3.8 MTP4 speed keep)
+
+See [DRAFT-INT4-S-M1.md](DRAFT-INT4-S-M1.md). Runtime RTN INT4 of the
+**draft** LM head and five MTP linears. Target body and verify head stay
+GPTQ-INT4 / BF16. Env: `B70_DRAFT_LMHEAD_INT4=1` and
+`B70_DRAFT_MTP_INT4=1` (patches default off; set both for this keep).
+Pair with v5 mixed-split if you also need mixed spec + prefill.
+
+Same-image n=5 vs cookbook BF16 draft (`f01e24f6`, MTP4, cache off,
+MBT 8192, C1, 230 W configured cap, client post-first):
+
+| Cell | Cookbook BF16 draft | Draft INT4 S+M1 | Δ |
+|---|---:|---:|---:|
+| p512/g128 median n=5 | 81.20 tok/s (78.76–81.97) | **112.65** (111.58–117.73) | **+38.7%** |
+| p8192/g128 median n=5 | 77.52 | **103.63** (99.10–107.70) | **+33.7%** |
+| p8192/g1 cold input | 1691.1 | 1696.0 | +0.3% (flat) |
+| short agentic 3×5 g256 | 43.27 | **57.45** | **+32.8%** |
+| MTP accept p512/g128 | 510/532 = 95.86% | 510/540 = 94.44% | −1.4 pp |
+| measured median W p512/g128 | 195.2 | 205.0 | — |
+
+Long-context C1 agentic (g128, 0 crashes): 8K median **68.73 vs 50.06
+(+37%)**; 16K **70.86 vs 56.29 (+26%)**. 32K was isolated C1 with
+~245 MiB free — **+5% only, not a serving headline**.
+
+Speed-only. No token / KL / task-quality parity. Do **not** headline +51%.
+This Run 40 83.7 MTP4 p512/g128 card above is the BF16-draft baseline;
+the 112.65 number is the optional draft-INT4 overlay on the same image.

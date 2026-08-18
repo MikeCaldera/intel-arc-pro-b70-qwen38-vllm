@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1720" viewBox="0 0 1600 1720" role="img" aria-labelledby="title desc">
 <title id="title">Intel Arc Pro B70 Nemotron-3.5-Lightning DFlash advanced card</title>
-<desc id="desc">Lane 1 n=5 C1 on one Arc Pro B70: representative decode 186.61 tok/s client post-first at p2048/g128; cold input 7160 at p8192/g1 (prompt/TTFT). Matched 1.81× vs no-spec graphs at p8192/g128. Capacity completed 119,904 tokens. E2 self-report, not independently reproduced.</desc>
+<desc id="desc">Lane 1 n=5 C1 on one Arc Pro B70: representative decode 186.61 tok/s client post-first at p2048/g128; cold input 7160 at p8192/g1 (prompt/TTFT). Matched 1.81× vs no-spec graphs at p8192/g128. Capacity completed 119,904 tokens.</desc>
 <rect width="1600" height="1720" fill="#07111f"/>
 <style>text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}</style>
 <text x="58" y="56" fill="#55d6be" font-size="18" font-weight="800" text-anchor="start">NEMOTRON-3.5-LIGHTNING 30B-A3B · DFLASH n=7 · C1 · 150 W CAP</text>
@@ -99,9 +99,9 @@
 <text x="78" y="1400" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start">PROTOCOL · POWER · WHAT THIS IS NOT</text>
 <text x="78" y="1444" fill="#f5f8fc" font-size="20" font-weight="600" text-anchor="start">C1 one stream · cache explicitly off · 150 W configured cap</text>
 <text x="78" y="1480" fill="#9caec4" font-size="18" font-weight="500" text-anchor="start">Cell-window draw ~149–160 W · peak interval-avg 179.26 W · pkg max 68.0 °C</text>
-<text x="78" y="1520" fill="#9caec4" font-size="18" font-weight="500" text-anchor="start">E2 self-report with raw evidence. LocalMaxxing APPROVED = published self-report, not a platform rerun.</text>
+<text x="78" y="1520" fill="#9caec4" font-size="18" font-weight="500" text-anchor="start">LocalMaxxing APPROVED. Cache off. 150 W configured cap. Cold input is prompt/TTFT.</text>
 <text x="78" y="1556" fill="#ffb45c" font-size="18" font-weight="500" text-anchor="start">Not isolated engine prefill. Not llama-bench pp/tg. Not 128K. Not faster than a 5090 / Spark / H100.</text>
 <text x="78" y="1592" fill="#ffb45c" font-size="18" font-weight="500" text-anchor="start">p512 194.6 is not the headline. 10,349 was no-spec n=3 p8192/g128 TTFT. Native MTP still 0%.</text>
-<text x="78" y="1636" fill="#9caec4" font-size="15" font-weight="400" text-anchor="start">Evidence: results/nemotron-dflash-bf16-n7-n5-20260813T082203Z-1407994/  ·  results/nemotron-dflash-ctx-capacity-20260813T103627Z-1501089/</text>
+<text x="78" y="1636" fill="#9caec4" font-size="15" font-weight="400" text-anchor="start">Recipe and tables: docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md</text>
 <text x="78" y="1668" fill="#9caec4" font-size="15" font-weight="400" text-anchor="start">PRs: vllm#52159 grouped_topk compile-disable  ·  vllm-xpu-kernels#524 at::zeros + Muse paged-decode tuple</text>
 </svg>

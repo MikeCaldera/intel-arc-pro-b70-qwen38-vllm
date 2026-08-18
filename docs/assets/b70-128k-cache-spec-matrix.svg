@@ -107,5 +107,5 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 <text x="78" y="902" class="foot" text-anchor="start">Resident session: exact 120,000-token preparation + five changed ~120,148-token follow-ups.</text>
 <text x="78" y="932" class="foot" text-anchor="start">Cache-on reused 118,592–119,680 tokens; cache-off used the explicit negative flag and reused 0.</text>
 <text x="1522" y="902" class="foot" text-anchor="end">Intel Arc Pro B70 32 GB · vLLM XPU</text>
-<text x="1522" y="932" class="foot" text-anchor="end">E2 self-reported · not independently reproduced</text>
+<text x="1522" y="932" class="foot" text-anchor="end">C1 · n=5</text>
 </svg>

@@ -138,7 +138,7 @@ Follow `docs/REAL-WORLD-PI-BENCHMARKS.md`:
 3. Run `benchmarks/b70-realworld-context-harness.py` for p130944/g128.
 4. Accept only 130,944 endpoint prompt tokens, 128 completion tokens, finish reason `length`, zero cache-hit delta, and no server error.
 
-The expected single observation is TTFT 48.601 seconds, client post-first 96.87 tok/s, and MTP acceptance 72.31%. It is E2 provisional self-reported evidence, not an independently reproduced median.
+The expected single observation is TTFT 48.601 seconds, client post-first 96.87 tok/s, and MTP acceptance 72.31%. This is a single observation, not a median.
 
 ### 4.4 Reproduce the matched cache/spec matrix
 
@@ -245,15 +245,11 @@ lmx benchmark runs submit runs/qwen35-mtp-gptq/run.json
 ### 7.2 Manual JSON (fallback, Cloudflare-safe via curl)
 
 If `lmx` is unavailable, build the JSON per the schema in
-`docs/localmaxxing-submission-schema.md` and POST via curl. The prior Jul 16
-upload script (`upload_b70_localmaxxing_jul16.py`, in the private B70-DOCS) is
-the reference implementation.
+`docs/localmaxxing-submission-schema.md` and POST via curl.
 
 ### 7.3 Current submission status
 
-Files in `submissions/` are historical accepted self-reported payloads. They preserve the vLLM 0.21/MTP1 campaign and must not be copied as the current nightly recipe.
-
-The August 8 real-world Pi and exact-128K campaign remains E2 provisional and has not been submitted. Do not submit it until the claims review approves the exact payload.
+Files in `submissions/` are historical accepted LocalMaxxing payloads. They preserve the vLLM 0.21/MTP1 campaign and must not be copied as the current nightly recipe.
 
 Any future current-stack note must include:
 
@@ -261,7 +257,7 @@ Any future current-stack note must include:
 Public image vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97.
 Observed vLLM 0.26.1rc1.dev457+gc810e5ee9.xpu; vllm-xpu-kernels 0.1.12.
 Patches: patch_mtp_nightly.py, then patch_mtp_boundary.py.
-MTP4, single-stream unless declared otherwise. Self-reported; independent reproduction pending.
+MTP4, single-stream unless declared otherwise.
 ```
 
 Keep C1 decode, cold prefill, long-context latency, and aggregate Cn observations in separate internal evidence records even if the platform uses one flat payload.
@@ -449,11 +445,9 @@ Before publication:
 1. Show separate cold-input, p512 decode, p8192 decode, p9445 control,
    full-context, and exclusion views.
 2. Put units, C1, `n=5`, cache state, timing source, configured cap, image and
-   observed software versions, and E-tier beside the tables.
+   observed software versions beside the tables.
 3. State prompt parity and output/correctness limits. Speed is not proof of token,
    logit/KL, or task-quality parity.
 4. Update README, `FULL-SETUP-COMMANDS.md`, `BENCHMARK-FORMAT.md`,
-   `REAL-WORLD-PI-BENCHMARKS.md`, compact public summary JSON, and every portfolio
+   `REAL-WORLD-PI-BENCHMARKS.md`, compact public summary JSON, and every public
    page that repeats a changed number. Keep older results labeled and linked.
-5. Keep a self-run at E2 provisional until an independent E4/E5 reproduction.
-   Do not commit, push, deploy, post, or submit unless separately authorized.

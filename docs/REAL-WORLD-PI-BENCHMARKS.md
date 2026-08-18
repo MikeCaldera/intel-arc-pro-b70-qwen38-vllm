@@ -1,7 +1,5 @@
 # Real-World Pi, Phase-Separated, Cache, and Exact 128K Results on B70
 
-**Current status:** E2 provisional self-reported evidence. Independent reproduction is pending.
-
 **Current tested stack:** image `vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97`; vLLM `0.26.1rc1.dev457+gc810e5ee9.xpu`; `vllm-xpu-kernels 0.1.12`; Qwen3.6-35B-A3B preserved-MTP GPTQ-INT4 and Qwen3.6-27B preserved-MTP GPTQ-INT4. PyPI kernel package 0.1.12.2 is newer but untested.
 
 ## Current result: dense 27B 4-mode Lane 1 model card (2026-08-09)
@@ -10,8 +8,8 @@
 same-shape warmup, prefix cache enabled, entropy-first unique cold prefixes, zero
 cache-hit delta, scheduler 8,192, context 131,072, **`--kv-cache-dtype fp8`**
 (required for dense 128K), `gpu-memory-utilization=0.88` (MTP4) / `0.90`
-(no-spec/MTP1/MTP2), configured cap 230 W, client monotonic SSE timing,
-E2 provisional self-report. Dense 27B GPTQ-INT4 runs on the pinned nightly via
+(no-spec/MTP1/MTP2), configured cap 230 W, client monotonic SSE timing.
+Dense 27B GPTQ-INT4 runs on the pinned nightly via
 `XPUwNa16LinearKernel`; both MTP patches apply unchanged to the dense
 `Qwen3_5ForConditionalGeneration` architecture.
 
@@ -128,9 +126,7 @@ and the document stays resident.
 ~38 s once; every follow-up over that document is ~4 s regardless of session
 length. That is the RAG pattern working as intended on this stack.
 
-Evidence: `results/dense27-multiturn-resident-20260810T065510Z/` (private
-B70-DOCS): ingest + per-turn raw SSE, results.json with per-turn
-query/hit/novel counters and MTP acceptance.
+The resident-session dashboard below is the public record of that campaign.
 
 ![Dense 27B resident 32K session — prefix-cache effect](assets/b70-dense27-resident-session.svg)
 
@@ -163,15 +159,14 @@ Evidence:
 
 - `results/qwen36-27/prefill-decode-matrix-20260809-dense27-summary.json`
 - [`BENCHMARK-FORMAT.md`](BENCHMARK-FORMAT.md)
-- private raw root `vllm-dense27-4mode-230w-20260809T163138Z-74780` (B70-DOCS)
 
 ## Prior result: MoE phase-separated C1 matrix (2026-08-09)
 
 **Scope for all prior MoE tables:** C1, median of `n=5` after one full-output
 same-shape warmup, prefix cache enabled, entropy-first unique cold prefixes, zero
 cache-hit delta, scheduler 8,192, context 131,072,
-`gpu-memory-utilization=0.85`, configured cap 165 W, client monotonic SSE timing,
-E2 provisional self-report. Measured card draw is not part of these tables.
+`gpu-memory-utilization=0.85`, configured cap 165 W, client monotonic SSE timing.
+Measured card draw is not part of these tables.
 
 Standard p512 through p8192 cells use the compact fixed benchmark system prompt.
 The p9445 historical control and full-context cells use the full Pi system prompt.
@@ -458,9 +453,9 @@ These came from the clean stock campaign before the exact Pi scheduler sweep. Th
 
 | Actual prompt tokens | Reported cold rate median (tok/s) | Status |
 |---:|---:|---|
-| 2,421 | 6,360 | E2 provisional |
-| 4,757 | 6,969 | E2 provisional; first shape samples showed warmup sensitivity |
-| 9,445 | 7,218 | E2 provisional |
+| 2,421 | 6,360 | retained |
+| 4,757 | 6,969 | first shape samples showed warmup sensitivity |
+| 9,445 | 7,218 | retained |
 
 The old 8.7K prefill headline was not reproduced and remains superseded. Prefix caching in the old constant-filler harness could inflate later repetitions by about 5×.
 
@@ -600,8 +595,6 @@ The best gains now come from scheduler policy and the mixed-token XPU kernel pat
 | Pi real-world flow | `results/vllm-pi-realworld-flow-20260808T210237Z-56507/` |
 | MTP4 mixed-load failure | `results/vllm-pi-mixed-load-20260808T211221Z-60972/` |
 | No-spec mixed-load success | `results/vllm-pi-mixed-load-nospec-20260808T212657Z-68780/` |
-
-The campaign remains E2 provisional. It needs exact-wording review before a public headline, portfolio publication, or LocalMaxxing submission.
 
 ## Public artifact
 

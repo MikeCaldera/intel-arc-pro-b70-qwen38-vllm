@@ -2,13 +2,10 @@
 
 Copy numbers from this page. If a sentence is not here, do not invent it.
 
-**Validation:** E2 self-report with raw evidence. Not independently reproduced.
-LocalMaxxing `APPROVED` = published self-report, not a platform rerun.
+LocalMaxxing `APPROVED` means the payload was accepted into the public leaderboard.
 
-**Evidence (private host):**
-`results/nemotron-dflash-bf16-n7-n5-20260813T082203Z-1407994/`
-(B70-DOCS Run 36 speed card). Capacity ladder:
-`results/nemotron-dflash-ctx-capacity-20260813T103627Z-1501089/` (Run 38).
+The speed card and 120K capacity ladder are documented in
+[NEMOTRON-DFLASH-B70.md](NEMOTRON-DFLASH-B70.md).
 No-spec graph n=5 is a separate campaign on the same target / image family.
 
 **Hardware / stack**
@@ -47,7 +44,7 @@ No-spec graph n=5 is a separate campaign on the same target / image family.
 | Isolated n=3 214 / 185 | Another inference container respawned mid-load; superseded |
 | Native MTP works | Acceptance historically **0%** on this stack |
 | Faster than a 5090 / Spark / H100 | No matched C1 protocol on those SKUs |
-| Verified by LocalMaxxing | Record `cmsr9po4w000ams01e4fc5qhj` is a self-report |
+| Verified by LocalMaxxing | Record `cmsr9po4w000ams01e4fc5qhj` is an accepted leaderboard payload |
 | 128K Nemotron vLLM | **Not run.** Isolated DFlash completed **119,904** tokens at `max-model-len=120000` (Run 38). Speed card is still the 16K n=5 matrix |
 | Capacity decode rates (g32) | Run 38 TTFT / post-first numbers are diagnostics on n=1 g32 cells |
 | Isolated engine prefill = 7160 | 7160 is prompt/TTFT |

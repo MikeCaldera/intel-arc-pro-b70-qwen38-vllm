@@ -23,9 +23,10 @@ can drop. This is a **speed** keep, not a quality-parity claim.
 ## Same-image n=5 (2026-08-18)
 
 Champion `f01e24f6`, MTP4, cache off, MBT 8192, U=0.88, fp8 KV, C1,
-configured **230 W**, temperature 0 (greedy — best case for MTP acceptance;
-expect lower tok/s at sampling temperatures). Timing: client post-first /
-input÷TTFT. Accept from
+configured **230 W**. Timing: client post-first / input÷TTFT. Sampling:
+greedy for the 2026-08-18 n=5 tables; at the Qwen-recommended non-thinking
+preset (0.7/0.80/20/presence 1.5) the same C1 cell measures **102.61**
+(accept 91.8%) — see QWEN38-VLLM-XPU.md §11. Accept from
 `vllm:spec_decode_*_total`. Raw: cookbook campaign sibling
 `qwen38-pr-n5-20260818T214749Z` + long-ctx `qwen38-pr-long-20260818T221813Z`.
 

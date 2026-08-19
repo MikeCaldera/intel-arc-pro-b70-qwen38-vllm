@@ -209,12 +209,19 @@ S+M1, prefix cache on, 230 W cap, measured draw 221–229 W, 82–83 °C
 package, all requests temperature 0 / greedy).** Two separate tables — do
 not merge them:
 
-**Temperature note:** all client-measured cells in this cookbook are
-greedy (temperature 0) — the *best case* for MTP acceptance (94% C1).
-Speculative acceptance falls as sampling temperature rises, so production
-chat at temperature ~0.6–1.0 will decode slower than these records. The
-lmx-harness records do not record a temperature field; their eval tooling
-defaults to 0 elsewhere.
+**Sampling note (measured 2026-08-19, same stack/day).** The
+Qwen3.8-27B model card's own recommended presets barely cost anything at
+C1 and ~15% at C5 — use them for serving and say which one you used:
+
+| Cell (C1 unless noted) | Greedy (temp 0) | Recommended non-thinking (0.7 / 0.80 / 20 / presence 1.5) | Recommended thinking (1.0 / 0.95 / 20) |
+|---|---:|---:|---:|
+| p512/g128 median | 106.7 (accept ~93%) | **102.61** (95.7–106.7, accept 91.8%) | 99.32 (81.9–107.8, accept 82.7%) |
+| C5 realistic Σ-streams | 127.4 | **107.8** (21.6/user, accept 34–41%) | — |
+
+Records at the recommended presets: C1 `cmt051y730eiims01prf8laxc`,
+C5 `cmt051ytx0eilms01fdxrujeh`. Desktop launcher with the presets wired in:
+`~/Desktop/b70-launcher.sh` (also `--generation-config auto`). Greedy stays
+for determinism/replay diagnostics only.
 
 *Controlled Cn campaign — 2026-08-19, three metrics per cell, definitions:*
 

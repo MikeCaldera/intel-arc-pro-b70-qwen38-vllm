@@ -1,9 +1,10 @@
 # Qwen3.8-27B on Microsoft WSLC
 
 > Vendored from `Qwen38-WSLC-Standalone-2026.08.18.zip` (devised and tested by
-> Ian Hudson — aitesthive.com) with two small cookbook fixes applied; see
+> Ian Hudson — aitesthive.com), then the 2026.08.19 overlay (draft-INT4 S+M1
+> + mixed-split v5, prefix cache on). See
 > [WINDOWS-STANDALONE.md](../../docs/qwen38-27/WINDOWS-STANDALONE.md)
-> for the change list, provenance and measured results.
+> for the upgrade steps, provenance and measured results.
 
 This folder provides the Microsoft WSLC entry points for the reproducible Intel
 Arc Pro B70 configuration.
@@ -64,6 +65,12 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\Setup-Qwen38-WSLC.ps1
 ```
 
+Already on 2026.08.18? Rebuild without re-downloading the model:
+
+```powershell
+.\Upgrade-Qwen38-WSLC.ps1
+```
+
 The installer builds the pinned image, verifies a real XPU calculation,
 downloads the approximately 18.2 GiB model when it is not already present, and
 starts the server. Partial downloads are retained for resumption.
@@ -81,12 +88,15 @@ Copy the repository contents directly into that folder. It must contain
 
 ```powershell
 .\Start-Qwen38.ps1 -MtpTokens 4 -MaxModelLength 100000 -GpuMemoryUtilization 0.75 -KvCacheMemoryGiB 4.25 -KvCacheDtype fp8
+.\Start-Qwen38.ps1 -MtpTokens 4 -MaxModelLength 100000 -GpuMemoryUtilization 0.75 -KvCacheMemoryGiB 4.25 -KvCacheDtype fp8 -PrefixCache 0
+.\Start-Qwen38.ps1 -MtpTokens 4 -MaxModelLength 100000 -GpuMemoryUtilization 0.75 -KvCacheMemoryGiB 4.25 -KvCacheDtype fp8 -DraftInt4 0
 .\Stop-Qwen38.ps1
 ```
 
 ## Other controls
 
 ```powershell
+.\Upgrade-Qwen38-WSLC.ps1
 .\Test-CookbookDecode.ps1
 ```
 
@@ -94,7 +104,8 @@ Copy the repository contents directly into that folder. It must contain
 - Model name: `qwen38`
 - Tools: automatic tool choice enabled with the `qwen3_coder` parser
 - Vision: disabled
-- Profile: MTP4, 100K context, FP8 KV cache, explicit 4.25 GiB cache
+- Profile: MTP4, 100K context, FP8 KV cache, explicit 4.25 GiB cache,
+  draft-INT4 overlay on, prefix cache on
 
 Startup and model download can take several minutes. The setup script prints
 progress and warns immediately if `HF_TOKEN` is unavailable.

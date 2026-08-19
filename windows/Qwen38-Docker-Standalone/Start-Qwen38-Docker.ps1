@@ -1,9 +1,12 @@
 [CmdletBinding()]
 param(
     [string]$ContainerName = "qwen38-b70-docker-test",
-    [string]$ImageName = "qwen38-b70-docker:2026.08.18",
+    [string]$ImageName = "qwen38-b70-docker:2026.08.19",
     [string]$ModelDirectory = (Join-Path $PSScriptRoot "models\Qwen3.8-27B-GPTQ-Int4"),
-    [int]$ReadyTimeoutMinutes = 10
+    [ValidateSet(0, 1)][int]$DraftInt4 = 1,
+    [ValidateSet(0, 1)][int]$PrefixCache = 1,
+    [int]$ReadyTimeoutMinutes = 10,
+    [switch]$Recreate
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,6 +22,8 @@ Write-Host ""
 Write-Host "[Docker] Starting the Qwen3.8-27B server on the Intel Arc Pro B70."
 Write-Host "[Docker] Model: Qwen3.8-27B GPTQ INT4 with MTP4"
 Write-Host "[Docker] Context: 100,000 tokens; explicit FP8 KV cache: 4.25 GiB"
+Write-Host "[Docker] Draft INT4 overlay: $(if ($DraftInt4 -eq 1) { 'ON (default, 2026.08.19)' } else { 'OFF (BF16 draft)' })"
+Write-Host "[Docker] Prefix cache: $(if ($PrefixCache -eq 1) { 'ON (default, real sessions)' } else { 'OFF (decode-test only)' })"
 
 if (-not (Test-Path -LiteralPath $ModelDirectory -PathType Container)) {
     throw "Model directory not found: $ModelDirectory"
@@ -27,6 +32,16 @@ $modelPath = (Resolve-Path -LiteralPath $ModelDirectory).Path
 
 $containerNames = @(& $docker ps --all --filter "name=^/${ContainerName}$" --format '{{.Names}}')
 $containerExists = $containerNames -contains $ContainerName
+if ($containerExists -and $Recreate) {
+    Write-Host "[Docker] -Recreate: removing the old container so the new image and env take effect."
+    $existing = (& $docker inspect --format '{{.State.Status}}' $ContainerName)
+    if ($LASTEXITCODE -eq 0 -and $existing -eq "running") {
+        & $docker stop --timeout 15 $ContainerName | Out-Null
+    }
+    & $docker rm $ContainerName | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Docker could not remove $ContainerName for recreate." }
+    $containerExists = $false
+}
 if ($containerExists) {
     $existing = (& $docker inspect --format '{{.State.Status}}' $ContainerName)
     if ($LASTEXITCODE -ne 0) { throw "Docker could not inspect the existing $ContainerName container." }
@@ -56,6 +71,7 @@ if ($containerExists) {
         "-e", "CCL_TOPO_FABRIC_VERTEX_CONNECTION_CHECK=0", "-e", "CCL_ZE_CACHE_OPEN_IPC_HANDLES=0",
         "-e", "SYCL_UR_USE_LEVEL_ZERO_V2=0", "-e", "TORCH_LLM_ALLREDUCE=1",
         "-e", "MTP_TOKENS=4", "-e", "MAX_MODEL_LEN=100000", "-e", "KV_CACHE_DTYPE=fp8",
+        "-e", "DRAFT_INT4=$DraftInt4", "-e", "PREFIX_CACHE=$PrefixCache",
         "-e", "MAX_NUM_SEQS=1", "-e", "GPU_MEMORY_UTILIZATION=0.75",
         "-e", "KV_CACHE_MEMORY_BYTES=4563402752", $ImageName
     )

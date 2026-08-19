@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Image = "qwen38-b70-friendly:2026.08.18",
+    [string]$Image = "qwen38-b70-friendly:2026.08.19",
     [switch]$NoCache
 )
 
@@ -10,7 +10,7 @@ $Root = $PSScriptRoot
 $PatchDir = Join-Path $Root "patches"
 New-Item -ItemType Directory -Force -Path $PatchDir | Out-Null
 
-Write-Host "[Build] Preparing two pinned compatibility patches..."
+Write-Host "[Build] Preparing five pinned compatibility patches..."
 
 $patches = @(
     @{
@@ -22,6 +22,21 @@ $patches = @(
         Name = "patch_mtp_boundary.py"
         Uri = "https://raw.githubusercontent.com/SergiioB/intel-arc-pro-b70-inference-cookbook/5c6b6b1/patches/patch_mtp_boundary.py"
         Sha256 = "41d2f74e5fef1f074b76b5a90dd1016de437228431802cfb1fa7bd7ce4cc9b50"
+    },
+    @{
+        Name = "patch_gdn_mixed_split_v5.py"
+        Uri = "https://raw.githubusercontent.com/SergiioB/intel-arc-pro-b70-inference-cookbook/db20e00/patches/patch_gdn_mixed_split_v5.py"
+        Sha256 = "8e4a3cbe5f424f308af74ff215d0fcb8d31f63ac3f07cf359ed2269956c3fc80"
+    },
+    @{
+        Name = "patch_draft_lmhead_int4.py"
+        Uri = "https://raw.githubusercontent.com/SergiioB/intel-arc-pro-b70-inference-cookbook/aa363ca/patches/patch_draft_lmhead_int4.py"
+        Sha256 = "ffae41926d5f05f4f38bb985301b5e572092441d06d6063c8820a63a39b8cefc"
+    },
+    @{
+        Name = "patch_draft_mtp_int4.py"
+        Uri = "https://raw.githubusercontent.com/SergiioB/intel-arc-pro-b70-inference-cookbook/aa363ca/patches/patch_draft_mtp_int4.py"
+        Sha256 = "4df179c3e77fd7a248f9b9c0b60217c60caea14ebfd16b7860536fbff3b2a1e9"
     }
 )
 

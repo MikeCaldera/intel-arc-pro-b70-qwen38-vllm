@@ -77,13 +77,16 @@ the scripts are self-contained and portable (no host-specific paths).
 
 ### Windows 11 hosts (WSLC / Docker Desktop)
 
-<img src="docs/assets/windows-11-logo.svg" alt="Windows 11" width="22" align="top"> Qwen3.8-27B also runs on **Windows 11** with the same image digest and
-patches: two standalone PowerShell kits (Docker Desktop — proven, ~70 tok/s
-class; Microsoft WSLC — experimental, 2.4–2.8× slower) devised and tested by
-Ian Hudson (aitesthive.com). They reserve GPU memory for the Windows desktop
-(`gpu-memory-utilization 0.75` + explicit 4.25 GiB fp8 KV) because a
-single-B70 Windows machine drives its display from the same 32 GB card.
-Quick start, provenance and self-reported numbers:
+<img src="docs/assets/windows-11-logo.svg" alt="Windows 11" width="22" align="top"> Qwen3.8-27B also runs on **Windows 11** with the same image digest.
+Two standalone PowerShell kits (Docker Desktop — proven, ~70 tok/s class on
+the 2026.08.18 BF16-draft measure; Microsoft WSLC — experimental, 2.4–2.8×
+slower) devised and tested by Ian Hudson (aitesthive.com). They reserve GPU
+memory for the Windows desktop (`gpu-memory-utilization 0.75` + explicit
+4.25 GiB fp8 KV) because a single-B70 Windows machine drives its display
+from the same 32 GB card. Image **2026.08.19** adds draft-INT4 S+M1 and
+turns **prefix cache on** for real sessions. If you already have the
+18 August kit: `.\Upgrade-Qwen38-Docker.ps1` — do not re-download the
+model. Guide:
 **[docs/qwen38-27/WINDOWS-STANDALONE.md](docs/qwen38-27/WINDOWS-STANDALONE.md)** (kits in [`windows/`](windows/)).
 
 ### Connecting Pi / omp / Hermes

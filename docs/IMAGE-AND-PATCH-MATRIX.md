@@ -17,9 +17,11 @@ then apply **only** that row’s “Apply” list. The last column is a
 
 The **Windows 11 standalone kits** ([qwen38-27/WINDOWS-STANDALONE.md](qwen38-27/WINDOWS-STANDALONE.md),
 [`windows/`](../windows/)) are not a new generation: they build from the same
-Qwen3.8 `f01e24f6` digest and the same two Qwen MTP patches (SHA-256-verified
-against cookbook commit `5c6b6b1`), running the BF16-draft profile
-(`B70_MTP_BF16_DRAFT=1`) with none of the optional patches.
+Qwen3.8 `f01e24f6` digest. Image tag **2026.08.19** applies the Qwen MTP pair
+(SHA-256-verified against `5c6b6b1`) **and** the optional mixed-split v5 +
+draft-INT4 S+M1 patches, with prefix cache **on** for serving. `DRAFT_INT4=0`
+recovers the 18 August BF16-draft path. Display-attached VRAM pin (0.75 +
+4.25 GiB fp8 KV, 100K) is unchanged.
 
 Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
 public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.

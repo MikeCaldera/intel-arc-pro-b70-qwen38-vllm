@@ -1,9 +1,9 @@
 # Qwen3.8-27B on Docker Desktop
 
-> Vendored from `Qwen38-Docker-Standalone-2026.08.18.zip` with two small
-> cookbook fixes applied; see
-> [WINDOWS-STANDALONE.md](../../docs/qwen38-27/WINDOWS-STANDALONE.md)
-> for the change list, provenance and measured results.
+> Vendored from `Qwen38-Docker-Standalone-2026.08.18.zip`, then the
+> 2026.08.19 overlay (draft-INT4 S+M1 + mixed-split v5, prefix cache on).
+> See [WINDOWS-STANDALONE.md](../../docs/qwen38-27/WINDOWS-STANDALONE.md)
+> for the upgrade steps, provenance and measured results.
 
 Windows container devised and tested by Ian Hudson - aitesthive.com
 
@@ -92,6 +92,16 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\Setup-Qwen38-Docker.ps1
 ```
 
+Already running the 2026.08.18 kit? Do **not** re-download the model. Rebuild
+and recreate:
+
+```powershell
+.\Upgrade-Qwen38-Docker.ps1
+```
+
+That turns on draft-INT4 and prefix cache. Restarting the old container is
+not an upgrade.
+
 The installer verifies Docker, builds the pinned image, mounts the minimum WSL
 GPU interfaces (`/dev/dxg`, `/usr/lib/wsl/lib` and `/usr/lib/wsl/drivers`), runs
 a real XPU calculation, downloads the model if necessary and starts the server.
@@ -109,7 +119,10 @@ Copy the repository contents directly into that folder. It must contain
 ## Main controls
 
 ```powershell
-.\Start-Qwen38-Docker.ps1
+.\Start-Qwen38-Docker.ps1              # prefix cache on (real sessions)
+.\Start-Qwen38-Docker.ps1 -Recreate    # after an image rebuild
+.\Start-Qwen38-Docker.ps1 -Recreate -PrefixCache 0   # cold decode test
+.\Start-Qwen38-Docker.ps1 -Recreate -DraftInt4 0     # 18 August BF16 draft
 .\Stop-Qwen38-Docker.ps1
 ```
 
@@ -117,6 +130,7 @@ Copy the repository contents directly into that folder. It must contain
 
 ```powershell
 .\Build-Qwen38Image-Docker.ps1
+.\Upgrade-Qwen38-Docker.ps1
 .\Test-CookbookDecode.ps1
 ```
 
@@ -124,9 +138,11 @@ Copy the repository contents directly into that folder. It must contain
 - Model name: `qwen38`
 - Tools: enabled with the `qwen3_coder` parser
 - Vision: disabled
-- Profile: MTP4, 100K context, FP8 KV cache, explicit 4.25 GiB cache
+- Profile: MTP4, 100K context, FP8 KV cache, explicit 4.25 GiB cache,
+  draft-INT4 overlay on, prefix cache on
 
 The first image build and model download can take a long time. Model loading is
 also several minutes because the 18.2 GiB checkpoint is read from the Windows
-bind mount. Keep the stopped container rather than removing it if you want to
-preserve its compiled graph cache.
+bind mount. Keep the stopped container for a faster daily restart. After an
+**image** upgrade, use `-Recreate` (or `Upgrade-Qwen38-Docker.ps1`) so the new
+entrypoint actually runs.

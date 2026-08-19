@@ -10,7 +10,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "Common.ps1")
-$image = "qwen38-b70-friendly:2026.08.18"
+$image = "qwen38-b70-friendly:2026.08.19"
 Write-QwenBanner "Qwen3.8-27B reproducible WSLC setup"
 Write-Host "Windows container devised and tested by Ian Hudson - aitesthive.com" -ForegroundColor Cyan
 Write-Host "This builds the exact WSLC comparison profile used for the Microsoft performance report."

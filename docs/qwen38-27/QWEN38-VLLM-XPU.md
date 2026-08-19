@@ -1,8 +1,9 @@
 # Qwen3.8-27B vLLM XPU 4-Mode Recipe
 
-> **Windows 11 host?** The same profile is packaged for Windows (Docker
-> Desktop + WSLC standalone kits, BF16-draft, 100K ctx, display-memory-safe
-> GPU budget): [WINDOWS-STANDALONE.md](WINDOWS-STANDALONE.md).
+> **Windows 11 host?** Same image digest, 100K ctx, display-safe GPU budget.
+> Kit **2026.08.19** ships draft-INT4 S+M1 with prefix cache **on** for real
+> sessions. Already on 18 August? Rebuild, do not re-download:
+> [WINDOWS-STANDALONE.md](WINDOWS-STANDALONE.md).
 
 ![Dashboard SVG](../assets/b70-qwen38-dashboard.svg)
 

@@ -18,6 +18,11 @@ under [`windows/`](../../windows/) in this repo.
 the Docker kit, run `.\Setup-Qwen38-Docker.ps1`, wait for the tea-length model
 load, point any OpenAI client at `http://127.0.0.1:8000/v1` (model `qwen38`).
 
+**Already on the 2026.08.18 kit?** Jump to
+[Upgrade from 2026.08.18](#upgrade-from-20260818--draft-int4--prefix-cache).
+You do not re-download the model. You rebuild the image, recreate the
+container, and prefix cache stays on for real chat.
+
 ---
 
 ## The single-B70 memory rule (why the kits refuse to fill the card)
@@ -80,6 +85,78 @@ Set-ExecutionPolicy -Scope Process Bypass
 Endpoint (both): `http://127.0.0.1:8000/v1`, served model name `qwen38`.
 Tool calling is on (`qwen3_coder` parser), vision is off, thinking is on with
 a low default reasoning effort (template below).
+
+## Upgrade from 2026.08.18 — draft INT4 + prefix cache
+
+The 18 August kit already works. This is the next image, not a new install.
+
+What changed in **2026.08.19**:
+
+| Piece | 2026.08.18 (what you have) | 2026.08.19 (rebuild this) |
+|---|---|---|
+| Patches | MTP nightly + MTP boundary | those two, plus mixed-split v5, plus draft-INT4 S+M1 |
+| Draft head | BF16 (`B70_MTP_BF16_DRAFT=1`) | still that checkpoint; the **draft** is requantized to INT4 at start (`DRAFT_INT4=1`) |
+| Prefix cache | off | **on** (real multi-turn sessions). Turn it off only for a cold decode test |
+| Sampling | template only | `--generation-config auto` (Qwen thinking / non-thinking defaults) |
+| Image tag | `qwen38-b70-docker:2026.08.18` / `qwen38-b70-friendly:2026.08.18` | `…:2026.08.19` |
+| Display-safe VRAM | 0.75 + 4.25 GiB fp8 KV, 100K, MTP4, C1 | **unchanged** |
+
+Linux, same overlay, C1, n=5, cache **off**: **112.65** vs matched BF16-draft **81.20** tok/s at p512/g128. Prefill is flat. Quality KEEP on the 12/15 coding gate. That is a Linux campaign, not a Windows re-measure. On Windows expect “noticeably faster than your ~70”, not a copied 112.
+
+Prefix cache is for **follow-up turns**, not a first-token speed-up. Leave it on for Pi / Open WebUI / anything with a system prompt. For `Test-CookbookDecode.ps1` (cold unique prompts) set `-PrefixCache 0` so the cell matches the Linux speed card.
+
+**Do not** `docker start` the old container after a rebuild. Docker keeps the 18 August entrypoint until you recreate.
+
+### Docker Desktop (recommended)
+
+In the kit folder (`windows/Qwen38-Docker-Standalone/` if you cloned, or the unzipped kit after `git pull`):
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\Upgrade-Qwen38-Docker.ps1
+```
+
+That rebuilds `qwen38-b70-docker:2026.08.19`, **removes** `qwen38-b70-docker-test`, and starts a new container with `DRAFT_INT4=1` and prefix cache **on**. Model files on disk are reused.
+
+Manual equivalent:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\Build-Qwen38Image-Docker.ps1
+.\Start-Qwen38-Docker.ps1 -Recreate
+# optional: cold decode test (prefix cache off)
+.\Start-Qwen38-Docker.ps1 -Recreate -PrefixCache 0
+.\Test-CookbookDecode.ps1
+```
+
+Confirm the overlay actually ran:
+
+```powershell
+docker logs qwen38-b70-docker-test | findstr /C:"draft-INT4"
+```
+
+You want: `[start] draft-INT4 S+M1 overlay ENABLED`.
+
+Fall back to the 18 August draft (BF16, still the same model files):
+
+```powershell
+.\Start-Qwen38-Docker.ps1 -Recreate -DraftInt4 0
+```
+
+### WSLC (experimental)
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\Upgrade-Qwen38-WSLC.ps1
+```
+
+WSLC already deletes the previous container on start. Confirm with `wslc logs qwen38-b70-friendly`. WSLC was ~26 tok/s on 18 August; this overlay does not fix that runtime.
+
+### Fresh install (never ran the 18 August kit)
+
+Same as before: `.\Setup-Qwen38-Docker.ps1`. Setup now builds **2026.08.19** with the overlay and prefix cache on. You still install Docker Desktop first.
+
+---
 
 ## Full step-by-step (as Ian authored and tested it)
 
@@ -192,17 +269,19 @@ kit folder you downloaded (or `windows/Qwen38-*-Standalone/` from this repo).
 |---|---|
 | Base image | `vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f` — the **same digest as the Linux Qwen3.8 champion row** in [IMAGE-AND-PATCH-MATRIX.md](../IMAGE-AND-PATCH-MATRIX.md) |
 | vLLM / kernels in image | `0.27.2rc1.dev77+gac7509e2b` / `0.1.12.3` (verified in-image, not from the tag) |
-| Patches | `patch_mtp_nightly.py` then `patch_mtp_boundary.py` — SHA-256-verified at build time against cookbook commit `5c6b6b1`; the WSLC kit downloads them hash-pinned, the Docker kit verifies the bundled copies |
-| Model | [`SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16`](https://huggingface.co/SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16) @ revision `9d189a60e4c0ad7f9f47cd94bfa393ca10b3924e` (5 shards) |
-| Draft profile | **BF16 MTP head** (`B70_MTP_BF16_DRAFT=1`) — the conservative 83.7-class Linux profile, **not** draft-INT4 S+M1 (112.65) and **not** the mixed-split v5 overlay |
+| Patches | MTP nightly + boundary (commit `5c6b6b1`), then mixed-split v5 (`db20e00`), then draft-INT4 S+M1 (`aa363ca`). SHA-256-verified at build. WSLC downloads the five files hash-pinned; Docker verifies the bundled copies |
+| Model | [`SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16`](https://huggingface.co/SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16) @ revision `9d189a60e4c0ad7f9f47cd94bfa393ca10b3924e` (5 shards) — **same files as 2026.08.18** |
+| Draft profile | **Draft-INT4 S+M1 on** (`DRAFT_INT4=1`). The checkpoint still ships a BF16 MTP head; the overlay requantizes only the draft at start. Set `DRAFT_INT4=0` to recover the 18 August BF16-draft path |
+| Prefix cache | **On** for serving (`PREFIX_CACHE=1`). Set `PREFIX_CACHE=0` only for a cold unique-prompt decode test |
 | Author's test machine | Windows 11 Pro 10.0.26200, WSL 2.9.4.0, Intel driver 32.0.101.8805 (2026-07-07), Docker client 29.7.2 |
 
 Served flags (via `container/start.sh` in both kits): MTP4
 (`num_speculative_tokens 4`), `--quantization gptq --dtype float16`,
 `--max-model-len 100000`, `--max-num-batched-tokens 8192`,
-`--no-enable-prefix-caching`, `--language-model-only`, `--reasoning-parser
-qwen3`, `--enable-auto-tool-choice --tool-call-parser qwen3_coder`, XPU graphs
-on, expandable segments on.
+`--enable-prefix-caching` (default; `--no-enable-prefix-caching` if
+`PREFIX_CACHE=0`), `--generation-config auto`, `--language-model-only`,
+`--reasoning-parser qwen3`, `--enable-auto-tool-choice --tool-call-parser
+qwen3_coder`, XPU graphs on, expandable segments on.
 
 ## Windows-specific engineering inside the kits
 
@@ -246,11 +325,17 @@ sustained g1024 68.45 / 67.08; p8192 64.42 / 64.26 / 64.08. MTP acceptance
 read 100% throughout (greedy, repetitive filler prompts — the acceptance
 maximum; real prompts sample lower on every measured stack).
 
-**Directional only:** the Linux champion in the same BF16-draft profile class
-measured **83.7** tok/s C1 p512/g128 (n=5 campaign). Windows Docker at ~70 is
-~15% below it — different OS, driver, kernel scheduler and file path, plus a
+**Directional only:** the Linux champion in the **BF16-draft** profile class
+measured **83.7** tok/s C1 p512/g128 (n=5). Windows Docker at ~70 is ~15%
+below that cell — different OS, driver, scheduler and file path, plus a
 single-machine self-report versus a controlled campaign. Do not compute a
 precise "Windows tax" from these two cells.
+
+The Linux **draft-INT4 S+M1** overlay is a later matched n=5: **112.65** vs
+**81.20** at the same p512/g128 cell (cache off). Windows 2026.08.19 ships
+that overlay; it has **not** been re-measured on Ian's machine. Do not put
+112.65 in a Windows table until `Test-CookbookDecode.ps1` is re-run on
+2026.08.19.
 
 The WSLC slowness is documented for Microsoft in
 [`windows/Qwen38-WSLC-Standalone/WSLC-Performance-Bug-Report.md`](../../windows/Qwen38-WSLC-Standalone/WSLC-Performance-Bug-Report.md)
@@ -261,8 +346,8 @@ placement / scheduling inside the WSLC runtime). Until Microsoft responds,
 ## Vendored copies — fixes applied
 
 The originals are Ian's zips (`Qwen38-WSLC-Standalone-2026.08.18.zip`,
-`Qwen38-Docker-Standalone-2026.08.18.zip`). The vendored trees are byte-equal
-to them except:
+`Qwen38-Docker-Standalone-2026.08.18.zip`). The vendored trees started
+byte-equal to them except:
 
 1. **`Qwen38-Docker-Standalone/Test-CookbookDecode.ps1`** — added
    `Add-Type -AssemblyName System.Net.Http`. The WSLC twin already had it;
@@ -275,8 +360,13 @@ to them except:
    not re-tested on `wslc.exe` — re-run once before redistributing the zip.)*
 3. Provenance header added to both kit `README.md` files (this page).
 
-Everything else — including the Microsoft bug report, which is evidence — is
-unchanged.
+**2026.08.19 overlay** (this page's upgrade): both kits now also ship
+`patch_gdn_mixed_split_v5.py`, `patch_draft_lmhead_int4.py`,
+`patch_draft_mtp_int4.py`; `container/start.sh` applies them and defaults
+`DRAFT_INT4=1` / `PREFIX_CACHE=1`; image tag `2026.08.19`;
+`Upgrade-Qwen38-*.ps1` rebuilds and recreates so a leftover 18 August
+container cannot silently keep the old entrypoint. The Microsoft bug
+report is unchanged evidence.
 
 ## Files
 
@@ -288,7 +378,9 @@ windows/
                               Smoke-Test, Test-CookbookDecode
   (both) container/           start.sh, diagnose.py, oneCCL warm-up skip,
                               low-reasoning template patch
-  (both) patches/             hash-pinned patch_mtp_nightly.py, patch_mtp_boundary.py
+  (both) patches/             five hash-pinned files: MTP nightly, MTP boundary,
+                              mixed-split v5, draft lmhead INT4, draft MTP INT4
+  (both) Upgrade-Qwen38-*.ps1 rebuild image 2026.08.19 and recreate the container
   (both) models/Qwen3.8-27B-GPTQ-Int4/   PLACE_MODEL_FILES_HERE.txt (model not bundled)
 ```
 

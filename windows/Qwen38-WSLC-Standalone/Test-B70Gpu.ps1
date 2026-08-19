@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Image = "qwen38-b70-friendly:2026.08.18")
+param([string]$Image = "qwen38-b70-friendly:2026.08.19")
 
 $ErrorActionPreference = "Stop"
 Write-Host "[GPU] Passing all available GPUs into a short diagnostic container..."

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Image = "qwen38-b70-friendly:2026.08.18",
+    [string]$Image = "qwen38-b70-friendly:2026.08.19",
     [string]$ContainerName = "qwen38-b70-friendly",
     [string]$ModelDirectory = (Join-Path $PSScriptRoot "models\Qwen3.8-27B-GPTQ-Int4"),
     [ValidateSet(0, 1, 2, 4)][int]$MtpTokens = 2,
@@ -11,6 +11,8 @@ param(
     [ValidateSet("On", "Off")][string]$ExpandableSegments = "On",
     [ValidateSet("fp8", "auto")][string]$KvCacheDtype = "auto",
     [ValidateRange(1, 256)][int]$MaxNumSeqs = 1,
+    [ValidateSet(0, 1)][int]$DraftInt4 = 1,
+    [ValidateSet(0, 1)][int]$PrefixCache = 1,
     [int]$Port = 8000,
     [int]$ReadyTimeoutMinutes = 10,
     [switch]$NoWait
@@ -47,6 +49,8 @@ Write-Host "  KV cache type:     $KvCacheDtype"
 Write-Host "  Scheduler capacity:$MaxNumSeqs sequence(s)"
 Write-Host "  GPU memory target: $([Math]::Round($GpuMemoryUtilization * 100))%"
 Write-Host "  KV cache budget:   $(if ($KvCacheMemoryGiB -gt 0) { "$KvCacheMemoryGiB GiB (explicit)" } else { 'Automatic from GPU target' })"
+Write-Host "  Draft INT4 overlay:$(if ($DraftInt4 -eq 1) { 'ON (default)' } else { 'OFF (BF16 draft)' })"
+Write-Host "  Prefix cache:      $(if ($PrefixCache -eq 1) { 'ON (default, real sessions)' } else { 'OFF (decode-test only)' })"
 Write-Host "  API port:          $Port"
 Write-Host ""
 Write-Host "The first startup can take several minutes while vLLM loads the"
@@ -65,6 +69,8 @@ $run = @(
     "--env", "ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE",
     "--env", "ZE_AFFINITY_MASK=0",
     "--env", "B70_MTP_BF16_DRAFT=1",
+    "--env", "DRAFT_INT4=$DraftInt4",
+    "--env", "PREFIX_CACHE=$PrefixCache",
     "--env", "VLLM_XPU_ENABLE_XPU_GRAPH=$(if ($XpuGraphs -eq 'On') { '1' } else { '0' })",
     "--env", "PYTORCH_ALLOC_CONF=expandable_segments:$(if ($ExpandableSegments -eq 'On') { 'True' } else { 'False' })",
     # WSLC exposes the Intel GPU without native Linux /dev/dri DRM nodes.

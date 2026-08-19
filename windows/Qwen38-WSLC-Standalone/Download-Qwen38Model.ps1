@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Image = "qwen38-b70-friendly:2026.08.18",
+    [string]$Image = "qwen38-b70-friendly:2026.08.19",
     [string]$ModelDirectory = (Join-Path $PSScriptRoot "models\Qwen3.8-27B-GPTQ-Int4"),
     [string]$HuggingFaceToken = $env:HF_TOKEN,
     [switch]$RequireHuggingFaceToken,

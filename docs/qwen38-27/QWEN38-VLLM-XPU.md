@@ -183,32 +183,71 @@ Qwen3.8-27B model card — thinking `temperature=1.0, top_p=0.95, top_k=20,
 presence_penalty=0.0`; non-thinking `temperature=0.7, top_p=0.80, top_k=20,
 presence_penalty=1.5`; `repetition_penalty=1.0` both modes.
 
-## 11. Concurrent MTP4 (optional overlay, not a C1 speed keep)
+## 11. Concurrent serving (mixed-split v5 + optional draft INT4)
 
-Unpatched `gdn_attention` on this XPU stack refuses mixed spec-decode +
-non-spec tokens in one invocation (`vllm-xpu-kernels#510`). C1 never hits
-that path. Two-plus in-flight requests (Pi agent, mixed long-prefill +
-decode) can kill EngineCore.
+**Why a patch is required.** Unpatched `gdn_attention` on this XPU stack
+refuses mixed spec-decode + non-spec tokens in one invocation
+(`vllm-xpu-kernels#510`). C1 never hits that path; two-plus in-flight
+requests with mixed long-prefill + decode can kill EngineCore. Apply
+**`patches/patch_gdn_mixed_split_v5.py`** after the two MTP patches
+(compact each group via `index_select`, `token_indx = arange`, idle side
+`None`, `index_copy_` on `core_attn_out` and `z`). Do **not** apply the
+original full-buffer + global-`token_indx` split on kernels `0.1.12.3`
+(global mixed indices are OOB). Optional
+`patches/patch_mtp_ptr_wrap.py` is int64-only.
 
-Use **`patches/patch_gdn_mixed_split_v5.py`** (also shipped as
-`patch_gdn_split_mixed.py`, same compact+scatter v5 algorithm) after the
-two MTP patches:
+**Setup for concurrent serving** — same launch line as §Launch (MTP4,
+fp8 KV, `--max-num-seqs 64`, `--max-num-batched-tokens 8192`), plus the v5
+patch (and the draft-INT4 overlay if you want the speed keep), plus
+`--enable-prefix-caching`:
+[FULL-SETUP-COMMANDS.md §11](../FULL-SETUP-COMMANDS.md). Copy-paste launch
+lines for every overlay combination live there; concurrency is a client
+property, no extra server flag beyond `--max-num-seqs`.
 
-- compact each group (`index_select`), `token_indx = arange`, idle side `None`
-- `index_copy_` both `core_attn_out` and `z`
-- patches every `_xpu_ops.py` copy; fail closed if the call-site anchor is missing
+**Measured (2026-08-19, single B70, image `f01e24f6`, MTP4, v5 + draft-INT4
+S+M1, prefix cache on, 230 W cap, measured draw 221–229 W, 82–83 °C
+package).** Two separate tables — do not merge them:
 
-Do **not** apply the original full-buffer + global-`token_indx` split on
-kernels `0.1.12.3`. The fused host binding narrows tensors to
-`num_actual_tokens`; global mixed indices are OOB.
+*Controlled Cn campaign — long-prefill wall-aggregate (aggregate = successful
+tokens / wave wall time, first send → last completion):*
 
-Optional `patches/patch_mtp_ptr_wrap.py` wraps **int64** `data_ptr` stores
-only. Do not wrap uint64 `dst_ptrs_np`. Overflow was seen on legacy
-`2c427ef` GGUF drafter logs, not on this champion image.
+| Cell | Aggregate tok/s (median) | Per-stream post-first (median) | TTFT p50 | MTP accept | OK |
+|---|---:|---:|---:|---:|---|
+| 5 concurrent coding sessions (~6K start, 3 turns, g128) | 30.13 | 17.1 | 16.5 s | 53.8% | 45/45 |
+| C10 p2048/g256 | 105.80 | 31.0 | 7.5 s | 46.4% | 30/30 |
+| C16 p2048/g256 | 106.81 | 25.0 | 17.0 s | 46.8% | 48/48 |
+| C32 p512/g128 | 160.46 | 28.2 | 12.0 s | 55.8% | 96/96 |
+| Mixed: 1× p32768/g128 + 4× p512/g128 | 20.99 | 8.4 | 15.5 s | 58.8% | 10/10 |
 
-Same-image n=5 on this champion stack: C1 decode **speed-flat** vs
-cookbook MTP4 (81.37 vs 81.20 tok/s median at p512/g128). Mixed
-decode-first + long prefill: cookbook EngineCore dead, v5 **3/3 alive**.
+The 5-session and mixed rows are prefill-dominated walls — the aggregate is
+honest for "how long until all users have their slice", not a decode ceiling.
+**0 crashes anywhere, including the mixed long-prefill + spec-decode cell
+that kills the unpatched stack** (cookbook EngineCore dead vs v5 3/3 alive,
+same-image n=5 C1 check earlier: 81.37 vs 81.20 tok/s — v5 is C1 speed-flat).
+
+*LocalMaxxing harness (their short-prompt remote eval, 256 output tokens,
+3 iterations, same server; self-reported APPROVED records):*
+
+| Concurrency | tokSOut (aggregate) | TTFT | Record |
+|---|---:|---:|---|
+| C1 | 56.8 | 171 ms | `cmt00hzaf0efams01r6rw5j14` |
+| C5 (realistic 5-way split) | **203.8** | 414 ms | `cmt00hzwf0effms014mdyizca` |
+| C16 | 200.6 | 8.1 s | `cmt00i05k0efims01vz3u1kl5` |
+| C32 | **224.2** | 15.4 s | `cmt00i0eb0eflms012anb0yau` |
+
+Reproduce with `lmx speed-test run vllm --mode remote --base-url
+http://127.0.0.1:8000 --hf-id SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16
+--served-model qwen38 --quantization GPTQ-Int4 --hardware b70-hardware.json
+--max-tokens 256 --warmup 1 --iterations 3 --concurrency <N> --out c<N>.json`.
+
+**Labels.** Cn aggregate is *not* single-stream (the C1 rows 83.7 / 112.65
+are separate records; per-stream share at C16–C32 is ~25–31 tok/s). MTP
+acceptance drops from ~94% (C1) to 46–56% under concurrency — expected;
+throughput still scales. After-load free VRAM on this config is ~0.6–0.9 GiB
+(research-class reserve at max-model-len 131072; a dedicated concurrent
+serving box should lower `--max-model-len` and keep ≥3 GiB free). Sub-1 GiB
+reserve + C32 completed 96/96 with no preemption failures here, but this is
+a measured research point, not a serving-capacity guarantee.
 
 ## 12. Draft INT4 S+M1 (optional Qwen3.8 MTP4 speed keep)
 

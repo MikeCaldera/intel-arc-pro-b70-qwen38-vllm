@@ -207,7 +207,7 @@ Standard p512 through p8192 cells use `benchmark-system-prompt.txt`. The p9445 c
 
 ![How the exact-token phase-separated campaign is measured](assets/b70-benchmark-method.svg)
 
-The visual is generated from the same evidence contract. Agents regenerating it should use `.agentic/skills/b70-benchmark-visuals/SKILL.md` or the matching public renderer `benchmarks/render-prefill-decode-svg.py`.
+The visual is generated from the same evidence contract. Regenerate it with the public renderer `benchmarks/render-prefill-decode-svg.py` from the canonical `summary.json`.
 
 ## 9. Compile, audit, and render
 
@@ -339,6 +339,30 @@ a serving headline. Tables:
 [DRAFT-INT4-S-M1.md](qwen38-27/DRAFT-INT4-S-M1.md).
 Do **not** apply Nemotron grouped-topk / SSU, and do **not** apply the original
 full-buffer GDN split.
+
+### Concurrent serving (v5 + optional draft-INT4) — same server, client-side concurrency
+
+The launch line above already sets `--max-num-seqs 64`. For concurrent
+serving apply v5 (required) and optionally S+M1, switch
+`--no-enable-prefix-caching` → `--enable-prefix-caching`, and drive N
+concurrent clients. Measured 2026-08-19 (results and labels:
+[QWEN38-VLLM-XPU.md §11](qwen38-27/QWEN38-VLLM-XPU.md)): 0 crashes at every
+cell including mixed long-prefill + spec decode; LocalMaxxing harness
+aggregate **C5 203.8 / C32 224.2 tok/s** (self-reported records), controlled
+long-prefill wall-aggregate C32 160.5 with per-stream ~28 tok/s. MTP
+acceptance drops to 46–56% under concurrency — expected.
+
+```bash
+# LocalMaxxing eval against the live server (their short-prompt harness):
+lmx speed-test run vllm \
+  --mode remote --base-url http://127.0.0.1:8000 \
+  --hf-id "SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16" \
+  --served-model qwen38 --quantization GPTQ-Int4 \
+  --hardware b70-hardware.json \
+  --max-tokens 256 --warmup 1 --iterations 3 \
+  --concurrency 5 --out c5.json
+lmx speed-test validate-local c5.json && lmx speed-test submit c5.json
+```
 
 DFlash 2 (`incoai/Qwen3.8-27B-DFlash2`) is **not** a recipe on this image.
 A research overlay of open vLLM PR #52816 + v5 **did load** on 2026-08-19

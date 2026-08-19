@@ -208,34 +208,45 @@ property, no extra server flag beyond `--max-num-seqs`.
 S+M1, prefix cache on, 230 W cap, measured draw 221–229 W, 82–83 °C
 package).** Two separate tables — do not merge them:
 
-*Controlled Cn campaign — long-prefill wall-aggregate (aggregate = successful
-tokens / wave wall time, first send → last completion):*
+*Controlled Cn campaign — 2026-08-19, three metrics per cell, definitions:*
 
-| Cell | Aggregate tok/s (median) | Per-stream post-first (median) | TTFT p50 | MTP accept | OK |
-|---|---:|---:|---:|---:|---|
-| 5 concurrent coding sessions (~6K start, 3 turns, g128) | 30.13 | 17.1 | 16.5 s | 53.8% | 45/45 |
-| **5 concurrent coding sessions (~8K start, 3 turns, g512) — realistic turn shape** | **53.96** | **27.7** | 22.4 s | 47.0% | 60/60 |
-| C10 p2048/g256 | 105.80 | 31.0 | 7.5 s | 46.4% | 30/30 |
-| C16 p2048/g256 | 106.81 | 25.0 | 17.0 s | 46.8% | 48/48 |
-| C32 p512/g128 | 160.46 | 28.2 | 12.0 s | 55.8% | 96/96 |
-| Mixed: 1× p32768/g128 + 4× p512/g128 | 20.99 | 8.4 | 15.5 s | 58.8% | 10/10 |
+- **Per-stream** = median of each request's own generation rate (what one user feels).
+- **Σ streams** = concurrency × per-stream median (total useful throughput; never overstates).
+- **Turn-completion wall** = all tokens ÷ whole wave wall including the prefill phase (how fast a full round of answers lands).
 
-The 5-session and mixed rows are prefill-dominated walls — the aggregate is
-honest for "how long until all users have their slice", not a decode ceiling.
-**0 crashes anywhere, including the mixed long-prefill + spec-decode cell
-that kills the unpatched stack** (cookbook EngineCore dead vs v5 3/3 alive,
-same-image n=5 C1 check earlier: 81.37 vs 81.20 tok/s — v5 is C1 speed-flat).
+| Cell | Per-stream tok/s | Σ streams tok/s | Turn-completion wall tok/s | TTFT p50 | MTP accept | OK |
+|---|---:|---:|---:|---:|---:|---|
+| 5 concurrent coding sessions (~8K start, 3 turns, g512) — realistic shape | **27.7** | **138.3** | 54.0 | 22.4 s | 47.0% | 60/60 |
+| 5 concurrent sessions (~6K start, g128) | 17.1 | 85.6 | 30.1 | 16.5 s | 53.8% | 45/45 |
+| C10 p2048/g256 | 31.0 | 309.5 | 105.8 | 7.5 s | 46.4% | 30/30 |
+| C16 p2048/g256 | 25.0 | 400.5 | 106.8 | 17.0 s | 46.8% | 48/48 |
+| C32 p512/g128 | 28.2 | 903.0 | 160.5 | 12.0 s | 55.8% | 96/96 |
+| Mixed: 1× p32768/g128 + 4× p512/g128 | 8.4 | 41.9 | 21.0 | 15.5 s | 58.8% | 10/10 |
+
+Reading it right: the "realistic C5" row means **each of the 5 users generates
+at ~28 tok/s (Σ ≈ 138 total)**, and a full round of 512-token answers lands
+in ~47 s because the wave spends 25–40 s prefilling ~45 K session tokens
+first. The wall number is prefill-dominated, not a decode ceiling — never
+quote it next to short-prompt aggregates. Do **not** compute a decode-phase
+aggregate from `max(e2e) − max(ttft)` windows: with staggered scheduling that
+metric overstates badly (it reads 749 at C16 and 1786 at C32 here); the
+Σ-streams column is the honest total.
+
+The mixed row is the v5 validation cell: 10/10 alive where the unpatched
+stack dies (same-image C1 check earlier: 81.37 vs 81.20 tok/s — v5 is
+C1 speed-flat).
 
 *LocalMaxxing harness (their short-prompt remote eval, 256 output tokens,
 3 iterations, same server; self-reported APPROVED records):*
 
-| Concurrency | tokSOut (aggregate) | TTFT | Record |
-|---|---:|---:|---|
-| C1 | 56.8 | 171 ms | `cmt00hzaf0efams01r6rw5j14` |
-| C1 (calibrated Pi prompts, client post-first n=5) | **100.2** | 369 ms | `cmt01ygp40eg9ms016odaz6kc` |
-| C5 (realistic 5-way split) | **203.8** | 414 ms | `cmt00hzwf0effms014mdyizca` |
-| C16 | 200.6 | 8.1 s | `cmt00i05k0efims01vz3u1kl5` |
-| C32 | **224.2** | 15.4 s | `cmt00i0eb0eflms012anb0yau` |
+| Concurrency | tokSOut | TTFT | What it is | Record |
+|---|---:|---:|---|---|
+| C1 | 56.8 | 171 ms | lmx harness short prompts | `cmt00hzaf0efams01r6rw5j14` |
+| C1 (calibrated Pi prompts, client post-first n=5) | **100.2** | 369 ms | current-stack C1 | `cmt01ygp40eg9ms016odaz6kc` |
+| C5 (lmx harness short prompts) | **203.8** | 414 ms | short-prompt aggregate | `cmt00hzwf0effms014mdyizca` |
+| C5 (realistic 8K coding sessions, Σ per-stream) | **138.3** | 22.4 s | 5 real users, per-user 27.7 | `cmt023kzf0egfms01rxx5jhv7` |
+| C16 | 200.6 | 8.1 s | lmx harness short prompts | `cmt00i05k0efims01vz3u1kl5` |
+| C32 | **224.2** | 15.4 s | lmx harness short prompts | `cmt00i0eb0eflms012anb0yau` |
 
 Reproduce with `lmx speed-test run vllm --mode remote --base-url
 http://127.0.0.1:8000 --hf-id SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16

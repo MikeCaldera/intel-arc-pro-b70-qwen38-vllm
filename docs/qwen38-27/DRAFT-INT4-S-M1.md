@@ -124,6 +124,26 @@ cold t1** (hits=0). Do not headline S+M1 at 128K.
 Do not mix with Run 42 synthetic cache-off p130944/g128 **62.52**.
 Raw: `B70-DOCS/results/qwen38-agentic-128k-20260819T102259Z/`.
 
+## Prompt-content sensitivity (2026-08-19, important for all MTP numbers)
+
+Same image, same patches (v5 + S+M1), same server config, C1 g128 — only the
+prompt family changes:
+
+| Prompt family | p512/g128 median | MTP acceptance |
+|---|---:|---:|
+| Calibrated real-world Pi prompts (cache ON, prefix on) | **100.2** (92.9–105.1) | 89–96% |
+| Same Pi prompts (cache OFF, 2026-08-18 record) | **112.65** | 94.4% |
+| Degenerate `INDEX INDEX…` filler (cache ON) | 71.5 | ~44% |
+
+Two separate effects: (1) **prompt content drives MTP acceptance** — the
+draft (INT4 or BF16) predicts realistic text far better than degenerate
+repetition, so filler-based harnesses understate any MTP stack by ~30% here;
+(2) prefix caching ON costs a further ~5–11% at zero hits on this stack.
+Never compare decode cells measured with different prompt families, and
+treat INDEX-filler numbers as a lower bound. p8192/g1 cold input is
+unaffected: 1694 tok/s both ways. Raw:
+`B70-DOCS/results/qwen38-pi-isolation-20260819T120424Z/`.
+
 ## Required companion
 
 Stack with **GDN mixed-split v5** (`patches/patch_gdn_mixed_split_v5.py`)

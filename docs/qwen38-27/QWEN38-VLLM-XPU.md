@@ -214,6 +214,7 @@ tokens / wave wall time, first send → last completion):*
 | Cell | Aggregate tok/s (median) | Per-stream post-first (median) | TTFT p50 | MTP accept | OK |
 |---|---:|---:|---:|---:|---|
 | 5 concurrent coding sessions (~6K start, 3 turns, g128) | 30.13 | 17.1 | 16.5 s | 53.8% | 45/45 |
+| **5 concurrent coding sessions (~8K start, 3 turns, g512) — realistic turn shape** | **53.96** | **27.7** | 22.4 s | 47.0% | 60/60 |
 | C10 p2048/g256 | 105.80 | 31.0 | 7.5 s | 46.4% | 30/30 |
 | C16 p2048/g256 | 106.81 | 25.0 | 17.0 s | 46.8% | 48/48 |
 | C32 p512/g128 | 160.46 | 28.2 | 12.0 s | 55.8% | 96/96 |
@@ -231,6 +232,7 @@ same-image n=5 C1 check earlier: 81.37 vs 81.20 tok/s — v5 is C1 speed-flat).
 | Concurrency | tokSOut (aggregate) | TTFT | Record |
 |---|---:|---:|---|
 | C1 | 56.8 | 171 ms | `cmt00hzaf0efams01r6rw5j14` |
+| C1 (calibrated Pi prompts, client post-first n=5) | **100.2** | 369 ms | `cmt01ygp40eg9ms016odaz6kc` |
 | C5 (realistic 5-way split) | **203.8** | 414 ms | `cmt00hzwf0effms014mdyizca` |
 | C16 | 200.6 | 8.1 s | `cmt00i05k0efims01vz3u1kl5` |
 | C32 | **224.2** | 15.4 s | `cmt00i0eb0eflms012anb0yau` |

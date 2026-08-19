@@ -244,3 +244,102 @@ results/vllm-pi-prefill-decode-matrix-<UTC>-<PID>/
 Each mode retains server logs, metrics snapshots, synchronized monitor data, VRAM evidence, harness logs, raw SSE/request records, and per-cell manifests. Preserve failed and excluded cells. The original no-spec p130560/g512 early-EOS cell remains excluded; the accepted summary uses its forced-exact replacement.
 
 Follow [Benchmark format](BENCHMARK-FORMAT.md) before copying any table.
+
+## 11. Qwen3.8-27B champion stack (`f01e24f6`)
+
+This family is **not** the Qwen3.6 Pi digest above. Use this image, this
+checkpoint, and only the Qwen3.8 Apply list from
+[IMAGE-AND-PATCH-MATRIX.md](IMAGE-AND-PATCH-MATRIX.md).
+
+```bash
+export COOKBOOK="$HOME/intel-arc-pro-b70-inference-cookbook"
+export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
+export MODEL_DIR="$HOME/models/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16"
+cd "$COOKBOOK"
+
+docker pull "$IMAGE"
+docker run --rm --entrypoint python "$IMAGE" -c '
+from importlib.metadata import version
+print(version("vllm"))
+print(version("vllm-xpu-kernels"))
+assert version("vllm").startswith("0.27.2rc1.dev77")
+assert version("vllm-xpu-kernels") == "0.1.12.3"
+'
+
+printf '%s  %s\n' \
+  '4d7a02c4ea10ca7c00dc89ad927fa3dafa747dbf0553d2adf24e30a3c53e9c14' 'patches/patch_mtp_nightly.py' \
+  '41d2f74e5fef1f074b76b5a90dd1016de437228431802cfb1fa7bd7ce4cc9b50' 'patches/patch_mtp_boundary.py' \
+  '8e4a3cbe5f424f308af74ff215d0fcb8d31f63ac3f07cf359ed2269956c3fc80' 'patches/patch_gdn_mixed_split_v5.py' \
+  'ffae41926d5f05f4f38bb985301b5e572092441d06d6063c8820a63a39b8cefc' 'patches/patch_draft_lmhead_int4.py' \
+  '4df179c3e77fd7a248f9b9c0b60217c60caea14ebfd16b7860536fbff3b2a1e9' 'patches/patch_draft_mtp_int4.py' \
+  | sha256sum --check
+```
+
+Download the preserved-MTP GPTQ artifact
+`SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16` (revision `9d189a60…`)
+into `$MODEL_DIR`. `mtp.*` tensors must stay BF16.
+
+### Default recipe — BF16 draft MTP4 (cookbook card 83.7)
+
+Required patches only: `patch_mtp_nightly.py` then `patch_mtp_boundary.py`.
+
+```bash
+RENDER_GID="$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')"
+docker rm -f qw38speed >/dev/null 2>&1 || true
+docker run -d --name qw38speed -p 8000:8000 --device /dev/dri --group-add "$RENDER_GID" \
+  -v /dev/dri:/dev/dri:ro -v "$MODEL_DIR:/model:ro" \
+  -v "$COOKBOOK/patches/patch_mtp_nightly.py:/patch_mtp.py:ro" \
+  -v "$COOKBOOK/patches/patch_mtp_boundary.py:/patch_boundary.py:ro" \
+  -e VLLM_TARGET_DEVICE=xpu -e ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE -e ZE_AFFINITY_MASK=0 \
+  -e B70_MTP_BF16_DRAFT=1 -e VLLM_XPU_ENABLE_XPU_GRAPH=1 \
+  -e PYTORCH_ALLOC_CONF=expandable_segments:True \
+  --entrypoint bash "$IMAGE" -lc \
+  'set -e; python /patch_mtp.py; python /patch_boundary.py; exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 131072 --gpu-memory-utilization 0.88 --kv-cache-dtype fp8 --port 8000 --max-num-seqs 64 --max-num-batched-tokens 8192 --no-enable-prefix-caching --served-model-name qwen38 --language-model-only --speculative-config "{\"method\":\"mtp\",\"num_speculative_tokens\":4}"'
+```
+
+### Optional mixed-batch overlay (v5) — correctness, not C1 speed
+
+Add after the two MTP patches. C1 decode is speed-flat. Mixed spec + prefill
+stays alive.
+
+```bash
+# extra mounts:
+#   -v "$COOKBOOK/patches/patch_gdn_mixed_split_v5.py:/patch_v5.py:ro"
+# extra apply, after the two MTP patches:
+#   python /patch_v5.py
+```
+
+### Optional draft-INT4 overlay (S+M1) — MTP speed, quality still gated
+
+Runtime RTN of the **draft** LM head and five MTP linears only. Target verify
+stays BF16. Set **both** env flags. Pair with v5 if mixed batches can occur.
+
+```bash
+# extra mounts (in addition to the two MTP patches + v5):
+#   -v "$COOKBOOK/patches/patch_draft_lmhead_int4.py:/patch_s.py:ro"
+#   -v "$COOKBOOK/patches/patch_draft_mtp_int4.py:/patch_m1.py:ro"
+# extra env:
+#   -e B70_DRAFT_LMHEAD_INT4=1 -e B70_DRAFT_MTP_INT4=1
+# extra apply:
+#   python /patch_s.py; python /patch_m1.py
+```
+
+Matched same-image n=5 (not vs Run 40 83.7): p512/g128 **81.20 → 112.65**,
+p8192/g128 **77.52 → 103.63**, short agentic cache-off **+32.8%**, p8192/g1
+cold input flat. Accept 95.86% → 94.44%. Quality A/B (temp=0, 15 tasks):
+both arms **12/15**, replay 15/15, **zero C-only regressions** — keep
+optional. Prefix-on agentic (isolated C1, 865–871 MiB after load): short
+**43.81 → 58.86**, 8K **48.04 → 66.99**, 16K **54.40 → 65.92**. Do not mix
+cache-on and cache-off agentic in one headline. Same-arm generation curve
++ isolated C1 128K (n=5, 870 MiB after load): p512/g256 **110.76**,
+p8192/g512 **64.96**, p130944/g128 **62.52** (5/5 exact 131,072 tokens).
+Isolated C1 only — not a serving headline. Tables:
+[DRAFT-INT4-S-M1.md](qwen38-27/DRAFT-INT4-S-M1.md).
+Do **not** apply Nemotron grouped-topk / SSU, and do **not** apply the original
+full-buffer GDN split.
+
+DFlash 2 (`incoai/Qwen3.8-27B-DFlash2`) is **not** a recipe on this image.
+A research overlay of open vLLM PR #52816 + v5 **did load** on 2026-08-19
+(`/health` 200) but spec acceptance was **0/574**. One-shot post-first
+19.18 tok/s is not a median and is slower than MTP4. Keep MTP4. Details:
+[QWEN38-VLLM-XPU.md §13](qwen38-27/QWEN38-VLLM-XPU.md).

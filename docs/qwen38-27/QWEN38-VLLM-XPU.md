@@ -2,6 +2,20 @@
 
 ![Dashboard SVG](../assets/b70-qwen38-dashboard.svg)
 
+The 4-mode dashboard is the **BF16-draft** Run 40 card (MTP4 p512/g128 **83.7**).
+The optional draft-INT4 overlay is a separate matched n=5 card:
+
+![Draft-INT4 overlay](../assets/b70-qwen38-draft-int4-overlay.svg)
+
+Generation length + isolated-C1 128K on that same S+M1 arm (not a serving
+headline; 870 MiB free after load):
+
+![Draft-INT4 generation and isolated C1 128K](../assets/b70-qwen38-draft-int4-ctx-gen.svg)
+
+Prefix-on agentic A/B (separate campaign, cache on, isolated C1):
+
+![Draft-INT4 prefix-on agentic](../assets/b70-qwen38-draft-int4-agentic-cacheon.svg)
+
 ## 1. Model download from Hugging Face
 Download the exact preserved-MTP artifact using the Hugging Face CLI. The model repository contains 16 files totaling ~18.2 GiB. We pin to the `9d189a60` revision to ensure exact replication.
 
@@ -47,9 +61,15 @@ print(torch.xpu.get_device_name(0))
 It must print `Intel Arc Pro B70`.
 
 ## 4. Patches
-We apply two critical patches in strict order (both located in the `patches/` directory of the cookbook):
-1. `patch_mtp_nightly.py` (SHA-256: `f1db50bf617aacbb0a672daf172be32a98b2a73c7817ebab0c6317b22d11f36a`): Enables the BF16 draft build gate by reading `B70_MTP_BF16_DRAFT=1`.
+Required, in this order (both in `patches/`):
+1. `patch_mtp_nightly.py` (SHA-256: `4d7a02c4ea10ca7c00dc89ad927fa3dafa747dbf0553d2adf24e30a3c53e9c14`): Enables the BF16 draft build gate by reading `B70_MTP_BF16_DRAFT=1`.
 2. `patch_mtp_boundary.py` (SHA-256: `41d2f74e5fef1f074b76b5a90dd1016de437228431802cfb1fa7bd7ce4cc9b50`): Correctly handles the partial final speculative group at the exact 131,072-token boundary.
+
+Optional, after those two, still Qwen-only (never Nemotron grouped-topk / SSU):
+3. `patch_gdn_mixed_split_v5.py` — mixed spec + non-spec `gdn_attention` compact+scatter. Cn correctness; C1 speed-flat.
+4. `patch_draft_lmhead_int4.py` then `patch_draft_mtp_int4.py` with `B70_DRAFT_LMHEAD_INT4=1` and `B70_DRAFT_MTP_INT4=1` — draft-side INT4 RTN. MTP speed overlay. Quality still gated.
+
+Copy-paste launch lines including the optional overlays: [FULL-SETUP-COMMANDS.md §11](../FULL-SETUP-COMMANDS.md).
 
 ## 5. Power cap
 Resolve your `xe` hwmon path (PCI 0000:0b:00.0) and set the 230 W configured cap:
@@ -206,14 +226,93 @@ MBT 8192, C1, 230 W configured cap, client post-first):
 | p512/g128 median n=5 | 81.20 tok/s (78.76–81.97) | **112.65** (111.58–117.73) | **+38.7%** |
 | p8192/g128 median n=5 | 77.52 | **103.63** (99.10–107.70) | **+33.7%** |
 | p8192/g1 cold input | 1691.1 | 1696.0 | +0.3% (flat) |
-| short agentic 3×5 g256 | 43.27 | **57.45** | **+32.8%** |
+| short agentic 3×5 g256 (**cache off**) | 43.27 | **57.45** | **+32.8%** |
 | MTP accept p512/g128 | 510/532 = 95.86% | 510/540 = 94.44% | −1.4 pp |
 | measured median W p512/g128 | 195.2 | 205.0 | — |
 
-Long-context C1 agentic (g128, 0 crashes): 8K median **68.73 vs 50.06
+Long-context C1 agentic (g128, 0 crashes, **cache off**): 8K median **68.73 vs 50.06
 (+37%)**; 16K **70.86 vs 56.29 (+26%)**. 32K was isolated C1 with
-~245 MiB free — **+5% only, not a serving headline**.
+~245 MiB free — **+5% only, not a serving headline**. Keep this table
+separate from the prefix-on campaign below.
 
-Speed-only. No token / KL / task-quality parity. Do **not** headline +51%.
-This Run 40 83.7 MTP4 p512/g128 card above is the BF16-draft baseline;
-the 112.65 number is the optional draft-INT4 overlay on the same image.
+Temperature-0 15-task A/B (2026-08-19): **12/15 both arms**, 15/15 greedy
+replay, **zero C-only regressions**. Shared fails are a safety refusal
+(needle) and two `max_tokens` truncations with identical SHA. Keep the
+overlay optional. Do **not** headline +51%. The Run 40 83.7 card is the
+BF16-draft default; 112.65 is the overlay.
+
+Same-arm generation + isolated C1 128K (2026-08-19, n=5, cache off,
+230 W cap, client post-first). After-load free VRAM **870 MiB** —
+isolated C1 only, not preferred-perf, not a serving headline.
+Dashboard: [b70-qwen38-draft-int4-ctx-gen.svg](../assets/b70-qwen38-draft-int4-ctx-gen.svg).
+Full table: [DRAFT-INT4-S-M1.md](DRAFT-INT4-S-M1.md).
+
+| Cell | median | max | accept | n |
+|---|---:|---:|---:|--:|
+| p512/g32 | 101.57 | 102.73 | 84.9% | 5 |
+| p512/g256 | 110.76 | 112.87 | 89.0% | 5 |
+| p512/g512 | 101.20 | 112.71 | 81.2% | 5 |
+| p8192/g32 | 93.92 | 94.64 | 86.5% | 5 |
+| p8192/g256 | 75.75 | 80.33 | 62.5% | 5 |
+| p8192/g512 | 64.96 | 72.22 | 51.6% | 5 |
+| p16384/g128 | 94.92 | 95.41 | 92.6% | 5 |
+| p32768/g128 | 88.25 | 91.59 | 93.8% | 5 |
+| p65536/g128 | 76.72 | 79.79 | 94.8% | 5 |
+| p98304/g128 | 67.93 | 70.50 | 93.4% | 5 |
+| p130944/g128 isolated C1 | 62.52 | 65.57 | 92.6% | 5 |
+
+p130944+g128 completed 131,072 tokens 5/5. g32 is not sustained. Do not
+mix these client rates with the Run 40 83.7 / n=1 56.3 BF16-draft rows.
+
+### Prefix-on agentic (2026-08-19, Run 43)
+
+Separate campaign from the cache-off agentic rows above. Same image, MTP4,
+C1, configured **230 W**, client post-first. Server logs
+`enable_prefix_caching: True`. After-load **865 / 871 MiB** → isolated C1
+only. Comparison: `matched_except_quant` (INT4 draft vs BF16 draft). Do
+**not** subtract these from cache-off agentic, and do **not** overwrite
+the 83.7 LMX row.
+
+Client post-first tok/s, median, C1, prefix cache on, 230 W cap configured:
+
+| Cell | Cookbook BF16 draft | Draft INT4 S+M1 | Δ |
+|---|---:|---:|---:|
+| short coding 3×5 g256 (3 sessions, 15 turns) | 43.81 | **58.86** | **+34.4%** |
+| 8K start g128 (3 sessions, 15 turns) | 48.04 | **66.99** | **+39.4%** |
+| 16K start g128 (2 sessions, 8 turns) | 54.40 | **65.92** | **+21.2%** |
+
+Short t1 cache-hit delta = 0; t5 = 1664 tokens/session. Long t2+ hits
+4992–18304. Prefix cache did **not** make decode faster than the cache-off
+agentic campaign. Speed only; quality KEEP 12/15 is from the prior suite.
+
+Raw: `B70-DOCS/results/qwen38-agentic-cacheon-20260819T093858Z/`. SVG:
+[b70-qwen38-draft-int4-agentic-cacheon.svg](../assets/b70-qwen38-draft-int4-agentic-cacheon.svg).
+
+## 13. DFlash 2 — loads on a research overlay, 0% accept (not a recipe)
+
+[`incoai/Qwen3.8-27B-DFlash2`](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2)
+(Apache-2.0, ~3.85 GB, `architectures: ["DFlash2DraftModel"]`) is a **new**
+block-diffusion drafter ([blog](https://inco.ai/blog/dflash2/)). Official
+serve line is vLLM `method: dflash` + `num_speculative_tokens: 7` on
+**vLLM PR #52816** (`DFlash2Qwen3ForCausalLM` + Triton `DFlash2Speculator`).
+That PR is **open** and CUDA-oriented. This champion image only registers
+DFlash **v1** (`DFlashDraftModel`). Relabeling the checkpoint as v1 is an
+architecture mismatch — do not do it.
+
+Measured 2026-08-19 on `f01e24f6` + GPTQ target + official DFlash2 draft
+(`results/qwen38-dflash2-smoke-20260819T071612Z/`, C1, cache off, 230 W
+cap, `n=7`):
+
+| Step | Result |
+|---|---|
+| Unpatched image | `SpeculativeConfig`: `DFlash2DraftModel` not supported |
+| Registry-only overlay | loads as v1 `DFlashQwen3Model` — no `candidate_selector` |
+| Overlay + `model_cls` / V2-runner hooks, no v5 | weights load; warmup dies on XPU `causal_conv1d` mixed spec/prefill |
+| Overlay + v5 mixed-split | `/health` 200, greedy `pong` ok, 4645 MiB free |
+| Spec window | **Accepted 0 / Drafted 574 = 0.0%** (all 7 positions 0) |
+| One-shot p512-ish g128 | client post-first **19.18 tok/s** (`n=1`, not a median) |
+
+That 19 tok/s is worse than no-spec on this target. Drafting happened;
+verification accepted nothing. **Keep MTP4 as the serving spec.** This is
+not a Lane 1 card and not a cookbook apply-list item. Never apply Nemotron
+DFlash patches to this family.

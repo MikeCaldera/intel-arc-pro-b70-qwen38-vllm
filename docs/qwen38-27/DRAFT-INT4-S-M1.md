@@ -32,7 +32,7 @@ configured **230 W**. Timing: client post-first / input÷TTFT. Accept from
 | p512/g128 median n=5 | 81.20 tok/s (78.76–81.97) | **112.65** (111.58–117.73) | **+38.7%** |
 | p8192/g128 median n=5 | 77.52 | **103.63** (99.10–107.70) | **+33.7%** |
 | p8192/g1 cold input | 1691.1 | 1696.0 | +0.3% (flat) |
-| short agentic 3×5 g256 | 43.27 | **57.45** | **+32.8%** |
+| short agentic 3×5 g256 (**cache off**) | 43.27 | **57.45** | **+32.8%** |
 | accept p512 / p8192 | 95.86% / 96.02% | 94.44% / 94.59% | −1.4 pp |
 | measured median W p512 | 195.2 | 205.0 | — |
 
@@ -46,6 +46,67 @@ list, MBT, and cache mode (`not_comparable`).
 
 The n=3 chat-harness screen (59.1 → 83.9) used ~p530 filler, not exact
 p512. It is superseded.
+
+## Generation curve + isolated C1 128K (2026-08-19, Run 42)
+
+Same S+M1 arm, same image, MTP4, cache off, C1, configured **230 W**,
+`ignore_eos`, n=5, zero prefix-cache-hit deltas. g128 Lane 1 above was
+**not** remeasured. After-load `visible_avail` = **870 MiB** → isolated
+C1 capacity only (500–1,023 MiB class). Mid-request free VRAM dipped to
+tens of MiB. **Not a serving or preferred-perf 128K claim.**
+
+![S+M1 generation and isolated-C1 128K](../assets/b70-qwen38-draft-int4-ctx-gen.svg)
+
+### Generation length (client post-first tok/s)
+
+g32 is not sustained. g512 is a length diagnostic, not a predeclared
+sustained window.
+
+| Cell | median | max | range | accept | median W | n |
+|---|---:|---:|---|---:|---:|--:|
+| p512/g32 | 101.57 | 102.73 | 89.59–102.73 | 84.9% | 215.5 | 5 |
+| p512/g256 | 110.76 | 112.87 | 85.13–112.87 | 89.0% | 195.6 | 5 |
+| p512/g512 | 101.20 | 112.71 | 73.24–112.71 | 81.2% | 193.8 | 5 |
+| p8192/g32 | 93.92 | 94.64 | 82.50–94.64 | 86.5% | 229.1 | 5 |
+| p8192/g256 | 75.75 | 80.33 | 69.00–80.33 | 62.5% | 215.1 | 5 |
+| p8192/g512 | 64.96 | 72.22 | 56.81–72.22 | 51.6% | 206.3 | 5 |
+
+### Long-context g128 (isolated C1)
+
+All rows exact tokens, `finish_reason=length`. p130944+g128 completed
+131,072 tokens on every rep.
+
+| Cell | median post-first | max | range | input/TTFT | accept | median W | n |
+|---|---:|---:|---|---:|---:|---:|--:|
+| p16384/g128 | 94.92 | 95.41 | 90.52–95.41 | 1495 | 92.6% | 226.0 | 5 |
+| p32768/g128 | 88.25 | 91.59 | 85.00–91.59 | 1269 | 93.8% | 227.6 | 5 |
+| p65536/g128 | 76.72 | 79.79 | 76.53–79.79 | 1000 | 94.8% | 228.6 | 5 |
+| p98304/g128 | 67.93 | 70.50 | 65.24–70.50 | 827 | 93.4% | 229.0 | 5 |
+| p130944/g128 | 62.52 | 65.57 | 58.74–65.57 | 708 | 92.6% | 229.1 | 5 |
+
+Raw: `B70-DOCS/results/qwen38-sm1-ctx-gen-20260819T082145Z/`. Input
+column is cold input rate (prompt tokens / client TTFT), not isolated
+prefill.
+
+## Prefix-on agentic (2026-08-19, Run 43)
+
+Matched same-image A/B with **prefix caching on** (`enable_prefix_caching:
+True` in both server logs). C1, configured **230 W**, client post-first.
+After-load 865 / 871 MiB → isolated C1. Comparison:
+`matched_except_quant`. Keep the cache-off agentic table above separate.
+Do not headline prefix-on as faster decode than cache-off.
+
+Client post-first tok/s, median, C1, prefix cache on, 230 W cap configured:
+
+| Cell | Cookbook BF16 draft | Draft INT4 S+M1 | Δ |
+|---|---:|---:|---:|
+| short coding 3×5 g256 (3 sessions, 15 turns) | 43.81 | **58.86** | **+34.4%** |
+| 8K start g128 (3 sessions, 15 turns) | 48.04 | **66.99** | **+39.4%** |
+| 16K start g128 (2 sessions, 8 turns) | 54.40 | **65.92** | **+21.2%** |
+
+Short t5 hits = 1664 tokens/session. Long t2+ hits 4992–18304. 0 crashes.
+SVG: [b70-qwen38-draft-int4-agentic-cacheon.svg](../assets/b70-qwen38-draft-int4-agentic-cacheon.svg).
+Raw: `B70-DOCS/results/qwen38-agentic-cacheon-20260819T093858Z/`.
 
 ## Required companion
 
@@ -63,7 +124,34 @@ Pointer wrap (`patch_mtp_ptr_wrap.py`) is optional and **int64-only**.
 Set both for the Qwen3.8-27B MTP4 speed keep. Leave unset to recover
 BF16-draft acceptance.
 
+## Quality A/B (2026-08-19, keep)
+
+Temperature 0, thinking off, 15-task suite, greedy replay. Same image /
+checkpoint / MTP4 as the n=5 speed card. Raw:
+`B70-DOCS/results/qwen38-draft-quality-20260819T064654Z/`.
+
+| Arm | Pass | Greedy replay |
+|---|---|---|
+| BF16 draft (cookbook) | **12/15** | 15/15 |
+| Draft INT4 S+M1 | **12/15** | 15/15 |
+
+No C-only regressions. 14/15 greedy SHA match. Shared fails:
+
+- `needle-2k` — both refuse a buried “secret token” (safety), wording differs
+- `word-problem` / `reasoning-short` — both truncated at `max_tokens` with
+  **identical** SHA; the truncated math is the same on both arms
+
+Passed on both: arithmetic, runnable Python (sum-of-squares, fizzbuzz, empty-mean
+fix), JSON object, capitals, prime list, Spanish translation, qwen3_xml tool
+call, HTML button snippet.
+
+**Keep the overlay as optional.** Do not make it the default recipe: target
+GPTQ quality vs BF16 teacher is still untested (Steve’s 30-vs-14 canary was
+the target, not the draft). No logit/KL packet.
+
 ## Status
 
-Optional recipe keep on this champion image. Speed-only; no token / KL /
-task-quality parity evidence.
+Optional recipe keep on this champion image. Speed **and** this 15-task
+`task_quality_tested` A/B: no draft-INT4 regression vs BF16 draft. Prefix-on
+agentic also wins vs cookbook MTP4 (Run 43). Not token or KL parity. Not
+the default 83.7 LMX row.

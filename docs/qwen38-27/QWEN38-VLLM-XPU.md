@@ -288,6 +288,23 @@ agentic campaign. Speed only; quality KEEP 12/15 is from the prior suite.
 Raw: `B70-DOCS/results/qwen38-agentic-cacheon-20260819T093858Z/`. SVG:
 [b70-qwen38-draft-int4-agentic-cacheon.svg](../assets/b70-qwen38-draft-int4-agentic-cacheon.svg).
 
+### Prefix-on agentic 32K→128K (2026-08-19, Run 44)
+
+Same image / MTP4 / 230 W / prefix on / C1. After-load **825 / 816 MiB**.
+Client post-first, g128. Comparison `matched_except_quant`. 96K is thin.
+128K is one cold t1 — S+M1 is **slower** there. Isolated C1, not serving.
+
+| Cell | Cookbook BF16 draft | Draft INT4 S+M1 | Δ | n |
+|---|---:|---:|---:|---|
+| 32K start g128 | 46.34 | **61.02** | **+31.7%** | 2 sessions, 6 turns |
+| 64K start g128 | 44.83 | **56.20** | **+25.4%** | 2 sessions, 4 turns |
+| 96K start g128 | 40.66 | **47.85** | **+17.7%** | 1 session, 2 turns (thin) |
+| ~128K t1 only | **43.82** | 37.48 | **−14.5%** | 1 session, 1 turn |
+
+t2+ cache hits 29952 / 63232 / 96512. 128K hits=0. Do not mix with Run 42
+synthetic cache-off **62.52**. Raw:
+`B70-DOCS/results/qwen38-agentic-128k-20260819T102259Z/`.
+
 ## 13. DFlash 2 — loads on a research overlay, 0% accept (not a recipe)
 
 [`incoai/Qwen3.8-27B-DFlash2`](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2)

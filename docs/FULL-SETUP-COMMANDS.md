@@ -328,12 +328,14 @@ Matched same-image n=5 (not vs Run 40 83.7): p512/g128 **81.20 → 112.65**,
 p8192/g128 **77.52 → 103.63**, short agentic cache-off **+32.8%**, p8192/g1
 cold input flat. Accept 95.86% → 94.44%. Quality A/B (temp=0, 15 tasks):
 both arms **12/15**, replay 15/15, **zero C-only regressions** — keep
-optional. Prefix-on agentic (isolated C1, 865–871 MiB after load): short
-**43.81 → 58.86**, 8K **48.04 → 66.99**, 16K **54.40 → 65.92**. Do not mix
-cache-on and cache-off agentic in one headline. Same-arm generation curve
-+ isolated C1 128K (n=5, 870 MiB after load): p512/g256 **110.76**,
-p8192/g512 **64.96**, p130944/g128 **62.52** (5/5 exact 131,072 tokens).
-Isolated C1 only — not a serving headline. Tables:
+optional. Prefix-on agentic (isolated C1, 816–871 MiB after load): short
+**43.81 → 58.86**, 8K **48.04 → 66.99**, 16K **54.40 → 65.92**, 32K
+**46.34 → 61.02**, 64K **44.83 → 56.20**. 96K thin; ~128K t1 **43.82 vs
+37.48** (n=1, S+M1 slower). Do not mix cache-on and cache-off agentic in
+one headline. Same-arm generation curve + isolated C1 synthetic 128K (n=5,
+870 MiB after load): p512/g256 **110.76**, p8192/g512 **64.96**,
+p130944/g128 **62.52** (5/5 exact 131,072 tokens). Isolated C1 only — not
+a serving headline. Tables:
 [DRAFT-INT4-S-M1.md](qwen38-27/DRAFT-INT4-S-M1.md).
 Do **not** apply Nemotron grouped-topk / SSU, and do **not** apply the original
 full-buffer GDN split.

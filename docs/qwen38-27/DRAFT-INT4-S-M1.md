@@ -108,6 +108,22 @@ Short t5 hits = 1664 tokens/session. Long t2+ hits 4992–18304. 0 crashes.
 SVG: [b70-qwen38-draft-int4-agentic-cacheon.svg](../assets/b70-qwen38-draft-int4-agentic-cacheon.svg).
 Raw: `B70-DOCS/results/qwen38-agentic-cacheon-20260819T093858Z/`.
 
+## Prefix-on agentic 32K→128K (2026-08-19, Run 44)
+
+Same arms, prefix cache on, C1, 230 W, client post-first g128. After-load
+**825 / 816 MiB** → isolated C1. 96K is one session. 128K is a **single
+cold t1** (hits=0). Do not headline S+M1 at 128K.
+
+| Cell | Cookbook BF16 draft | Draft INT4 S+M1 | Δ | n |
+|---|---:|---:|---:|---|
+| 32K start g128 | 46.34 | **61.02** | **+31.7%** | 2 sessions, 6 turns |
+| 64K start g128 | 44.83 | **56.20** | **+25.4%** | 2 sessions, 4 turns |
+| 96K start g128 | 40.66 | **47.85** | **+17.7%** | 1 session, 2 turns (thin) |
+| ~128K t1 only | **43.82** | 37.48 | **−14.5%** | 1 session, 1 turn |
+
+Do not mix with Run 42 synthetic cache-off p130944/g128 **62.52**.
+Raw: `B70-DOCS/results/qwen38-agentic-128k-20260819T102259Z/`.
+
 ## Required companion
 
 Stack with **GDN mixed-split v5** (`patches/patch_gdn_mixed_split_v5.py`)

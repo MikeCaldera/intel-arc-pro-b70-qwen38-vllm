@@ -15,6 +15,12 @@ then apply **only** that row’s “Apply” list. The last column is a
 | Nemotron-3.5-Lightning DFlash | `…1da0a9548545…` | Nemotron: `patch_xpu_grouped_topk_native_v2.py` then SSU B8/W4 | Qwen MTP patches (Qwen-only) |
 | Qwen3.8-27B | `…f01e24f6c7ff…` | Qwen MTP: `patch_mtp_nightly.py` then `patch_mtp_boundary.py`. Optional mixed-batch: compact+scatter `patch_gdn_mixed_split_v5.py`. Optional MTP speed: `patch_draft_lmhead_int4.py` then `patch_draft_mtp_int4.py` (`B70_DRAFT_LMHEAD_INT4=1`, `B70_DRAFT_MTP_INT4=1`) | Nemotron grouped-topk / SSU. Original full-buffer GDN split (OOB on kernels 0.1.12.3). DFlash 2 / PR #52816 is **not** an apply-list item: overlay can load, measured accept **0%** |
 
+The **Windows 11 standalone kits** ([qwen38-27/WINDOWS-STANDALONE.md](qwen38-27/WINDOWS-STANDALONE.md),
+[`windows/`](../windows/)) are not a new generation: they build from the same
+Qwen3.8 `f01e24f6` digest and the same two Qwen MTP patches (SHA-256-verified
+against cookbook commit `5c6b6b1`), running the BF16-draft profile
+(`B70_MTP_BF16_DRAFT=1`) with none of the optional patches.
+
 Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
 public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.
 

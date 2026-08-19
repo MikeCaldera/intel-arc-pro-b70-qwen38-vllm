@@ -1,5 +1,9 @@
 # Qwen3.8-27B vLLM XPU 4-Mode Recipe
 
+> **Windows 11 host?** The same profile is packaged for Windows (Docker
+> Desktop + WSLC standalone kits, BF16-draft, 100K ctx, display-memory-safe
+> GPU budget): [WINDOWS-STANDALONE.md](WINDOWS-STANDALONE.md).
+
 ![Dashboard SVG](../assets/b70-qwen38-dashboard.svg)
 
 The 4-mode dashboard is the **BF16-draft** Run 40 card (MTP4 p512/g128 **83.7**).

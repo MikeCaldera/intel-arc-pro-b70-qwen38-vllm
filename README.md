@@ -13,7 +13,7 @@ Nemotron DFlash.
 | Family | Engine | What is proven | Headline | Page |
 |---|---|---|---|---|
 | **Qwen3.6-35B-A3B** | vLLM XPU (Pi digest) | Native MTP 1/2/4, 128K | MTP4 p512/g128 **170.91** client post-first n=5 | [this README §MoE](#moe-qwen36-35b-a3b--whole-analysis) |
-| **Qwen3.8-27B** | vLLM XPU (nightly digest) | Dense GPTQ-INT4 + MTP4; optional draft-INT4; concurrent serving via mixed-split v5 | C1 **106.7** n=5 current stack (LMX `cmt03mj040eh8ms01trjvhm75`); cache-off 112.65 (`cmszpqy000e8fms014ty6i5x3`), BF16-draft 83.7 (`cmsur82fz06svms01ga1f0z83`). Concurrent (v5 + draft-INT4, prefix on): **C5 realistic 127.4** Σ-streams / 25.5 per-user (`cmt03mjo60ehbms0117c5i745`), short-prompt **C5 203.8 / C32 224.2** (lmx harness), C32 Σ-streams 903. **Prefix reuse largely fails at C5 on this build** (0–38% hits vs 91% at C1) — warm-session TTFT at Cn is an open issue | [QWEN38-VLLM-XPU](docs/qwen38-27/QWEN38-VLLM-XPU.md) |
+| **Qwen3.8-27B** | vLLM XPU (nightly digest) | Dense GPTQ-INT4 + MTP4; optional draft-INT4; concurrent serving via mixed-split v5 | C1 **106.7** n=5 current stack (LMX `cmt03mj040eh8ms01trjvhm75`); cache-off 112.65 (`cmszpqy000e8fms014ty6i5x3`), BF16-draft 83.7 (`cmsur82fz06svms01ga1f0z83`). Concurrent (v5 + draft-INT4, prefix on): **C5 realistic 127.4** Σ-streams / 25.5 per-user (`cmt03mjo60ehbms0117c5i745`), short-prompt **C5 203.8 / C32 224.2** (lmx harness), C32 Σ-streams 903. **Prefix reuse largely fails at C5 on this build** (0–38% hits vs 91% at C1) — warm-session TTFT at Cn is an open issue | [QWEN38-VLLM-XPU](docs/qwen38-27/QWEN38-VLLM-XPU.md) · [Windows 11](docs/qwen38-27/WINDOWS-STANDALONE.md) |
 | **Qwen3.6-27B** | vLLM XPU (same Pi digest) | Dense GPTQ-INT4 + MTP, fp8 KV | MTP4 p512/g128 **69.30** n=5 | [this README §Dense](#dense-qwen36-27b--whole-analysis) |
 | **Nemotron-3.5-Lightning-30B-A3B** | vLLM XPU (**newer** digest) | DFlash n=7; native MTP **0%** | **186.61** C1 client post-first at p2048/g128 n=5; **cold input 7160** (prompt/TTFT) at p8192/g1 | [NEMOTRON-DFLASH-B70](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
 | **Muse-Glimmer-30B** | llama.cpp SYCL | Vision + DFlash n2; vLLM still experimental | **26.8** engine t/s at p512/g128 **128K** n=5 | [MUSE-GLIMMER-B70](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
@@ -74,6 +74,17 @@ and use the served model name (`Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4` or
 launchers, so `tool_choice: "auto"` works out of the box. For a persistent
 server, wrap either launcher in your own systemd unit or process supervisor —
 the scripts are self-contained and portable (no host-specific paths).
+
+### Windows 11 hosts (WSLC / Docker Desktop)
+
+<img src="docs/assets/windows-11-logo.svg" alt="Windows 11" width="22" align="top"> Qwen3.8-27B also runs on **Windows 11** with the same image digest and
+patches: two standalone PowerShell kits (Docker Desktop — proven, ~70 tok/s
+class; Microsoft WSLC — experimental, 2.4–2.8× slower) devised and tested by
+Ian Hudson (aitesthive.com). They reserve GPU memory for the Windows desktop
+(`gpu-memory-utilization 0.75` + explicit 4.25 GiB fp8 KV) because a
+single-B70 Windows machine drives its display from the same 32 GB card.
+Quick start, provenance and self-reported numbers:
+**[docs/qwen38-27/WINDOWS-STANDALONE.md](docs/qwen38-27/WINDOWS-STANDALONE.md)** (kits in [`windows/`](windows/)).
 
 ### Connecting Pi / omp / Hermes
 
@@ -483,6 +494,7 @@ benchmarks/
   qwen36-27/         Dense Qwen3.6-27B launchers (launch-dense27-128k-mode.sh)
   nemotron35-30a3/   Nemotron DFlash + no-spec graph launchers
   <root>             shared: matrix runner, harness, monitor, prompt generation, compiler, renderers
+windows/             Windows 11 standalone kits (WSLC + Docker Desktop) — see docs/qwen38-27/WINDOWS-STANDALONE.md
 patches/             family-tagged patches — see IMAGE-AND-PATCH-MATRIX.md
 docs/
   qwen36-35a3/       MoE-specific reference (QUANTIZATION-QUALITY.md)

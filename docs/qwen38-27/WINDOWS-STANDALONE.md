@@ -55,8 +55,8 @@ profile runs 100K context rather than the Linux 131,072.
 Both kits need: Windows 11, a current Intel Arc driver, ≥22 GiB free disk for
 the ~18.2 GiB model (plus image space), and an ordinary PowerShell window
 (admin not required). An `HF_TOKEN` read token is optional — the model is
-public; it only improves download rate limits. See each kit's `README.md` for
-the token how-to and manual model placement.
+public; it only improves download rate limits. The complete authored steps are
+below; each kit's `README.md` / `README.html` is the canonical copy.
 
 **Docker Desktop (recommended):** install Docker Desktop from
 <https://docs.docker.com/desktop/setup/install/windows-install/>, select the
@@ -80,6 +80,111 @@ Set-ExecutionPolicy -Scope Process Bypass
 Endpoint (both): `http://127.0.0.1:8000/v1`, served model name `qwen38`.
 Tool calling is on (`qwen3_coder` parser), vision is off, thinking is on with
 a low default reasoning effort (template below).
+
+## Full step-by-step (as Ian authored and tested it)
+
+Transcribed from the kit READMEs so this page is self-contained. Work in the
+kit folder you downloaded (or `windows/Qwen38-*-Standalone/` from this repo).
+
+### Step 0 — shared preparation (both paths)
+
+1. **Open PowerShell in the extracted kit folder** (an ordinary window;
+   administrator mode is not normally required).
+2. **Optional: a Hugging Face read token** (higher rate limits; the model
+   itself is public):
+   1. Sign in at <https://huggingface.co/>, open
+      <https://huggingface.co/settings/tokens>, **Create new token** → type
+      **Read**. It begins with `hf_`.
+   2. Set it for this window only:
+      `$env:HF_TOKEN = "hf_your_read_token_here"` — or permanently:
+      `[Environment]::SetEnvironmentVariable("HF_TOKEN", "hf_your_read_token_here", "User")`
+      (permanent changes are visible to **new** processes — reopen PowerShell).
+   3. Verify without printing it:
+      `if ($env:HF_TOKEN) { "HF_TOKEN is set" } else { "HF_TOKEN is not set" }`
+   4. Treat it like a password; revoke and replace it if it is ever exposed.
+3. **Optional: place the model manually** instead of downloading — copy the
+   repository contents into the kit's
+   `.\models\Qwen3.8-27B-GPTQ-Int4\` folder. It must contain `config.json`,
+   all five `model-0000x-of-00005.safetensors` shards, the shard index and
+   tokenizer files.
+
+### Path A — Docker Desktop (recommended)
+
+1. **Install Docker Desktop manually** from
+   <https://docs.docker.com/desktop/setup/install/windows-install/> only.
+   Choose the **Linux/WSL 2** engine, start Docker Desktop and wait until it
+   reports the engine is running.
+2. **Check access** in a new ordinary PowerShell window:
+
+   ```powershell
+   docker context use desktop-linux
+   docker info
+   ```
+
+   If `docker info` reports permission denied, an administrator can add your
+   Windows user to Docker's access group:
+
+   ```powershell
+   net localgroup docker-users "$env:USERNAME" /add
+   ```
+
+   Then **sign out and back in (or reboot)**, start Docker Desktop, and run
+   `docker info` again.
+3. **Run the installer** (start Docker Desktop first):
+
+   ```powershell
+   Set-ExecutionPolicy -Scope Process Bypass
+   .\Setup-Qwen38-Docker.ps1
+   ```
+
+   It verifies Docker, builds the pinned image, mounts the minimum WSL GPU
+   interfaces (`/dev/dxg`, `/usr/lib/wsl/lib`, `/usr/lib/wsl/drivers`,
+   read-only; **no `--privileged`**), runs a real XPU calculation, downloads
+   the model if necessary, and starts the server. Partial downloads are
+   retained for resumption.
+4. **Use it.** Endpoint `http://127.0.0.1:8000/v1`, model name `qwen38`,
+   automatic tool choice with the `qwen3_coder` parser, vision disabled.
+5. **Daily controls:**
+
+   ```powershell
+   .\Start-Qwen38-Docker.ps1     # starts or restarts; preserves the compiled-graph cache
+   .\Stop-Qwen38-Docker.ps1      # stops; keeps the stopped container for fast restart
+   .\Build-Qwen38Image-Docker.ps1   # rebuild the pinned image only
+   .\Test-CookbookDecode.ps1        # exact-token decode benchmark
+   ```
+
+   The first image build and model download take a long time; model loading is
+   several minutes because the 18.2 GiB checkpoint is read from the Windows
+   bind mount. Keep the stopped container rather than removing it to preserve
+   the compiled graph cache.
+
+### Path B — Microsoft WSLC (experimental)
+
+1. **Prerequisites:** Windows 11 with Microsoft WSLC installed and working,
+   Arc Pro B70 with a current Windows driver.
+2. **Run the installer:**
+
+   ```powershell
+   Set-ExecutionPolicy -Scope Process Bypass
+   .\Setup-Qwen38-WSLC.ps1
+   ```
+
+   It builds the pinned image, verifies a real XPU allocation/compute probe
+   (including the B70 PCI ID `0xe223` when the driver hides the marketing
+   name), downloads the model when absent, and starts the server with the
+   friendly profile.
+3. **Daily controls:**
+
+   ```powershell
+   .\Start-Qwen38.ps1 -MtpTokens 4 -MaxModelLength 100000 -GpuMemoryUtilization 0.75 -KvCacheMemoryGiB 4.25 -KvCacheDtype fp8
+   .\Stop-Qwen38.ps1
+   .\Stop-Qwen38.ps1 -ReleaseGpuMemory   # terminates the WSLC session to return ALL GPU memory to Windows
+   .\Test-B70Gpu.ps1                      # standalone B70 passthrough + XPU probe
+   .\Test-CookbookDecode.ps1
+   ```
+
+   Startup and model download can take several minutes; the setup script
+   prints progress and warns immediately if `HF_TOKEN` is unavailable.
 
 ## What the kits pin (provenance)
 

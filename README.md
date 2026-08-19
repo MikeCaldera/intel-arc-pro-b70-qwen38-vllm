@@ -13,7 +13,7 @@ Nemotron DFlash.
 | Family | Engine | What is proven | Headline | Page |
 |---|---|---|---|---|
 | **Qwen3.6-35B-A3B** | vLLM XPU (Pi digest) | Native MTP 1/2/4, 128K | MTP4 p512/g128 **170.91** client post-first n=5 | [this README §MoE](#moe-qwen36-35b-a3b--whole-analysis) |
-| **Qwen3.8-27B** | vLLM XPU (nightly digest) | Dense GPTQ-INT4 + MTP, 4-mode | MTP4 p512/g128 **83.7** n=5 | [QWEN38-VLLM-XPU](docs/qwen38-27/QWEN38-VLLM-XPU.md) |
+| **Qwen3.8-27B** | vLLM XPU (nightly digest) | Dense GPTQ-INT4 + MTP4; optional draft-INT4 | BF16 draft MTP4 p512/g128 **83.7** n=5 (LMX `cmsur82fz06svms01ga1f0z83`). Optional draft-INT4: **112.65** n=5 (LMX `cmszpqy000e8fms014ty6i5x3`) | [QWEN38-VLLM-XPU](docs/qwen38-27/QWEN38-VLLM-XPU.md) |
 | **Qwen3.6-27B** | vLLM XPU (same Pi digest) | Dense GPTQ-INT4 + MTP, fp8 KV | MTP4 p512/g128 **69.30** n=5 | [this README §Dense](#dense-qwen36-27b--whole-analysis) |
 | **Nemotron-3.5-Lightning-30B-A3B** | vLLM XPU (**newer** digest) | DFlash n=7; native MTP **0%** | **186.61** C1 client post-first at p2048/g128 n=5; **cold input 7160** (prompt/TTFT) at p8192/g1 | [NEMOTRON-DFLASH-B70](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
 | **Muse-Glimmer-30B** | llama.cpp SYCL | Vision + DFlash n2; vLLM still experimental | **26.8** engine t/s at p512/g128 **128K** n=5 | [MUSE-GLIMMER-B70](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |

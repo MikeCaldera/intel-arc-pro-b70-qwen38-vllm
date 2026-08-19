@@ -206,7 +206,15 @@ property, no extra server flag beyond `--max-num-seqs`.
 
 **Measured (2026-08-19, single B70, image `f01e24f6`, MTP4, v5 + draft-INT4
 S+M1, prefix cache on, 230 W cap, measured draw 221–229 W, 82–83 °C
-package).** Two separate tables — do not merge them:
+package, all requests temperature 0 / greedy).** Two separate tables — do
+not merge them:
+
+**Temperature note:** all client-measured cells in this cookbook are
+greedy (temperature 0) — the *best case* for MTP acceptance (94% C1).
+Speculative acceptance falls as sampling temperature rises, so production
+chat at temperature ~0.6–1.0 will decode slower than these records. The
+lmx-harness records do not record a temperature field; their eval tooling
+defaults to 0 elsewhere.
 
 *Controlled Cn campaign — 2026-08-19, three metrics per cell, definitions:*
 

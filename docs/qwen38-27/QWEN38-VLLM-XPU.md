@@ -215,13 +215,26 @@ package).** Two separate tables — do not merge them:
 - **Turn-completion wall** = all tokens ÷ whole wave wall including the prefill phase (how fast a full round of answers lands).
 
 | Cell | Per-stream tok/s | Σ streams tok/s | Turn-completion wall tok/s | TTFT p50 | MTP accept | OK |
-|---|---:|---:|---:|---:|---:|---|
-| 5 concurrent coding sessions (~8K start, 3 turns, g512) — realistic shape | **27.7** | **138.3** | 54.0 | 22.4 s | 47.0% | 60/60 |
-| 5 concurrent sessions (~6K start, g128) | 17.1 | 85.6 | 30.1 | 16.5 s | 53.8% | 45/45 |
+|---|---|---:|---:|---:|---:|---|
+| 5 coding sessions, ~8K start, 3 turns, g512 — **v2, real completions in history** | **25.5** (t1 33.1 / t2 25.6 / t3 22.9) | **127.4** (t1 165.5 / t2 127.9 / t3 114.2) | 49.4 | 22.6–25.0 s | 43–56% | 60/60 |
+| 5 sessions ~6K/g128 (v1, stubbed history) | 17.1 | 85.6 | 30.1 | 16.5 s | 53.8% | 45/45 |
 | C10 p2048/g256 | 31.0 | 309.5 | 105.8 | 7.5 s | 46.4% | 30/30 |
 | C16 p2048/g256 | 25.0 | 400.5 | 106.8 | 17.0 s | 46.8% | 48/48 |
 | C32 p512/g128 | 28.2 | 903.0 | 160.5 | 12.0 s | 55.8% | 96/96 |
 | Mixed: 1× p32768/g128 + 4× p512/g128 | 8.4 | 41.9 | 21.0 | 15.5 s | 58.8% | 10/10 |
+
+**Why C5 Σ (127) is only ~1.2× C1 (106.7) with big sessions — three measured
+causes:** (1) MTP acceptance collapses from ~94% (C1) to 43–56% at C5 with
+resident 8–13K contexts, so speculation stops multiplying; (2) five resident
+contexts multiply KV reads per generated token; (3) **prefix reuse largely
+fails at C5 on this build**: with real completions kept in history, turn 2
+lands **0 cache hits** and turn 3 only ~38% of shared tokens (19,968 of
+~53K), while the same session shape at C1 hits 91% (Run 44: t2 TTFT 5.1 s).
+Result: every turn re-prefills ~45–53K tokens and TTFT stays 22–25 s. Root
+cause not isolated (suspect the MTP + prefix-cache + concurrency interplay
+on this XPU build); treat warm-session TTFT at Cn as an open issue, not a
+solved feature. Short-prompt C5 (lmx harness, 203.8) avoids all three
+effects and is a separate record.
 
 Reading it right: the "realistic C5" row means **each of the 5 users generates
 at ~28 tok/s (Σ ≈ 138 total)**, and a full round of 512-token answers lands
@@ -241,12 +254,14 @@ C1 speed-flat).
 
 | Concurrency | tokSOut | TTFT | What it is | Record |
 |---|---:|---:|---|---|
-| C1 | 56.8 | 171 ms | lmx harness short prompts | `cmt00hzaf0efams01r6rw5j14` |
-| C1 (calibrated Pi prompts, client post-first n=5) | **100.2** | 369 ms | current-stack C1 | `cmt01ygp40eg9ms016odaz6kc` |
-| C5 (lmx harness short prompts) | **203.8** | 414 ms | short-prompt aggregate | `cmt00hzwf0effms014mdyizca` |
-| C5 (realistic 8K coding sessions, Σ per-stream) | **138.3** | 22.4 s | 5 real users, per-user 27.7 | `cmt023kzf0egfms01rxx5jhv7` |
-| C16 | 200.6 | 8.1 s | lmx harness short prompts | `cmt00i05k0efims01vz3u1kl5` |
-| C32 | **224.2** | 15.4 s | lmx harness short prompts | `cmt00i0eb0eflms012anb0yau` |
+| C1 (calibrated Pi prompts, n=5, same server as C5 v2) | **106.7** | 335 ms | current-stack C1 (103.2–111.3, accept 89–96%) | `cmt03mj040eh8ms01trjvhm75` |
+| C1 same, earlier same-day run | 100.2 | 369 ms | run-to-run check | `cmt01ygp40eg9ms016odaz6kc` |
+| C1 lmx harness short prompts | 56.8 | 171 ms | lmx prompt set | `cmt00hzaf0efams01r6rw5j14` |
+| **C5 realistic 8K coding sessions, v2 real history, Σ per-stream** | **127.4** | 22.9 s | 5 real users, per-user 25.5, per-turn Σ 165/128/114 | `cmt03mjo60ehbms0117c5i745` |
+| C5 realistic v1 (stubbed history — superseded) | 138.3 | 22.4 s | superseded by v2 | `cmt023kzf0egfms01rxx5jhv7` |
+| C5 lmx harness short prompts | **203.8** | 414 ms | short-prompt aggregate | `cmt00hzwf0effms014mdyizca` |
+| C16 lmx harness | 200.6 | 8.1 s | short-prompt aggregate | `cmt00i05k0efims01vz3u1kl5` |
+| C32 lmx harness | **224.2** | 15.4 s | short-prompt aggregate | `cmt00i0eb0eflms012anb0yau` |
 
 Reproduce with `lmx speed-test run vllm --mode remote --base-url
 http://127.0.0.1:8000 --hf-id SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16

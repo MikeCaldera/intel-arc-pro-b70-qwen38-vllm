@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-# B70 vLLM Ornith-1.5-35B-A3B MixedCal-v2 launcher — MTP1 + DraftINT4 default, cache off.
+# Launch Ornith-1.5-35B-A3B MixedCal-v2 on vLLM XPU (Intel Arc Pro B70).
+# Default: MODE=mtp1, DRAFT_INT4=1, prefix cache off. Does not change host power.
 #
-# WHEN TO USE: research/serve the MixedCal-v2 GPTQ on the champion nightly.
-# WHAT IT DOES: empty-GPU gate, optional MTP boundary patch, vLLM serve.
-# OUTPUT: OpenAI-compatible endpoint on PORT.
-# SAFETY: refuses another inference process; does not change host power.
-#
-# Example:
 #   bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh /path/to/model 16384 8000
-#   BOUNDARY=1 CTX=131072 bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh /path/to/model 131072 8000
-#   DRAFT_INT4=0 MODE=mtp1 bash ...   # BF16 MTP draft (matched A/B only)
+#   BOUNDARY=1 bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh /path/to/model 131072 8000
+#   DRAFT_INT4=0 MODE=mtp1 bash ...   # BF16 MTP draft
+#   MODE=no-spec bash ...            # no speculation
 set -euo pipefail
 
 MODEL_DIR=${1:?usage: $0 MODEL_DIR [CTX] [PORT]}

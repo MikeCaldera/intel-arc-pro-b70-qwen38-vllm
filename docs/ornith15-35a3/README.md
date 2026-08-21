@@ -2,26 +2,26 @@
 
 Family index. Keep Qwen, Nemotron, and Muse numbers on their own pages.
 
-| Path | What it is | Status |
-|---|---|---|
-| [ORNITH-VLLM-XPU.md](ORNITH-VLLM-XPU.md) | MixedCal-v2 recipe: MTP1 decode, 230 W no-spec prefill, graphs | Self-reported E2, C1 |
-| [MIXEDCAL-V2.md](MIXEDCAL-V2.md) | Conversion method: experts-only GPTQ, mixed-domain cal, RTN 24.76% → 10.37% | Calibration win, not tok/s |
-| [CLAIMS.md](CLAIMS.md) | Observed numbers only — copy from here | Source of truth for this family |
-| `benchmarks/ornith15-35a3/launch-ornith-mtp1.sh` | MTP1 launcher (`MODE=no-spec\|mtp1\|mtp2\|mtp4`; `DRAFT_INT4=1` default) | Same `f01e24f6` digest as Qwen3.8 |
-| [Dashboard SVG](../assets/b70-ornith15-dashboard.svg) | Lane-1 decode + cold-input + capacity card | Rendered from the host compiler JSON |
+| Path | What it is |
+|---|---|
+| [ORNITH-VLLM-XPU.md](ORNITH-VLLM-XPU.md) | Recipe: download, launch, measured results |
+| [MIXEDCAL-V2.md](MIXEDCAL-V2.md) | Why this GPTQ exists: experts-only, mixed-domain cal, RTN 24.76% → 10.37% |
+| [CLAIMS.md](CLAIMS.md) | Full measured tables and LocalMaxxing ids |
+| `benchmarks/ornith15-35a3/launch-ornith-mtp1.sh` | Default serve: MTP1 + DraftINT4, cache off |
+| [Dashboard SVG](../assets/b70-ornith15-dashboard.svg) | Decode, cold-input, and capacity card |
 
-## Artifact (do not rename)
+## Artifact
 
 Published under **`SergiioB`** (two i's):
 
 - https://huggingface.co/SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2
 
-This is a **local** experts-only GPTQ INT4 G128 with MTP left in BF16. It is not an official Ornith GPTQ.
+Local experts-only GPTQ INT4 G128 with MTP left in BF16. Not an official Ornith GPTQ.
 
-## Hard rules for this family
+## Warnings
 
-1. Same public digest as Qwen3.8-27B (`f01e24f6`), **not** Qwen3.6 Pi `2c427ef` and **not** the v0.21 native-int4moe image that produced Qwen3.6 MTP4 204.6. See [IMAGE-AND-PATCH-MATRIX.md](../IMAGE-AND-PATCH-MATRIX.md).
-2. Research spec default is **MTP1 + DraftINT4 S+M1**. MTP4 is slower than no-spec on this single-layer head. `DRAFT_INT4=0` recovers BF16 draft.
-3. Prefill ~9.7k no-spec is **configured 230 W**. Combined MTP1+INT4 230 W LMX is `tokSOut` **108.4** / `tokSPrefill` **9073**. Do not mix no-spec 69.9 with MTP1 decode.
-4. DFlash / DFlash2 is **not** a serving path here. There is no Ornith hidden-2048 DFlash2 draft. `z-lab/Qwen3.5-35B-A3B-DFlash` matches hidden/vocab and is **not measured**.
-5. LocalMaxxing: combined MTP1+INT4 230 W `cmt2tdx5q0hy0mv01koh4xwpw` APPROVED (108.4 / 9073). Older: MTP1 BF16 150 W p32 `cmt2sl6eg0hdcmv01gre5o3ub` (94.1); no-spec 230 W `cmt2sr6gq0himmv01ogieh0c8` (9780 / 69.9).
+1. Same public image digest as Qwen3.8-27B (`f01e24f6`). Not the Qwen3.6 Pi `2c427ef` digest, and not the historical v0.21 native-int4moe image that produced Qwen3.6 MTP4 204.6.
+2. Default serve is **MTP1 + DraftINT4**. MTP4 is slower than no-spec on this single-layer head. `DRAFT_INT4=0` is the BF16 draft.
+3. Prefill ~9.7k is a **configured 230 W** no-spec cell. Combined MTP1+DraftINT4 230 W LocalMaxxing is `tokSOut` **108.4** / `tokSPrefill` **9073**. Those are different speculation / prompt / cap cells — do not mix them.
+4. Do not apply GDN mixed-split v5 on C1. DFlash is not a path: there is no Ornith hidden-2048 draft.
+5. LocalMaxxing `APPROVED` means accepted self-report, not independent reproduction.

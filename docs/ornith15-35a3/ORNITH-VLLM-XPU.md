@@ -1,22 +1,19 @@
 # Ornith-1.5-35B-A3B on Intel Arc Pro B70 (vLLM XPU)
 
-> Isolated C1, cache off, greedy diagnostic. Self-reported E2 with raw
-> evidence; not independently reproduced. Default serve is **MTP1 +
-> DraftINT4**. Combined 230 W LMX `cmt2tdx5q0hy0mv01koh4xwpw` APPROVED
-> (`tokSOut` 108.4 / `tokSPrefill` 9073). Copy numbers only from
-> [CLAIMS.md](CLAIMS.md).
+Isolated C1, cache off, greedy diagnostic. Self-reported E2 with raw evidence;
+not independently reproduced. Default serve is **MTP1 + DraftINT4**. Full
+tables: [CLAIMS.md](CLAIMS.md).
 
 ![Ornith MixedCal-v2 dashboard](../assets/b70-ornith15-dashboard.svg)
 
-Ornith 1.5 is a `qwen3_5_moe` hybrid GDN MoE with the same measured topology as
-Qwen3.6-35B-A3B: 40 layers, hidden 2048, 256 experts × 8 active, 30 GDN + 10
-full-attn, one MTP layer (785 tensors). There is no official GPTQ. The B70
-target is a local experts-only GPTQ INT4 symmetric G128 with MTP left in BF16.
+Ornith 1.5 is a `qwen3_5_moe` hybrid GDN MoE: 40 layers, hidden 2048, 256
+experts × 8 active, 30 GDN + 10 full-attn, one MTP layer (785 tensors). There
+is no official GPTQ. The B70 target is a local experts-only GPTQ INT4
+symmetric G128 with MTP left in BF16.
 
-MixedCal-v2 is the current research artifact: same format and tensor scope as
-the original WikiText GPTQ, different calibration. Speed at 150 W is **parity**.
-The conversion win is RTN fallback **10.37% vs 24.76%**, not tok/s. Method,
-exclusions, and observed percentages:
+MixedCal-v2 is the published artifact: same format and tensor scope as a
+WikiText-calibrated GPTQ, different calibration. Speed at 150 W is **parity**.
+The conversion win is RTN fallback **10.37% vs 24.76%**, not tok/s. Method:
 [MIXEDCAL-V2.md](MIXEDCAL-V2.md).
 
 ## Stack (do not substitute)
@@ -26,17 +23,19 @@ exclusions, and observed percentages:
 | Public image | `vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f` |
 | vLLM | `0.27.2rc1.dev77+gac7509e2b` |
 | `vllm-xpu-kernels` | `0.1.12.3` |
-| Model | MixedCal-v2 GPTQ INT4 G128, MTP BF16 (see download below) |
-| Patches | `patch_mtp_boundary.py` **required for exact max-len MTP**. `patch_mtp_nightly.py` is already-in-image if `quantize_config.json` excludes `mtp`. |
+| Model | [`SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2`](https://huggingface.co/SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2) |
+| MoE backend | WNA16 (`int_wna16`) |
+| Patches | DraftINT4 overlay on by default. `patch_mtp_boundary.py` required for exact max-len MTP. `patch_mtp_nightly.py` is already-in-image if `quantize_config.json` excludes `mtp`. |
 | Never on C1 | `patch_gdn_mixed_split_v5.py` |
-| Context / util / seqs | 16,384 (MTP) or 32,768 / 65,536 / 131,072 / 262,144 (no-spec ladder) / `gpu-memory-utilization=0.85` / `max-num-seqs=8` |
+| Context / util / seqs | 16,384 (MTP speed tables) or 32,768 / 65,536 / 131,072 / 262,144 (no-spec ladder) / `gpu-memory-utilization=0.85` / `max-num-seqs=8` |
 | KV | fp16 auto (only 10 full-attn layers; fp8 KV is not required) |
 | Cache | `--no-enable-prefix-caching` |
-| Power | configured **150 W** for the tables on this page |
+| Power | configured **150 W** for the decode tables below unless a cell names **230 W** |
 
 This is the **same image digest** as Qwen3.8-27B, not the Qwen3.6 Pi `2c427ef`
 digest and not the historical `intel/vllm:0.21.0-xpu-int4moe` native-int4moe
-image that produced Qwen3.6 MTP4 **204.6** tok/s. Do not mix those generations.
+image that produced Qwen3.6 MTP4 **204.6** tok/s. Those are a different image
+generation — not Ornith numbers.
 
 ## 1. Download
 
@@ -45,35 +44,51 @@ huggingface-cli download SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16
   --local-dir "$HOME/models/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2"
 ```
 
-Measured local path on the reference host:
-
-```text
-/mnt/ornith-mixedcal-workspace/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2
-```
-
 Contract to verify after download:
 
-- 6 shards, ~22.77 GiB
+- 6 shards, 24,454,916,052 bytes (~22.77 GiB)
 - 30,720 routed-expert `qweight` tensors
 - 785 `mtp.*` tensors, **zero** MTP `qweight`
 - `quantize_config.json`: 4-bit, `sym=true`, `group_size=128`, `desc_act=false`
 
-Why this file exists (WikiText vs mixed-domain, experts-only scope, RTN
+Why this GPTQ exists (WikiText vs mixed-domain, experts-only scope, RTN
 24.76% → 10.37%): [MIXEDCAL-V2.md](MIXEDCAL-V2.md).
 
-## 2. Launch (recommended research serve: MTP1 + DraftINT4, 16K, cache off)
+## 2. Image
 
-The launcher defaults `DRAFT_INT4=1` (runtime overlay of draft lm_head + MTP
-linears). Weights on disk stay BF16 MTP. `DRAFT_INT4=0` is the BF16-draft A/B.
+```bash
+export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
+docker pull "$IMAGE"
+```
+
+```bash
+docker run --rm --device /dev/dri --entrypoint python "$IMAGE" -c '
+from importlib.metadata import version
+import torch
+assert version("vllm") == "0.27.2rc1.dev77+gac7509e2b"
+assert version("vllm-xpu-kernels") == "0.1.12.3"
+print(torch.xpu.get_device_name(0))
+'
+```
+
+It must print `Intel Arc Pro B70`.
+
+## 3. Launch (default: MTP1 + DraftINT4, 16K, cache off)
+
+DraftINT4 is a **runtime** overlay: INT4 of the **draft** `lm_head` and MTP
+linears only. Target verify stays at the checkpoint precision. Shards on disk
+stay BF16 MTP. On this stack it is about **+10 tok/s** versus BF16 draft at
+150 W (106.27 vs 96.43 at p512/g128). It is on by default (`DRAFT_INT4=1`).
+`DRAFT_INT4=0` is the BF16-draft A/B.
 
 ```bash
 export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
 export MODEL_DIR="$HOME/models/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2"
 bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh "$MODEL_DIR" 16384 8000
+curl -f http://127.0.0.1:8000/health
 ```
 
-Exact flags used in the n=5 MTP1 **BF16-draft** confirmation (set `DRAFT_INT4=0`
-to reproduce that table):
+Default flags:
 
 ```text
 --quantization gptq
@@ -90,31 +105,48 @@ to reproduce that table):
 --speculative-config {"method":"mtp","num_speculative_tokens":1}
 ```
 
-For exact 131,072-token MTP completions, apply `patches/patch_mtp_boundary.py`
-inside the container before `vllm serve` (see launcher `BOUNDARY=1`).
+For exact 131,072-token MTP completions, set `BOUNDARY=1` so the launcher
+applies `patches/patch_mtp_boundary.py` before `vllm serve`.
 
-## 3. Measured (150 W, C1, cache off)
+No-spec (for the 230 W prefill class): `MODE=no-spec`. BF16 draft:
+`DRAFT_INT4=0`.
+
+## 4. Measured
 
 Timing is **client monotonic SSE**. Decode = client post-first tok/s.
-Cold input = actual endpoint prompt tokens / client TTFT. Not llama-bench pp/tg.
+Cold input = actual endpoint prompt tokens / client TTFT. Not llama-bench
+pp/tg. All cells **C1**, cache off, greedy diagnostic, self-reported E2.
 
-### No-spec 32K — n=5 confirmation, instance-median of 3 loads
+### No-spec 32K — n=5, 150 W, instance-median of 3 loads
 
-| Cell | Original | MixedCal-v2 |
+Speed **parity**. MixedCal-v2 is not faster.
+
+| Cell | WikiText GPTQ | MixedCal-v2 |
 |---|---:|---:|
 | p512/g128 client post-first | 70.80 | 70.74 |
 | p8192/g128 client post-first | 64.86 | 64.95 |
 | p2048/g1 cold input | 6935 | 6968 |
 | p8192/g1 cold input | 6926 | 6963 |
 
-### MTP1 16K — n=5
+### MTP1 16K — n=5, 150 W, MixedCal-v2
 
-| Artifact | p512/g128 | p8192/g128 | Acceptance |
+| Draft | p512/g128 | p8192/g128 | Acceptance |
 |---|---:|---:|---|
-| Original | 97.88 | 91.06 | 78.5% |
-| MixedCal-v2 | 96.43 | 89.85 | 77.0% |
+| BF16 | 96.43 | 89.85 | 77.0% |
+| DraftINT4 (default) | 106.27 | 97.16 | 81.9% |
 
-### MixedCal-v2 long context
+### MTP depth — MixedCal-v2, 16K, 150 W, n=5 (BF16 draft)
+
+| Depth | p512/g128 | p8192/g128 | Acceptance |
+|---|---:|---:|---|
+| MTP1 | 96.43 | 89.85 | 77.0% |
+| MTP2 | 84.16 | 75.86 | 41.7% |
+| MTP4 | 66.27 | 59.69 | 22.1% |
+
+MTP4 is **slower than no-spec** (~70.7 at p512). Do not serve
+`num_speculative_tokens=4` on this head.
+
+### Long context — MixedCal-v2, 150 W
 
 | Cell | n | client post-first | Notes |
 |---|---:|---:|---|
@@ -125,125 +157,87 @@ Cold input = actual endpoint prompt tokens / client TTFT. Not llama-bench pp/tg.
 | exact p130944/g128 MTP1 | 3 | 70.25 | boundary patch |
 | exact p262016/g128 no-spec | 3 | 35.35 | 262,144 + `--kv-cache-memory 6623879680` |
 
-### MTP depth A/B — 16K, 150 W, n=5
+The 262K cell is a C1 capacity completion, not a quality or sustained-decode
+headline.
 
-| Artifact | MTP1 p512 | MTP2 p512 | MTP4 p512 | MTP4 accept |
-|---|---:|---:|---:|---|
-| Original | 97.88 | 82.03 | 64.35 | 20.4% |
-| MixedCal-v2 | 96.43 | 84.16 | 66.27 | 22.1% |
+### Combined 230 W — MTP1 + DraftINT4, 32K, cache off
 
-MTP4 is slower than no-spec. Do not serve `num_speculative_tokens=4` on this head.
+Same load, host harness:
 
-Do not read the 262K cell as a quality or sustained-decode headline. It is a
-capacity completion at C1.
+| Cell | Statistic | Value |
+|---|---|---|
+| p512/g128 | client post-first n=5 | **106.64** (104.72–109.16) |
+| p2048/g1 | cold input n=5 | **9403** (9359–9424) |
 
-## 4. Why MTP1, not MTP4
+LocalMaxxing on that serve: `tokSOut` **108.4**, `tokSPrefill` **9072.9** @
+2906 tokens, id `cmt2tdx5q0hy0mv01koh4xwpw` APPROVED (accepted self-report).
 
-Single-layer MTP head. Day-0 original artifact, n=3, 230 W: per-position
-acceptance **81 / 15 / 2.5 / 0.5%**. Depth-4 spends verify budget on near-zero
-later positions. Depth-1 keeps the strong pos0 (~78–85% on MixedCal n=5) and
-is the research default.
+## 5. Why MTP1, not MTP4
 
-This inverts Qwen3.8-27B dense (MTP4 optimal) and is **not** the Qwen3.6-35B
-MTP4 204.6 result. That 204.6 cell was C1 MTP4 p-short/g32 on vLLM **0.21**
-native int4moe + int8-store + BF16 MTP draft, not this WNA16 nightly.
+Single-layer MTP head. A depth-4 probe measured per-position acceptance
+**81 / 15 / 2.5 / 0.5%**. Depth-4 spends verify budget on near-zero later
+positions. Depth-1 keeps the strong first position (~77–85% on MixedCal n=5)
+and is the default.
 
-## 5. Prefill lever
+This inverts Qwen3.8-27B dense (MTP4 optimal). It is **not** Qwen3.6-35B
+MTP4 170.91 or the historical 204.6 cell — those are a different image
+generation.
+
+## 6. Prefill lever
 
 Paired A/B on one warm MixedCal-v2 no-spec 32K server, cache off, three
-alternating rounds, matched except configured cap:
+alternating rounds, matched except **configured cap**:
 
 | Cap | p2048/g1 round medians | p8192/g1 round medians |
 |---|---|---|
 | 150 W | 7271 / 7212 / 7055 | 7036 / 7050 / 7062 |
 | 230 W | 9748 / 9713 / 9771 | 9647 / 9683 / 9670 |
 
-230 W recovers the day-0 **~9.5–9.7k** cold-input class. 150 W stays **~7.1k**.
-The prefill lever on this WNA16 nightly is **power cap**, not MixedCal vs
-original and not a native-int4moe backport. Campaign-window draw was **~152 W**
-vs **~222 W**. GT clocks were **not** pinned; there is no clock-only A/B.
-After each 230→150 drop the first retained p2048 sample is ~8.7k before later
-samples settle ~6.9k; do not treat that first sample as 150 W sustained.
+230 W recovers the **~9.7k** cold-input class. 150 W stays **~7.1k**. The
+prefill lever on this WNA16 nightly is **power cap**, not MixedCal vs
+WikiText. Campaign-window draw was **~152 W** vs **~222 W**. GT clocks were
+**not** pinned.
 
-Native int4moe + int8-store (the Qwen3.6 204.6 generation) remains a separate
-image and is not required to explain the 9.5k day-0 prefill.
+Prefill ~9.7k vs decode ~96 is expected: prefill is a wide GEMM over
+thousands of prompt tokens; decode at batch 1 is memory-latency bound (plus
+one MTP draft token).
 
-Prefill ~9.7k vs decode ~96 is **not** a broken decode path. Prefill is a
-wide GEMM over thousands of prompt tokens and saturates XMX; raising
-`power1_cap` 150→230 W lifts that class ~7.1k→~9.7k. Decode is
-memory-latency bound at batch 1 (plus one MTP draft token). No-spec
-p512/g128 is **70.74** at 150 W; MTP1 is **96.43**. That ~100× ratio is
-the same shape as Nemotron DFlash (7160 cold input vs 186 decode) on this
-card. Do not compare Ornith MTP1 96 to Qwen3.6 MTP4 **204.6**: that cell
-is a different image generation (v0.21 native int4moe + int8-store,
-short g32).
+## 7. Do not mix these cells
 
-DFlash would attack **decode**, not prefill. Status: **no Ornith DFlash
-draft is served**. See §6.
+LocalMaxxing `APPROVED` means accepted into the self-reported dataset, not
+independent reproduction. Three public rows look similar and are not:
 
-## 5b. LocalMaxxing long-prompt prefill at 230 W (no-spec)
+| Id | What it is | `tokSOut` | `tokSPrefill` |
+|---|---|---:|---:|
+| `cmt2tdx5q0hy0mv01koh4xwpw` | MTP1 + DraftINT4, 32K, **230 W**, long prompt | **108.4** | **9072.9** @ 2906 tokens |
+| `cmt2sr6gq0himmv01ogieh0c8` | **no-spec**, 32K, **230 W**, long prompt g128 | **69.9** | **9780** |
+| `cmt2sl6eg0hdcmv01gre5o3ub` | MTP1 BF16 draft, 16K, **150 W**, p32/g256 | **94.1** | 654.7 |
 
-The 150 W LocalMaxxing default is a **32-token** prompt (`tokSPrefill` 654.7).
-That is not the 9.7k class. The 9.7k class was re-measured on MixedCal-v2
-no-spec 32K at configured **230 W** with a unique-entropy long prompt.
+69.9 vs 108.4 vs 94.1 differ in speculation, prompt length, and configured
+cap — not three measurements of the same cell.
 
-Exact serve flags for this cell (do not substitute MTP1 here):
+Combined `tokSPrefill` **9073** is below no-spec **9780** because MTP first-token
+work is inside TTFT. Host p2048/g1 on the combined load is **9403**.
 
-```text
-vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f
---quantization gptq
---dtype float16
---max-model-len 32768
---gpu-memory-utilization 0.85
---kv-cache-dtype auto
---max-num-seqs 8
---max-num-batched-tokens 8192
---block-size 64
---no-enable-prefix-caching
---language-model-only
---trust-remote-code
-# no --speculative-config
-```
+Never publish g=1 `tokSOut` **19153.8** — that is a one-token completion
+divided by a sub-millisecond post-first window.
 
-Startup contract on this load: `enable_prefix_caching: False`,
-`speculative_config=None`, vLLM `0.27.2rc1.dev77+gac7509e2b`. Prefix-cache
-hits and queries stayed **0**. Post-load VRAM 5608 MiB free.
-
-| Source | Actual prompt tokens | Statistic | Cold input |
-|---|---:|---|---:|
-| LMX `--prompt` unique entropy, `--max-tokens 1`, warmup 1, n=5 | 2899 | `tokSPrefill` median | **9556.4** |
-| same-load harness p2048/g1 n=4 valid TTFT | ~2887–2896 | median endpoint tokens / client TTFT | **9428** |
-| same-load harness p8192/g1 n=5 | ~11356–11366 | median | **9608** |
-| paired A/B MixedCal p2048/g1 @230 W (3-round medians) | ~2k class | per-round median | 9748 / 9713 / 9771 |
-
-LMX g=1 `validate-local` **valid**, **not submitted** (`tokSOut` from
-`max-tokens=1` is 19k-class noise). Submitable no-spec g=128 payload:
-`tokSPrefill` **9780**, `tokSOut` **69.9** no-spec, APPROVED
-`cmt2sr6gq0himmv01ogieh0c8`.
-
-Combined payload on **one** MTP1 + DraftINT4 32K 230 W serve (cache off,
-hits 0): LMX `tokSOut` **108.4** / `tokSPrefill` **9073** @ 2906 tokens,
-APPROVED `cmt2tdx5q0hy0mv01koh4xwpw`. Same-load host: p512/g128 **106.64**,
-p2048/g1 **9403**. `tokSPrefill` is TTFT-derived with MTP1 first-token work,
-so it is below the no-spec 9780 cell. Decode default is **MTP1 + DraftINT4**.
-
-## 6. What will not launch (yet)
+## 8. What will not launch
 
 | Path | Status |
 |---|---|
-| DFlash2 | **No Ornith / hidden-2048 DFlash2 draft.** Rahul's Arc Pro post is SGLang TP4 Qwen3.8-27B AWQ + `incoai/Qwen3.8-27B-DFlash2`. On this same `f01e24f6` image, Qwen3.8 DFlash2 overlay loaded then accepted **0%**; later causal-fallback n=5 was **22.41 tok/s / 24.7% accept** — worse than MTP4. Keep MTP1 here. |
-| DFlash v1 `z-lab/Qwen3.5-35B-A3B-DFlash` | Hidden 2048 / vocab 248320 **match** Ornith topology. Kernels still gated. **Not measured.** Not a recipe. |
-| DraftINT4 S+M1 | **Default overlay** at load (`B70_DRAFT_LMHEAD_INT4` + `B70_DRAFT_MTP_INT4`). DI1 150 W MTP1 n=5: **106.27 / 97.16** vs BF16-draft **96.43 / 89.85**. Combined 230 W LMX: **108.4** decode / **9073** prefill (`cmt2tdx5q0hy0mv01koh4xwpw`). Weights stay BF16 MTP on disk. Do not enable GDN mixed-split on C1. |
-| GDN mixed-split v5 | Cn candidate only. |
+| DFlash / DFlash2 | **No Ornith hidden-2048 draft.** Keep MTP1. |
+| `z-lab/Qwen3.5-35B-A3B-DFlash` | Hidden 2048 / vocab 248320 match topology. **Not measured.** Not a recipe. |
+| GDN mixed-split v5 | Cn candidate only. Never on C1. |
+| Qwen3.6 native-int4moe 204.6 image | Different generation. Will not appear on `f01e24f6`. |
 
-## 7. Power
+## 9. Power
 
 Discover the `xe` hwmon node; do not hard-code `hwmon4` on a new host.
 
 ```bash
-# restore 150 W after research
 HWMON=$(python3 - <<'PY'
-import glob, os
+import glob
 xs=[h for h in glob.glob('/sys/class/hwmon/hwmon*')
     if open(h+'/name').read().strip()=='xe']
 print(xs[0])
@@ -252,8 +246,5 @@ PY
 echo 150000000 | sudo tee "$HWMON/power1_cap"
 ```
 
-## Evidence
-
-Machine-readable compiler: in the host research tree,
-`results/ornith15-mixedcal-v2-summary/summary.json`. Claims lock:
-[CLAIMS.md](CLAIMS.md).
+Restore 150 W after a 230 W prefill run. A 300 W write is rejected; the
+hardware ceiling is 230 W.

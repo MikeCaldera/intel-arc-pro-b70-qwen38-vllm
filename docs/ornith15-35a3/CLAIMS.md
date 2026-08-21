@@ -31,7 +31,7 @@ decode tables with the 230 W prefill cells.
 | Original WikiText GPTQ | 7,605 / 30,720 = 24.76% | 30,720 expert `qweight`, 785 MTP BF16, 0 MTP leaks |
 | MixedCal-v2 | 3,186 / 30,720 = 10.37% | same contract; 24,454,916,052 bytes |
 
-Calibration for MixedCal-v2: 128 samples × 1,536 tokens (196,608), seed `15035260819`, corpus SHA-256 `e88ccd5f…`. Experts-only (`gate_proj`/`up_proj`/`down_proj`). MTP, attention/GDN, router, shared experts, embeddings, lm_head, vision not quantized.
+Calibration for MixedCal-v2: 128 samples × 1,536 tokens (196,608), seed `15035260819`, corpus SHA-256 `e88ccd5f…`. Experts-only (`gate_proj`/`up_proj`/`down_proj`). MTP, attention/GDN, router, shared experts, embeddings, lm_head, vision not quantized. Conversion method and RTN layer table: [MIXEDCAL-V2.md](MIXEDCAL-V2.md). Do not call MixedCal-v2 faster; the n=5 confirmation is speed parity at 150 W.
 
 ## Speed — n=5 confirmation, no-spec, 32K, 150 W, cache off
 

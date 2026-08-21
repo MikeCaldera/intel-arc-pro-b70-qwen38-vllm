@@ -412,6 +412,7 @@ LocalMaxxing: MTP1 150 W `cmt2sl6eg0hdcmv01gre5o3ub` APPROVED
 APPROVED (`tokSPrefill` 9780). Those are different cells.
 
 - Family index + claim lock: [docs/ornith15-35a3/README.md](docs/ornith15-35a3/README.md), [CLAIMS.md](docs/ornith15-35a3/CLAIMS.md)
+- Conversion (experts-only GPTQ, mixed-domain cal, RTN **24.76% → 10.37%**): [MIXEDCAL-V2.md](docs/ornith15-35a3/MIXEDCAL-V2.md)
 - Recipe: [docs/ornith15-35a3/ORNITH-VLLM-XPU.md](docs/ornith15-35a3/ORNITH-VLLM-XPU.md)
 - Launcher: `benchmarks/ornith15-35a3/launch-ornith-mtp1.sh MODEL_DIR 16384 8000`
 - Weights: [`SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2`](https://huggingface.co/SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2)

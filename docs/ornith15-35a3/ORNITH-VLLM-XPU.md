@@ -14,7 +14,9 @@ target is a local experts-only GPTQ INT4 symmetric G128 with MTP left in BF16.
 
 MixedCal-v2 is the current research artifact: same format and tensor scope as
 the original WikiText GPTQ, different calibration. Speed at 150 W is **parity**.
-The conversion win is RTN fallback **10.37% vs 24.76%**, not tok/s.
+The conversion win is RTN fallback **10.37% vs 24.76%**, not tok/s. Method,
+exclusions, and observed percentages:
+[MIXEDCAL-V2.md](MIXEDCAL-V2.md).
 
 ## Stack (do not substitute)
 
@@ -54,6 +56,9 @@ Contract to verify after download:
 - 30,720 routed-expert `qweight` tensors
 - 785 `mtp.*` tensors, **zero** MTP `qweight`
 - `quantize_config.json`: 4-bit, `sym=true`, `group_size=128`, `desc_act=false`
+
+Why this file exists (WikiText vs mixed-domain, experts-only scope, RTN
+24.76% → 10.37%): [MIXEDCAL-V2.md](MIXEDCAL-V2.md).
 
 ## 2. Launch (recommended research serve: MTP1, 16K, cache off)
 

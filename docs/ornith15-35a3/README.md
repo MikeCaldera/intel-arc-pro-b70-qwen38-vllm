@@ -5,6 +5,7 @@ Family index. Keep Qwen, Nemotron, and Muse numbers on their own pages.
 | Path | What it is | Status |
 |---|---|---|
 | [ORNITH-VLLM-XPU.md](ORNITH-VLLM-XPU.md) | MixedCal-v2 recipe: MTP1 decode, 230 W no-spec prefill, graphs | Self-reported E2, C1 |
+| [MIXEDCAL-V2.md](MIXEDCAL-V2.md) | Conversion method: experts-only GPTQ, mixed-domain cal, RTN 24.76% → 10.37% | Calibration win, not tok/s |
 | [CLAIMS.md](CLAIMS.md) | Observed numbers only — copy from here | Source of truth for this family |
 | `benchmarks/ornith15-35a3/launch-ornith-mtp1.sh` | MTP1 launcher (`MODE=no-spec\|mtp1\|mtp2\|mtp4`) | Same `f01e24f6` digest as Qwen3.8 |
 | [Dashboard SVG](../assets/b70-ornith15-dashboard.svg) | Lane-1 decode + cold-input + capacity card | Rendered from the host compiler JSON |

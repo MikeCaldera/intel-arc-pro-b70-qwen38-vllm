@@ -102,6 +102,11 @@ and recreate:
 That turns on draft-INT4 and prefix cache. Restarting the old container is
 not an upgrade.
 
+Git for Windows may check out this folder with CRLF. The build script rewrites
+the pinned patches, Dockerfile, and container scripts to LF before hashing and
+`docker build`, so SHA-256 checks and the Linux `start.sh` shebang still work.
+The image Dockerfile also strips CR as a last line of defense.
+
 The installer verifies Docker, builds the pinned image, mounts the minimum WSL
 GPU interfaces (`/dev/dxg`, `/usr/lib/wsl/lib` and `/usr/lib/wsl/drivers`), runs
 a real XPU calculation, downloads the model if necessary and starts the server.

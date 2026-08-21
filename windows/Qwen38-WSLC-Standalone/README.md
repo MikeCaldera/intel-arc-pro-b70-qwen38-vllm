@@ -71,6 +71,10 @@ Already on 2026.08.18? Rebuild without re-downloading the model:
 .\Upgrade-Qwen38-WSLC.ps1
 ```
 
+Git for Windows may check out this folder with CRLF. The build script rewrites
+downloaded patches, the Dockerfile, and container scripts to LF before hashing
+and `wslc build`, so SHA-256 checks and the Linux `start.sh` shebang still work.
+
 The installer builds the pinned image, verifies a real XPU calculation,
 downloads the approximately 18.2 GiB model when it is not already present, and
 starts the server. Partial downloads are retained for resumption.

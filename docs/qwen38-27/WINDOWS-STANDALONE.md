@@ -269,7 +269,7 @@ kit folder you downloaded (or `windows/Qwen38-*-Standalone/` from this repo).
 |---|---|
 | Base image | `vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f` — the **same digest as the Linux Qwen3.8 champion row** in [IMAGE-AND-PATCH-MATRIX.md](../IMAGE-AND-PATCH-MATRIX.md) |
 | vLLM / kernels in image | `0.27.2rc1.dev77+gac7509e2b` / `0.1.12.3` (verified in-image, not from the tag) |
-| Patches | MTP nightly + boundary (commit `5c6b6b1`), then mixed-split v5 (`db20e00`), then draft-INT4 S+M1 (`aa363ca`). SHA-256-verified at build. WSLC downloads the five files hash-pinned; Docker verifies the bundled copies |
+| Patches | MTP nightly + boundary (commit `5c6b6b1`), then mixed-split v5 (`db20e00`), then draft-INT4 S+M1 (`aa363ca`). SHA-256-verified at build after LF normalization. WSLC downloads the five files hash-pinned; Docker verifies the bundled copies |
 | Model | [`SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16`](https://huggingface.co/SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16) @ revision `9d189a60e4c0ad7f9f47cd94bfa393ca10b3924e` (5 shards) — **same files as 2026.08.18** |
 | Draft profile | **Draft-INT4 S+M1 on** (`DRAFT_INT4=1`). The checkpoint still ships a BF16 MTP head; the overlay requantizes only the draft at start. Set `DRAFT_INT4=0` to recover the 18 August BF16-draft path |
 | Prefix cache | **On** for serving (`PREFIX_CACHE=1`). Set `PREFIX_CACHE=0` only for a cold unique-prompt decode test |
@@ -282,6 +282,19 @@ Served flags (via `container/start.sh` in both kits): MTP4
 `PREFIX_CACHE=0`), `--generation-config auto`, `--language-model-only`,
 `--reasoning-parser qwen3`, `--enable-auto-tool-choice --tool-call-parser
 qwen3_coder`, XPU graphs on, expandable segments on.
+
+## Line endings (Git for Windows)
+
+The cookbook stores every text file as **LF**. Git for Windows defaults to
+`core.autocrlf=true`, so a clone can rewrite working-tree files to CRLF. That
+used to fail SHA-256 checks on the five pinned patches and to break
+`container/start.sh` inside the Linux image (`/usr/bin/env bash^M`).
+
+The repo now pins LF via `.gitattributes`. The build scripts also rewrite
+patches, Dockerfiles, and container scripts to LF before hashing or `COPY`,
+and both Dockerfiles strip CR as a last line of defense. If you cloned before
+this fix, `git pull` and rebuild (`.\Upgrade-Qwen38-Docker.ps1` or
+`.\Upgrade-Qwen38-WSLC.ps1`). Do not re-download the model.
 
 ## Windows-specific engineering inside the kits
 

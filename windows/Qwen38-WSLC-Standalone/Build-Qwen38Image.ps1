@@ -46,23 +46,33 @@ foreach ($item in $patches) {
     $download = "$destination.download"
     Invoke-WebRequest -UseBasicParsing -Uri $item.Uri -OutFile $download
 
-    # Windows PowerShell may convert downloaded text to CRLF. The cookbook
-    # publishes hashes for the original LF bytes, and the files are copied into
-    # a Linux image, so normalize deterministically before checking the digest.
-    $content = [System.IO.File]::ReadAllText($download)
-    $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    # Windows PowerShell / Git for Windows may rewrite text as CRLF. The
+    # cookbook publishes hashes for the original LF bytes, and the files are
+    # copied into a Linux image, so normalize before checking the digest.
+    ConvertTo-UnixLfFile -Path $download
     if (Test-Path -LiteralPath $destination) {
         Remove-Item -Force -LiteralPath $destination
     }
-    [System.IO.File]::WriteAllText($destination, $content, $utf8NoBom)
-    Remove-Item -Force -LiteralPath $download
+    Move-Item -Force -LiteralPath $download -Destination $destination
 
     $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $destination).Hash.ToLowerInvariant()
     if ($actual -ne $item.Sha256) {
         throw "Hash mismatch for $($item.Name). Expected $($item.Sha256), received $actual"
     }
     Write-Host "[Build] Verified $($item.Name)" -ForegroundColor Green
+}
+
+Write-Host "[Build] Normalizing Dockerfile and container scripts to LF..."
+$linuxSources = @(
+    (Join-Path $Root "Dockerfile"),
+    (Join-Path $Root "container\start.sh"),
+    (Join-Path $Root "container\diagnose.py"),
+    (Join-Path $Root "container\patch_xpu_single_gpu_warmup.py"),
+    (Join-Path $Root "container\prepare_low_reasoning_template.py")
+)
+foreach ($path in $linuxSources) {
+    if (-not (Test-Path -LiteralPath $path)) { throw "Required image source is missing: $path" }
+    ConvertTo-UnixLfFile -Path $path
 }
 
 Write-Host "[Build] Asking WSLC to build image $Image"

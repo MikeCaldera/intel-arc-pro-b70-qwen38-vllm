@@ -1,3 +1,20 @@
+function ConvertTo-UnixLfFile {
+    param([Parameter(Mandatory)][string]$Path)
+
+    # Git for Windows defaults to core.autocrlf=true, so a clone can rewrite
+    # working-tree bytes to CRLF. The cookbook pins SHA-256 of the original LF
+    # files, and Docker COPY of start.sh into a Linux image needs a Unix shebang.
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $offset = 0
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        $offset = 3
+    }
+    $text = [System.Text.Encoding]::UTF8.GetString($bytes, $offset, $bytes.Length - $offset)
+    $text = $text.Replace("`r`n", "`n").Replace("`r", "`n")
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $text, $utf8NoBom)
+}
+
 function Write-QwenBanner {
     param([string]$Title)
     Write-Host ""

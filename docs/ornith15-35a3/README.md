@@ -23,4 +23,4 @@ This is a **local** experts-only GPTQ INT4 G128 with MTP left in BF16. It is not
 2. Research spec default is **MTP1**. MTP4 is slower than no-spec on this single-layer head.
 3. Prefill ~9.7k is **configured 230 W, no-spec**. Decode ~96 tok/s is **configured 150 W, MTP1**. Do not mix those cells.
 4. DFlash / DFlash2 is **not** a serving path here. There is no Ornith hidden-2048 DFlash2 draft. `z-lab/Qwen3.5-35B-A3B-DFlash` matches hidden/vocab and is **not measured**.
-5. LocalMaxxing payloads are labeled in [CLAIMS.md](CLAIMS.md). Do not invent a leaderboard id.
+5. LocalMaxxing MTP1 150 W p32/g256 `cmt2sl6eg0hdcmv01gre5o3ub` is APPROVED self-report (`tokSOut` 94.1). That is not the 9.7k prefill cell.

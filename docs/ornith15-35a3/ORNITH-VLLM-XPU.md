@@ -1,8 +1,9 @@
 # Ornith-1.5-35B-A3B on Intel Arc Pro B70 (vLLM XPU)
 
 > Isolated C1, cache off, greedy diagnostic. Self-reported E2 with raw
-> evidence; not independently reproduced. LocalMaxxing not submitted.
-> Copy numbers only from [CLAIMS.md](CLAIMS.md).
+> evidence; not independently reproduced. LocalMaxxing MTP1 150 W
+> `cmt2sl6eg0hdcmv01gre5o3ub` APPROVED (`tokSOut` 94.1). Copy numbers
+> only from [CLAIMS.md](CLAIMS.md).
 
 ![Ornith MixedCal-v2 dashboard](../assets/b70-ornith15-dashboard.svg)
 

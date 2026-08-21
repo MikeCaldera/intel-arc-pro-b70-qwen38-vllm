@@ -5,9 +5,9 @@ Copy numbers only from this file and from
 numbers or mix 150 W tables with the 230 W prefill A/B.
 
 **Self-reported E2 with raw evidence.** Isolated C1, cache off, greedy
-diagnostic. Not independently reproduced. LocalMaxxing payloads are
-validate-local only and **not submitted**. Do not mix 150 W decode tables
-with the 230 W prefill cells.
+diagnostic. Not independently reproduced. LocalMaxxing MTP1 150 W
+`cmt2sl6eg0hdcmv01gre5o3ub` is APPROVED self-report. Do not mix 150 W
+decode tables with the 230 W prefill cells.
 
 ## Stack (do not substitute)
 
@@ -147,12 +147,16 @@ still MixedCal-v2 **MTP1**; overlay is optional and local-only.
 
 VRAM after load: DI1 5501 MiB free, DI2 5395 MiB free (16K, U=0.85).
 
-## LocalMaxxing speed-test — MixedCal-v2 MTP1, 16K, 150 W, **not submitted**
+## LocalMaxxing speed-test — MixedCal-v2 MTP1, 16K, 150 W, **APPROVED** `cmt2sl6eg0hdcmv01gre5o3ub`
 
 CLI remote C1, one warmup + n=3, 32 endpoint prompt tokens / 256 output, cache off,
 BF16 MTP draft (no DraftINT4 overlay). Timing: LocalMaxxing client-observed HTTP/SSE.
 Evidence: `results/ornith15-lmx-mixedcal-20260821T090450Z/`. `validate-local` **valid**.
-**No submit.**
+Submitted 2026-08-21. LocalMaxxing `APPROVED` means accepted into the
+self-reported dataset, not independently reproduced. Record
+`cmt2sl6eg0hdcmv01gre5o3ub`. Platform stored `backend: cuda` and
+`specDecoding: false` even though the serve was vLLM XPU MTP1 — do not
+read those two platform fields as the B70 engine identity.
 
 | Field | Value |
 |---|---|
@@ -166,7 +170,7 @@ Do not compare this 94.1 to the n=5 p512/g128 **96.43** cell: different prompt l
 
 ## LocalMaxxing + harness — MixedCal-v2 no-spec, 32K, **230 W**, long prompt, **not submitted**
 
-Same image digest, cache off (`enable_prefix_caching: False`; prefix-cache hits/queries delta **0**), `--language-model-only`, `--max-model-len 32768`, no speculative config. Unique entropy at the start of the prompt. Evidence: `results/ornith15-lmx-prefill230-20260821T095259Z/`. `validate-local` **valid**. **No submit.**
+Same image digest, cache off (`enable_prefix_caching: False`; prefix-cache hits/queries delta **0**), `--language-model-only`, `--max-model-len 32768`, no speculative config. Unique entropy at the start of the prompt. Evidence: `results/ornith15-lmx-prefill230-20260821T095259Z/`. `validate-local` **valid**. **Not submitted:** this payload used `--max-tokens 1`, so LMX `tokSOut` **19,153.8** is g=1 noise. A g128 rerun is in flight for a submitable decode field; keep this file as the `tokSPrefill` 9556.4 authority.
 
 This is the LocalMaxxing cell that belongs to the **~9.7k prefill class**. It is **not** the 150 W p32 `tokSPrefill` 654.7.
 
@@ -198,8 +202,8 @@ Comparison vs paired A/B MixedCal 230 W p2048 round medians 9748 / 9713 / 9771: 
 
 - native XpuFusedMoe int4 v4 / int8-store backport (the 204.6 Qwen3.6 path)
 - DFlash2 (no Ornith/hidden-2048 draft; Rahul write-up is SGLang Qwen3.8-27B)
-- LocalMaxxing **submission**
-- BF16 logit/KL or task-quality suite
+- LocalMaxxing 230 W long-prompt payload (g=1 `tokSOut` 19k is invalid; g128 rerun in flight)
+- BF16 logit/KL or task-quality suite (`lmx eval suite list` HTTP 404)
 
 ## Serving recommendation (research, 150 W)
 

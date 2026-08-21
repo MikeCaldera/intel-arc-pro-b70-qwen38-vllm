@@ -17,7 +17,7 @@ Nemotron DFlash.
 | **Qwen3.6-27B** | vLLM XPU (same Pi digest) | Dense GPTQ-INT4 + MTP, fp8 KV | MTP4 p512/g128 **69.30** n=5 | [this README §Dense](#dense-qwen36-27b--whole-analysis) |
 | **Nemotron-3.5-Lightning-30B-A3B** | vLLM XPU (**newer** digest) | DFlash n=7; native MTP **0%** | **186.61** C1 client post-first at p2048/g128 n=5; **cold input 7160** (prompt/TTFT) at p8192/g1 | [NEMOTRON-DFLASH-B70](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
 | **Muse-Glimmer-30B** | llama.cpp SYCL | Vision + DFlash n2; vLLM still experimental | **26.8** engine t/s at p512/g128 **128K** n=5 | [MUSE-GLIMMER-B70](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
-| **Ornith-1.5-35B-A3B** | vLLM XPU (Qwen3.8 nightly digest) | Local GPTQ-INT4 MixedCal-v2, MTP1; 262K C1; 150↔230 W prefill A/B | Self-reported E2: MTP1 p512/g128 **96.43** n=5 @150 W; 230 W LMX long-prompt `tokSPrefill` **9556.4** (n=5, 2899 tokens); optional DraftINT4 overlay **106.27**. LMX not submitted | [ORNITH-VLLM-XPU](docs/ornith15-35a3/ORNITH-VLLM-XPU.md) |
+| **Ornith-1.5-35B-A3B** | vLLM XPU (Qwen3.8 nightly digest) | Local GPTQ-INT4 MixedCal-v2, MTP1; 262K C1; 150↔230 W prefill A/B | Self-reported E2: MTP1 p512/g128 **96.43** n=5 @150 W; 230 W LMX long-prompt `tokSPrefill` **9556.4**; optional DraftINT4 overlay **106.27**. LMX MTP1 150 W `cmt2sl6eg0hdcmv01gre5o3ub` APPROVED (`tokSOut` 94.1) | [ORNITH-VLLM-XPU](docs/ornith15-35a3/ORNITH-VLLM-XPU.md) |
 
 Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
@@ -406,9 +406,9 @@ spec is **MTP1**. Dashboard:
 
 ![Ornith MixedCal-v2 dashboard](docs/assets/b70-ornith15-dashboard.svg)
 
-Self-reported E2, isolated C1, cache off, greedy diagnostic. LocalMaxxing
-not implied by this page until [CLAIMS.md](docs/ornith15-35a3/CLAIMS.md)
-records a submission id.
+Self-reported E2, isolated C1, cache off, greedy diagnostic.
+LocalMaxxing MTP1 150 W p32/g256 `cmt2sl6eg0hdcmv01gre5o3ub` is APPROVED
+self-report (`tokSOut` 94.1). That is not the 9.7k prefill cell.
 
 - Family index + claim lock: [docs/ornith15-35a3/README.md](docs/ornith15-35a3/README.md), [CLAIMS.md](docs/ornith15-35a3/CLAIMS.md)
 - Recipe: [docs/ornith15-35a3/ORNITH-VLLM-XPU.md](docs/ornith15-35a3/ORNITH-VLLM-XPU.md)

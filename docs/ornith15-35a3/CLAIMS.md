@@ -168,9 +168,18 @@ read those two platform fields as the B70 engine identity.
 
 Do not compare this 94.1 to the n=5 p512/g128 **96.43** cell: different prompt length (32 vs ~512–778), different g (256 vs 128), different timer, n=3 vs n=5. Original-artifact LMX at **230 W** was 85.8 tok/s on the same p32/g256 shape; that is **not** a matched A/B (cap + artifact both differ).
 
-## LocalMaxxing + harness — MixedCal-v2 no-spec, 32K, **230 W**, long prompt, **not submitted**
+## LocalMaxxing + harness — MixedCal-v2 no-spec, 32K, **230 W**, long prompt
 
-Same image digest, cache off (`enable_prefix_caching: False`; prefix-cache hits/queries delta **0**), `--language-model-only`, `--max-model-len 32768`, no speculative config. Unique entropy at the start of the prompt. Evidence: `results/ornith15-lmx-prefill230-20260821T095259Z/`. `validate-local` **valid**. **Not submitted:** this payload used `--max-tokens 1`, so LMX `tokSOut` **19,153.8** is g=1 noise. A g128 rerun is in flight for a submitable decode field; keep this file as the `tokSPrefill` 9556.4 authority.
+Same image digest, cache off (`enable_prefix_caching: False`; prefix-cache hits/queries delta **0**), `--language-model-only`, `--max-model-len 32768`, no speculative config. Unique entropy at the start of the prompt.
+
+Two payloads:
+
+| Payload | Evidence | `tokSPrefill` | `tokSOut` | Submit |
+|---|---|---:|---:|---|
+| g=1 n=5 (TTFT-only) | `results/ornith15-lmx-prefill230-20260821T095259Z/` | 9556.4 @ 2899 tokens | **19,153.8 — g=1 noise, do not publish** | **not submitted** |
+| g=128 n=5 (submitable) | `results/ornith15-lmx-prefill230-g128-20260821T101300Z/` | **9780** @ 2906 tokens | **69.9** no-spec decode | **APPROVED** `cmt2sr6gq0himmv01ogieh0c8` |
+
+`validate-local` **valid** on both. The submitted 230 W cell is the g128 payload. `tokSOut` 69.9 is **no-spec** at this prompt length, not MTP1.
 
 This is the LocalMaxxing cell that belongs to the **~9.7k prefill class**. It is **not** the 150 W p32 `tokSPrefill` 654.7.
 
@@ -202,8 +211,8 @@ Comparison vs paired A/B MixedCal 230 W p2048 round medians 9748 / 9713 / 9771: 
 
 - native XpuFusedMoe int4 v4 / int8-store backport (the 204.6 Qwen3.6 path)
 - DFlash2 (no Ornith/hidden-2048 draft; Rahul write-up is SGLang Qwen3.8-27B)
-- LocalMaxxing 230 W long-prompt payload (g=1 `tokSOut` 19k is invalid; g128 rerun in flight)
 - BF16 logit/KL or task-quality suite (`lmx eval suite list` HTTP 404)
+- Ornith DFlash / DFlash2 serving path (no hidden-2048 draft measured)
 
 ## Serving recommendation (research, 150 W)
 
@@ -221,5 +230,6 @@ this single-layer MTP head (day-0 per-pos 81/15/2.5/0.5%).
 - MTP depth + power A/B: `results/ornith15-mtpdepth-power-20260821T075858Z/`
 - DraftINT4: `results/ornith15-draftint4-20260821T084132Z/`
 - LMX MTP1 150 W p32: `results/ornith15-lmx-mixedcal-20260821T090450Z/`
-- LMX + harness 230 W long-prompt: `results/ornith15-lmx-prefill230-20260821T095259Z/`
+- LMX + harness 230 W long-prompt g=1 (not submitted): `results/ornith15-lmx-prefill230-20260821T095259Z/`
+- LMX 230 W g128 APPROVED `cmt2sr6gq0himmv01ogieh0c8`: `results/ornith15-lmx-prefill230-g128-20260821T101300Z/`
 - Compiler: `results/ornith15-mixedcal-v2-summary/summary.json`

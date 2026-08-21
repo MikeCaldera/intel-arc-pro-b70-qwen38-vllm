@@ -206,9 +206,10 @@ hits and queries stayed **0**. Post-load VRAM 5608 MiB free.
 | same-load harness p8192/g1 n=5 | ~11356–11366 | median | **9608** |
 | paired A/B MixedCal p2048/g1 @230 W (3-round medians) | ~2k class | per-round median | 9748 / 9713 / 9771 |
 
-LMX `validate-local` **valid**. **Not submitted.** Do not publish LMX
-`tokSOut` from `max-tokens=1` (19k-class noise). Decode default remains
-**MTP1 at 150 W**.
+LMX g=1 `validate-local` **valid**, **not submitted** (`tokSOut` from
+`max-tokens=1` is 19k-class noise). Submitable g=128 payload:
+`tokSPrefill` **9780**, `tokSOut` **69.9** no-spec, APPROVED
+`cmt2sr6gq0himmv01ogieh0c8`. Decode default remains **MTP1 at 150 W**.
 
 ## 6. What will not launch (yet)
 

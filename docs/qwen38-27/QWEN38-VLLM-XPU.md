@@ -392,7 +392,7 @@ t2+ cache hits 29952 / 63232 / 96512. 128K hits=0. Do not mix with Run 42
 synthetic cache-off **62.52**. Raw:
 `B70-DOCS/results/qwen38-agentic-128k-20260819T102259Z/`.
 
-## 13. DFlash 2 — loads on a research overlay, 0% accept (not a recipe)
+## 13. DFlash 2 — research overlay, not a recipe
 
 [`incoai/Qwen3.8-27B-DFlash2`](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2)
 (Apache-2.0, ~3.85 GB, `architectures: ["DFlash2DraftModel"]`) is a **new**
@@ -417,6 +417,21 @@ cap, `n=7`):
 | One-shot p512-ish g128 | client post-first **19.18 tok/s** (`n=1`, not a median) |
 
 That 19 tok/s is worse than no-spec on this target. Drafting happened;
-verification accepted nothing. **Keep MTP4 as the serving spec.** This is
-not a Lane 1 card and not a cookbook apply-list item. Never apply Nemotron
-DFlash patches to this family.
+verification accepted nothing.
+
+Afternoon 2026-08-19 mixed-dtype + causal-fallback overlay later proved
+the chain: **68/434 (15.7%)** accepted on one greedy g128
+(`results/qwen38-dflash2-fix12-20260819T144711Z/`, 17.40 tok/s n=1). A
+torch SDPA non-causal shim also accepted **42/616 (6.8%)** at 12.53 tok/s
+n=1 (`…-fix13-…`). Labeled n=5 on the causal-fallback overlay
+(`results/qwen38-dflash2-n5-20260819T151054Z/`, C1, cache off, 16K,
+greedy, endpoint **p476/g128**, n=5): median client post-first
+**22.41 tok/s** (19.87–23.09), acceptance **24.7%** (406/1645), zero
+prefix-cache hits, measured per-request ~127 W at 230 W cap. That
+24.7% is the **wrong causal mask** for block diffusion, not a DFlash2
+ceiling. A float32 math non-causal shim with context attached
+(`results/qwen38-dflash2-fix14-20260819T152418Z/`, n=3) dropped to
+**13.15 tok/s / 8.2%** — remaining bugs are conv/RMS scale and
+packing, not “raise n”. **Keep MTP4 as the serving spec.** Not a Lane 1 card
+and not a cookbook apply-list item. Never apply Nemotron DFlash patches
+to this family. Writeup: `B70-DOCS/research/qwen38-dflash2-smoke-20260819.md`.

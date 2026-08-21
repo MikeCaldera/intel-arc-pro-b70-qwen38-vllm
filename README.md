@@ -17,6 +17,7 @@ Nemotron DFlash.
 | **Qwen3.6-27B** | vLLM XPU (same Pi digest) | Dense GPTQ-INT4 + MTP, fp8 KV | MTP4 p512/g128 **69.30** n=5 | [this README §Dense](#dense-qwen36-27b--whole-analysis) |
 | **Nemotron-3.5-Lightning-30B-A3B** | vLLM XPU (**newer** digest) | DFlash n=7; native MTP **0%** | **186.61** C1 client post-first at p2048/g128 n=5; **cold input 7160** (prompt/TTFT) at p8192/g1 | [NEMOTRON-DFLASH-B70](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
 | **Muse-Glimmer-30B** | llama.cpp SYCL | Vision + DFlash n2; vLLM still experimental | **26.8** engine t/s at p512/g128 **128K** n=5 | [MUSE-GLIMMER-B70](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
+| **Ornith-1.5-35B-A3B** | vLLM XPU (Qwen3.8 nightly digest) | Local GPTQ-INT4 MixedCal-v2, MTP1; 262K C1; 150↔230 W prefill A/B | Self-reported E2: MTP1 p512/g128 **96.43** n=5 @150 W; 230 W LMX long-prompt `tokSPrefill` **9556.4** (n=5, 2899 tokens); optional DraftINT4 overlay **106.27**. LMX not submitted | [ORNITH-VLLM-XPU](docs/ornith15-35a3/ORNITH-VLLM-XPU.md) |
 
 Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
@@ -397,6 +398,27 @@ Artifacts (canonical two-i account):
 - Runtime patches: `patches/patch_xpu_grouped_topk_native_v2.py`, `patches/ssu-b70-b8w4/`
 - Open PRs (2026-08-13): [vllm#52159](https://github.com/vllm-project/vllm/pull/52159), [vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524). Source copies: `patches/vllm-xpu-kernels/`
 
+## Ornith-1.5-35B-A3B — MixedCal-v2 (2026-08-21)
+
+Local experts-only GPTQ INT4 G128, MTP BF16, same `qwen3_5_moe` topology as
+Qwen3.6-35B-A3B, **same nightly digest as Qwen3.8** (`f01e24f6`). Research
+spec is **MTP1**. Dashboard:
+
+![Ornith MixedCal-v2 dashboard](docs/assets/b70-ornith15-dashboard.svg)
+
+Self-reported E2, isolated C1, cache off, greedy diagnostic. LocalMaxxing
+not implied by this page until [CLAIMS.md](docs/ornith15-35a3/CLAIMS.md)
+records a submission id.
+
+- Family index + claim lock: [docs/ornith15-35a3/README.md](docs/ornith15-35a3/README.md), [CLAIMS.md](docs/ornith15-35a3/CLAIMS.md)
+- Recipe: [docs/ornith15-35a3/ORNITH-VLLM-XPU.md](docs/ornith15-35a3/ORNITH-VLLM-XPU.md)
+- Launcher: `benchmarks/ornith15-35a3/launch-ornith-mtp1.sh MODEL_DIR 16384 8000`
+- Weights: [`SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2`](https://huggingface.co/SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2)
+
+Decode **96.43** tok/s (MTP1 p512/g128 n=5 @150 W) and prefill **~9.7k**
+(230 W no-spec) are different phases. DFlash is not a serving path for
+this family — there is no Ornith hidden-2048 draft.
+
 ## Muse: Glimmer-30B — llama.cpp analysis (2026-08-10)
 
 First B70 run of Meta Muse-Glimmer-30B (dense 27.85B text + ViT-G/14 vision,
@@ -496,6 +518,7 @@ benchmarks/
   qwen36-35a3/       MoE Qwen3.6-35B-A3B launchers and model-specific campaigns
   qwen36-27/         Dense Qwen3.6-27B launchers (launch-dense27-128k-mode.sh)
   nemotron35-30a3/   Nemotron DFlash + no-spec graph launchers
+  ornith15-35a3/     Ornith-1.5 MixedCal-v2 MTP1 launcher
   <root>             shared: matrix runner, harness, monitor, prompt generation, compiler, renderers
 windows/             Windows 11 standalone kits (WSLC + Docker Desktop) — see docs/qwen38-27/WINDOWS-STANDALONE.md
 patches/             family-tagged patches — see IMAGE-AND-PATCH-MATRIX.md
@@ -503,6 +526,7 @@ docs/
   qwen36-35a3/       MoE-specific reference (QUANTIZATION-QUALITY.md)
   qwen36-27/         Dense-specific reference (DENSE-FP8-GAP.md)
   nemotron35-30a3/   Nemotron DFlash + no-spec recipes
+  ornith15-35a3/     Ornith MixedCal-v2 recipe + claims lock
   muse-glimmer/      Muse llama.cpp recipe
   <root>             shared: setup, benchmark contract, methodology, compatibility, history
 results/

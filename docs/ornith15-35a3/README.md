@@ -8,7 +8,7 @@ Family index. Keep Qwen, Nemotron, and Muse numbers on their own pages.
 | [MIXEDCAL-V2.md](MIXEDCAL-V2.md) | Why this GPTQ exists: experts-only, mixed-domain cal, RTN 24.76% → 10.37% |
 | [CLAIMS.md](CLAIMS.md) | Full measured tables and LocalMaxxing ids |
 | `benchmarks/ornith15-35a3/launch-ornith-mtp1.sh` | Default serve: MTP1 + DraftINT4, cache off |
-| [Dashboard SVG](../assets/b70-ornith15-dashboard.svg) | Decode, cold-input, and capacity card |
+| [Dashboard SVG](../assets/b70-ornith15-dashboard.svg) | Decode, cold-input, capacity, and LocalMaxxing card |
 
 ## Artifact
 

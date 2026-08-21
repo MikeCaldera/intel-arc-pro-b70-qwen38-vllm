@@ -17,7 +17,7 @@ Nemotron DFlash.
 | **Qwen3.6-27B** | vLLM XPU (same Pi digest) | Dense GPTQ-INT4 + MTP, fp8 KV | MTP4 p512/g128 **69.30** n=5 | [this README §Dense](#dense-qwen36-27b--whole-analysis) |
 | **Nemotron-3.5-Lightning-30B-A3B** | vLLM XPU (**newer** digest) | DFlash n=7; native MTP **0%** | **186.61** C1 client post-first at p2048/g128 n=5; **cold input 7160** (prompt/TTFT) at p8192/g1 | [NEMOTRON-DFLASH-B70](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
 | **Muse-Glimmer-30B** | llama.cpp SYCL | Vision + DFlash n2; vLLM still experimental | **26.8** engine t/s at p512/g128 **128K** n=5 | [MUSE-GLIMMER-B70](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
-| **Ornith-1.5-35B-A3B** | vLLM XPU (Qwen3.8 nightly digest) | Local GPTQ-INT4 MixedCal-v2, MTP1; 262K C1; 150↔230 W prefill A/B | Self-reported E2: MTP1 p512/g128 **96.43** n=5 @150 W; LMX 230 W `tokSPrefill` **9780** (`cmt2sr6gq0himmv01ogieh0c8`); LMX MTP1 150 W `tokSOut` **94.1** (`cmt2sl6eg0hdcmv01gre5o3ub`). Optional DraftINT4 overlay **106.27** | [ORNITH-VLLM-XPU](docs/ornith15-35a3/ORNITH-VLLM-XPU.md) |
+| **Ornith-1.5-35B-A3B** | vLLM XPU (Qwen3.8 nightly digest) | Local GPTQ-INT4 MixedCal-v2, **MTP1 + DraftINT4 default**; 262K C1; 150↔230 W prefill A/B | Self-reported E2: combined 230 W LMX `tokSOut` **108.4** / `tokSPrefill` **9073** (`cmt2tdx5q0hy0mv01koh4xwpw`); host p512/g128 **106.64**. BF16-draft MTP1 150 W **96.43**. No-spec 230 W prefill **9780** (`cmt2sr6gq0himmv01ogieh0c8`) | [ORNITH-VLLM-XPU](docs/ornith15-35a3/ORNITH-VLLM-XPU.md) |
 
 Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
@@ -402,14 +402,15 @@ Artifacts (canonical two-i account):
 
 Local experts-only GPTQ INT4 G128, MTP BF16, same `qwen3_5_moe` topology as
 Qwen3.6-35B-A3B, **same nightly digest as Qwen3.8** (`f01e24f6`). Research
-spec is **MTP1**. Dashboard:
+spec is **MTP1 + DraftINT4** (runtime overlay; shards stay BF16 MTP). Dashboard:
 
 ![Ornith MixedCal-v2 dashboard](docs/assets/b70-ornith15-dashboard.svg)
 
 Self-reported E2, isolated C1, cache off, greedy diagnostic.
-LocalMaxxing: MTP1 150 W `cmt2sl6eg0hdcmv01gre5o3ub` APPROVED
-(`tokSOut` 94.1). 230 W no-spec long-prompt `cmt2sr6gq0himmv01ogieh0c8`
-APPROVED (`tokSPrefill` 9780). Those are different cells.
+LocalMaxxing combined MTP1+DraftINT4 230 W `cmt2tdx5q0hy0mv01koh4xwpw`
+APPROVED (`tokSOut` **108.4**, `tokSPrefill` **9073**). Older split cells:
+MTP1 BF16 150 W `cmt2sl6eg0hdcmv01gre5o3ub` (`tokSOut` 94.1); no-spec 230 W
+`cmt2sr6gq0himmv01ogieh0c8` (`tokSPrefill` 9780 / `tokSOut` 69.9).
 
 - Family index + claim lock: [docs/ornith15-35a3/README.md](docs/ornith15-35a3/README.md), [CLAIMS.md](docs/ornith15-35a3/CLAIMS.md)
 - Conversion (experts-only GPTQ, mixed-domain cal, RTN **24.76% → 10.37%**): [MIXEDCAL-V2.md](docs/ornith15-35a3/MIXEDCAL-V2.md)
@@ -417,9 +418,10 @@ APPROVED (`tokSPrefill` 9780). Those are different cells.
 - Launcher: `benchmarks/ornith15-35a3/launch-ornith-mtp1.sh MODEL_DIR 16384 8000`
 - Weights: [`SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2`](https://huggingface.co/SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2)
 
-Decode **96.43** tok/s (MTP1 p512/g128 n=5 @150 W) and prefill **~9.7k**
-(230 W no-spec) are different phases. DFlash is not a serving path for
-this family — there is no Ornith hidden-2048 draft.
+Default decode is MTP1 + DraftINT4 (**106.64** host / **108.4** LMX at 230 W).
+No-spec ~9.7k prefill and MTP1 decode can share one 230 W long-prompt payload;
+`tokSPrefill` then includes MTP first-token work (~9073 vs no-spec 9780).
+DFlash is not a serving path for this family — there is no Ornith hidden-2048 draft.
 
 ## Muse: Glimmer-30B — llama.cpp analysis (2026-08-10)
 

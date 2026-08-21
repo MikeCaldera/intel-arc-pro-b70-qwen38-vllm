@@ -1,9 +1,10 @@
 # Ornith-1.5-35B-A3B on Intel Arc Pro B70 (vLLM XPU)
 
 > Isolated C1, cache off, greedy diagnostic. Self-reported E2 with raw
-> evidence; not independently reproduced. LocalMaxxing MTP1 150 W
-> `cmt2sl6eg0hdcmv01gre5o3ub` APPROVED (`tokSOut` 94.1). Copy numbers
-> only from [CLAIMS.md](CLAIMS.md).
+> evidence; not independently reproduced. Default serve is **MTP1 +
+> DraftINT4**. Combined 230 W LMX `cmt2tdx5q0hy0mv01koh4xwpw` APPROVED
+> (`tokSOut` 108.4 / `tokSPrefill` 9073). Copy numbers only from
+> [CLAIMS.md](CLAIMS.md).
 
 ![Ornith MixedCal-v2 dashboard](../assets/b70-ornith15-dashboard.svg)
 
@@ -60,7 +61,10 @@ Contract to verify after download:
 Why this file exists (WikiText vs mixed-domain, experts-only scope, RTN
 24.76% → 10.37%): [MIXEDCAL-V2.md](MIXEDCAL-V2.md).
 
-## 2. Launch (recommended research serve: MTP1, 16K, cache off)
+## 2. Launch (recommended research serve: MTP1 + DraftINT4, 16K, cache off)
+
+The launcher defaults `DRAFT_INT4=1` (runtime overlay of draft lm_head + MTP
+linears). Weights on disk stay BF16 MTP. `DRAFT_INT4=0` is the BF16-draft A/B.
 
 ```bash
 export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
@@ -68,7 +72,8 @@ export MODEL_DIR="$HOME/models/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-Mi
 bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh "$MODEL_DIR" 16384 8000
 ```
 
-Exact flags used in the n=5 MTP1 confirmation:
+Exact flags used in the n=5 MTP1 **BF16-draft** confirmation (set `DRAFT_INT4=0`
+to reproduce that table):
 
 ```text
 --quantization gptq
@@ -212,9 +217,15 @@ hits and queries stayed **0**. Post-load VRAM 5608 MiB free.
 | paired A/B MixedCal p2048/g1 @230 W (3-round medians) | ~2k class | per-round median | 9748 / 9713 / 9771 |
 
 LMX g=1 `validate-local` **valid**, **not submitted** (`tokSOut` from
-`max-tokens=1` is 19k-class noise). Submitable g=128 payload:
+`max-tokens=1` is 19k-class noise). Submitable no-spec g=128 payload:
 `tokSPrefill` **9780**, `tokSOut` **69.9** no-spec, APPROVED
-`cmt2sr6gq0himmv01ogieh0c8`. Decode default remains **MTP1 at 150 W**.
+`cmt2sr6gq0himmv01ogieh0c8`.
+
+Combined payload on **one** MTP1 + DraftINT4 32K 230 W serve (cache off,
+hits 0): LMX `tokSOut` **108.4** / `tokSPrefill` **9073** @ 2906 tokens,
+APPROVED `cmt2tdx5q0hy0mv01koh4xwpw`. Same-load host: p512/g128 **106.64**,
+p2048/g1 **9403**. `tokSPrefill` is TTFT-derived with MTP1 first-token work,
+so it is below the no-spec 9780 cell. Decode default is **MTP1 + DraftINT4**.
 
 ## 6. What will not launch (yet)
 
@@ -222,7 +233,7 @@ LMX g=1 `validate-local` **valid**, **not submitted** (`tokSOut` from
 |---|---|
 | DFlash2 | **No Ornith / hidden-2048 DFlash2 draft.** Rahul's Arc Pro post is SGLang TP4 Qwen3.8-27B AWQ + `incoai/Qwen3.8-27B-DFlash2`. On this same `f01e24f6` image, Qwen3.8 DFlash2 overlay loaded then accepted **0%**; later causal-fallback n=5 was **22.41 tok/s / 24.7% accept** — worse than MTP4. Keep MTP1 here. |
 | DFlash v1 `z-lab/Qwen3.5-35B-A3B-DFlash` | Hidden 2048 / vocab 248320 **match** Ornith topology. Kernels still gated. **Not measured.** Not a recipe. |
-| DraftINT4 S+M1 | Overlay applied at load (`B70_DRAFT_LMHEAD_INT4` + `B70_DRAFT_MTP_INT4`). DI1 MTP1 n=5: **106.27 / 97.16** vs BF16-draft S8 **96.43 / 89.85**, accept 81.9% vs 77.0%. Optional, local-only; weights stay BF16 MTP. Do not enable GDN mixed-split on C1. |
+| DraftINT4 S+M1 | **Default overlay** at load (`B70_DRAFT_LMHEAD_INT4` + `B70_DRAFT_MTP_INT4`). DI1 150 W MTP1 n=5: **106.27 / 97.16** vs BF16-draft **96.43 / 89.85**. Combined 230 W LMX: **108.4** decode / **9073** prefill (`cmt2tdx5q0hy0mv01koh4xwpw`). Weights stay BF16 MTP on disk. Do not enable GDN mixed-split on C1. |
 | GDN mixed-split v5 | Cn candidate only. |
 
 ## 7. Power

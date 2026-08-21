@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# B70 vLLM Ornith-1.5-35B-A3B MixedCal-v2 launcher — MTP1 default, cache off.
+# B70 vLLM Ornith-1.5-35B-A3B MixedCal-v2 launcher — MTP1 + DraftINT4 default, cache off.
 #
 # WHEN TO USE: research/serve the MixedCal-v2 GPTQ on the champion nightly.
 # WHAT IT DOES: empty-GPU gate, optional MTP boundary patch, vLLM serve.
@@ -9,6 +9,7 @@
 # Example:
 #   bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh /path/to/model 16384 8000
 #   BOUNDARY=1 CTX=131072 bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh /path/to/model 131072 8000
+#   DRAFT_INT4=0 MODE=mtp1 bash ...   # BF16 MTP draft (matched A/B only)
 set -euo pipefail
 
 MODEL_DIR=${1:?usage: $0 MODEL_DIR [CTX] [PORT]}
@@ -18,6 +19,7 @@ MODE=${MODE:-mtp1}
 CACHE=${CACHE:-off}
 BOUNDARY=${BOUNDARY:-0}
 UTIL=${UTIL:-0.85}
+DRAFT_INT4=${DRAFT_INT4:-1}
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
 MODEL='Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2'
@@ -61,9 +63,22 @@ esac
 
 PRE="exec vllm serve /model"
 PATCH_MOUNT=()
+ENV_EXTRA=()
+APPLY=""
 if [ "$BOUNDARY" = 1 ]; then
-  PRE="python /patch_boundary.py && exec vllm serve /model"
-  PATCH_MOUNT=(-v "$ROOT/patches/patch_mtp_boundary.py:/patch_boundary.py:ro")
+  APPLY="${APPLY}python /patch_boundary.py; "
+  PATCH_MOUNT+=(-v "$ROOT/patches/patch_mtp_boundary.py:/patch_boundary.py:ro")
+fi
+if [ "$DRAFT_INT4" = 1 ] && [ "$MODE" != "no-spec" ]; then
+  APPLY="${APPLY}python /patch_s.py; python /patch_m1.py; "
+  PATCH_MOUNT+=(
+    -v "$ROOT/patches/patch_draft_lmhead_int4.py:/patch_s.py:ro"
+    -v "$ROOT/patches/patch_draft_mtp_int4.py:/patch_m1.py:ro"
+  )
+  ENV_EXTRA+=(-e B70_DRAFT_LMHEAD_INT4=1 -e B70_DRAFT_MTP_INT4=1)
+fi
+if [ -n "$APPLY" ]; then
+  PRE="${APPLY}exec vllm serve /model"
 fi
 
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
@@ -76,6 +91,7 @@ docker run -d --name "$CONTAINER" -p "$PORT:8000" \
   -v "$MODEL_DIR:/model:ro" \
   -v "$SPEC:/spec.json:ro" \
   "${PATCH_MOUNT[@]}" \
+  "${ENV_EXTRA[@]}" \
   -e VLLM_TARGET_DEVICE=xpu \
   -e ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE \
   -e ZE_AFFINITY_MASK=0 \
@@ -96,6 +112,7 @@ Mode:      $MODE
 Ctx:       $CTX
 Cache:     $CACHE
 Boundary:  $BOUNDARY
+DraftINT4: $DRAFT_INT4
 Logs:      docker logs -f $CONTAINER
 Health:    curl -f http://127.0.0.1:$PORT/health
 Stop:      docker rm -f $CONTAINER

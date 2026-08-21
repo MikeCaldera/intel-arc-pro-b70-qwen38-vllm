@@ -142,8 +142,11 @@ Logs show both MTP linears and lm_head quantized at load.
 Acceptance gate (>3 pp drop fails): **pass** on both depths (acceptance rose).
 Comparison is matched except draft-linear precision, **separate loads** (not a
 paired same-server A/B). Do not treat +10 tok/s as a MixedCal conversion win.
-MTP1 + overlay remains faster than MTP2 + overlay. Default research serve is
-still MixedCal-v2 **MTP1**; overlay is optional and local-only.
+MTP1 + overlay remains faster than MTP2 + overlay.
+
+**Default research serve is MixedCal-v2 MTP1 + DraftINT4 S+M1.** The overlay is
+runtime-only; published shards stay BF16 MTP. `DRAFT_INT4=0` recovers the BF16
+draft A/B. Do not apply GDN mixed-split v5 on C1.
 
 VRAM after load: DI1 5501 MiB free, DI2 5395 MiB free (16K, U=0.85).
 
@@ -179,9 +182,24 @@ Two payloads:
 | g=1 n=5 (TTFT-only) | `results/ornith15-lmx-prefill230-20260821T095259Z/` | 9556.4 @ 2899 tokens | **19,153.8 — g=1 noise, do not publish** | **not submitted** |
 | g=128 n=5 (submitable) | `results/ornith15-lmx-prefill230-g128-20260821T101300Z/` | **9780** @ 2906 tokens | **69.9** no-spec decode | **APPROVED** `cmt2sr6gq0himmv01ogieh0c8` |
 
-`validate-local` **valid** on both. The submitted 230 W cell is the g128 payload. `tokSOut` 69.9 is **no-spec** at this prompt length, not MTP1.
+`validate-local` **valid** on both. The submitted 230 W no-spec cell is the g128 payload. `tokSOut` 69.9 is **no-spec** at this prompt length, not MTP1.
 
-This is the LocalMaxxing cell that belongs to the **~9.7k prefill class**. It is **not** the 150 W p32 `tokSPrefill` 654.7.
+This is the LocalMaxxing cell that belongs to the **~9.7k no-spec prefill class**. It is **not** the 150 W p32 `tokSPrefill` 654.7 and **not** the MTP1+DraftINT4 combined payload below.
+
+## LocalMaxxing + harness — MixedCal-v2 MTP1 + DraftINT4, 32K, **230 W**, long prompt, **APPROVED** `cmt2tdx5q0hy0mv01koh4xwpw`
+
+Same image digest, cache off (`enable_prefix_caching: False`; prefix-cache hits/queries **0→0**), `--language-model-only`, `--max-model-len 32768`, MTP1, DraftINT4 S+M1 overlay applied at load (lm_head + 3 MTP linears). Unique entropy at the start of the prompt. Evidence: `results/ornith15-lmx-mtp1-di-230w-20260821T103036Z/`. `validate-local` **valid**. Submitted 2026-08-21. Record `cmt2tdx5q0hy0mv01koh4xwpw`. Platform may store `backend: cuda` / `specDecoding: false`; actual serve was vLLM XPU MTP1 + DraftINT4.
+
+This is the payload that carries **decode and long-prompt prefill on one serve**. `tokSPrefill` is TTFT-derived with MTP1 first-token work, so it sits slightly below the no-spec 9780 cell. Host p2048/g1 on the same load is the cold-input authority.
+
+| Field | LMX n=5 | Same-load host harness |
+|---|---|---|
+| Decode | `tokSOut` **108.4** (108.1–108.5), g=128 | p512/g128 client post-first **106.64** (104.72–109.16) |
+| Prefill | `tokSPrefill` **9072.9** @ 2906 tokens, `ttftMs` 320.29 | p2048/g1 cold input **9403** (9359–9424), actual ~2884–2895 tokens |
+| Power | configured **230 W** | same serve |
+| Post-load VRAM | 5498 MiB free | same |
+
+Do **not** mix this 108.4 with the 150 W BF16-draft 96.43 or the no-spec 69.9. Comparison vs DI1 150 W MTP1+INT4 106.27: matched except configured cap and max-model-len (32K vs 16K); directional only.
 
 ### Result — LMX `tokSPrefill`
 
@@ -214,12 +232,13 @@ Comparison vs paired A/B MixedCal 230 W p2048 round medians 9748 / 9713 / 9771: 
 - BF16 logit/KL or task-quality suite (`lmx eval suite list` HTTP 404)
 - Ornith DFlash / DFlash2 serving path (no hidden-2048 draft measured)
 
-## Serving recommendation (research, 150 W)
+## Serving recommendation (research)
 
-MixedCal-v2 + `--speculative-config {"method":"mtp","num_speculative_tokens":1}`.
-Optional local DraftINT4 S+M1 overlay screened faster than BF16 draft on this
-image; it is not part of the published weight files. MTP4 is not the winner on
-this single-layer MTP head (day-0 per-pos 81/15/2.5/0.5%).
+MixedCal-v2 + MTP1 + DraftINT4 S+M1 (`B70_DRAFT_LMHEAD_INT4=1`,
+`B70_DRAFT_MTP_INT4=1`). Published shards stay BF16 MTP; the overlay is
+runtime-only. Use configured **150 W** as the restored default cap; **230 W**
+for the ~9.4–9.7k prefill class. MTP4 is not the winner on this single-layer
+head (day-0 per-pos 81/15/2.5/0.5%).
 
 ## Evidence roots
 
@@ -232,4 +251,5 @@ this single-layer MTP head (day-0 per-pos 81/15/2.5/0.5%).
 - LMX MTP1 150 W p32: `results/ornith15-lmx-mixedcal-20260821T090450Z/`
 - LMX + harness 230 W long-prompt g=1 (not submitted): `results/ornith15-lmx-prefill230-20260821T095259Z/`
 - LMX 230 W g128 APPROVED `cmt2sr6gq0himmv01ogieh0c8`: `results/ornith15-lmx-prefill230-g128-20260821T101300Z/`
+- LMX MTP1 DraftINT4 230 W APPROVED `cmt2tdx5q0hy0mv01koh4xwpw`: `results/ornith15-lmx-mtp1-di-230w-20260821T103036Z/`
 - Compiler: `results/ornith15-mixedcal-v2-summary/summary.json`

@@ -37,12 +37,31 @@ digest and not the historical `intel/vllm:0.21.0-xpu-int4moe` native-int4moe
 image that produced Qwen3.6 MTP4 **204.6** tok/s. Those are a different image
 generation — not Ornith numbers.
 
-## 1. Download
+## Quick Start (3-Step Setup)
 
+### Step 1: Pull the image
 ```bash
-huggingface-cli download SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2 \
-  --local-dir "$HOME/models/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2"
+export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
+docker pull "$IMAGE"
 ```
+
+### Step 2: Download the model
+```bash
+export MODEL_DIR="$HOME/models/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2"
+huggingface-cli download SergiioB/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2 \
+  --local-dir "$MODEL_DIR"
+```
+
+### Step 3: Launch server & verify health
+```bash
+# Default serve: MTP1 + DraftINT4, 16K context, cache off, 150 W:
+bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh "$MODEL_DIR" 16384 8000
+curl -f http://127.0.0.1:8000/health
+```
+
+---
+
+## 1. Model details & contract
 
 Contract to verify after download:
 
@@ -54,13 +73,9 @@ Contract to verify after download:
 Why this GPTQ exists (WikiText vs mixed-domain, experts-only scope, RTN
 24.76% → 10.37%): [MIXEDCAL-V2.md](MIXEDCAL-V2.md).
 
-## 2. Image
+## 2. Image verification
 
-```bash
-export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
-docker pull "$IMAGE"
-```
-
+Verify device and packages:
 ```bash
 docker run --rm --device /dev/dri --entrypoint python "$IMAGE" -c '
 from importlib.metadata import version
@@ -71,22 +86,13 @@ print(torch.xpu.get_device_name(0))
 '
 ```
 
-It must print `Intel Arc Pro B70`.
-
-## 3. Launch (default: MTP1 + DraftINT4, 16K, cache off)
+## 3. Launch options (MTP1 + DraftINT4)
 
 DraftINT4 is a **runtime** overlay: INT4 of the **draft** `lm_head` and MTP
 linears only. Target verify stays at the checkpoint precision. Shards on disk
 stay BF16 MTP. On this stack it is about **+10 tok/s** versus BF16 draft at
 150 W (106.27 vs 96.43 at p512/g128). It is on by default (`DRAFT_INT4=1`).
 `DRAFT_INT4=0` is the BF16-draft A/B.
-
-```bash
-export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
-export MODEL_DIR="$HOME/models/Ornith-1.5-35B-A3B-GPTQ-Int4-sym-G128-MTP-BF16-MixedCal-v2"
-bash benchmarks/ornith15-35a3/launch-ornith-mtp1.sh "$MODEL_DIR" 16384 8000
-curl -f http://127.0.0.1:8000/health
-```
 
 Default flags:
 

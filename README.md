@@ -43,31 +43,43 @@ Use **this** table only for Qwen3.6 Pi / dense. Nemotron uses a different digest
 
 PyPI `vllm-xpu-kernels 0.1.12.2` is newer, but it was not installed or tested in this campaign. The historical `intel/vllm:0.21.0-xpu-int4moe` image was local and was never published.
 
-## Short setup
+## Quick Start (3-Step Setup)
 
-Both launchers below already include the **tool-calling flags**
-(`--enable-auto-tool-choice --tool-call-parser qwen3_coder`) — required for
-Pi / omp / agent clients that send `tool_choice: "auto"`. Without them those
-clients get `400: "auto" tool choice requires --enable-auto-tool-choice and
---tool-call-parser to be set`.
-
+### Step 1: Pull the image
 ```bash
-git clone https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook.git
-cd intel-arc-pro-b70-inference-cookbook
+export IMAGE='vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97'
+docker pull "$IMAGE"
+```
+
+### Step 2: Download the model
+**MoE (Qwen3.6-35B-A3B):**
+```bash
 export MODEL_DIR="$HOME/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4"
-export MODEL_ID='llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4'
-docker pull 'vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97'
+huggingface-cli download llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4 \
+  --local-dir "$MODEL_DIR"
+```
+
+**Dense (Qwen3.6-27B):**
+```bash
+export DENSE_DIR="$HOME/models/Qwen3.6-27B-MTP-Preserved-GPTQ-Int4"
+huggingface-cli download llmfan46/Qwen3.6-27B-uncensored-heretic-v2-Native-MTP-Preserved-GPTQ-Int4 \
+  --local-dir "$DENSE_DIR"
+```
+
+### Step 3: Launch server & verify health
+**MoE (128K context, MTP2, FP16 KV):**
+```bash
 bash benchmarks/qwen36-35a3/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 on 8000
 curl -f http://127.0.0.1:8000/health
 ```
 
-Dense 27B (same image and patches, fp8 KV):
-
+**Dense (128K context, MTP4, FP8 KV required):**
 ```bash
-export DENSE_DIR="$HOME/models/Qwen3.6-27B-MTP-Preserved-GPTQ-Int4"
 bash benchmarks/qwen36-27/launch-dense27-128k-mode.sh "$DENSE_DIR" mtp4 on 8000
 curl -f http://127.0.0.1:8000/health
 ```
+
+Both launchers include tool-calling flags (`--enable-auto-tool-choice --tool-call-parser qwen3_coder`) out of the box for Pi, omp, and OpenAI agent clients.
 
 **Serving with Pi / omp / agents:** point the client at `http://127.0.0.1:8000/v1`
 and use the served model name (`Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4` or

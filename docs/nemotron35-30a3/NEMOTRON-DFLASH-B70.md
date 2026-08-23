@@ -97,70 +97,44 @@ That is a different cell, n=3, and it is still a cold input rate. Isolated
 DFlash Lane 1 input is **7160** at p8192/**g1** n=5. Do not say “DFlash hit 10k
 prefill.”
 
-## Step-by-step reproduce
+## Quick Start (3-Step Setup)
 
-### 1. Empty GPU
-
-One engine only. ~31,000+ MiB `visible_avail` on an empty B70. Stop any
-other `vllm` / `llama-server` process **and** any container that would
-respawn it. `docker rm` alone is not enough if a systemd unit or compose
-stack restarts the engine.
-
-### 2. Pull the public image (this is the reproduce default)
-
+### Step 1: Pull the public image
 ```bash
-docker pull vllm/vllm-openai-xpu@sha256:1da0a95485455f08588c11080b9718992fd7d434c6a965d74654903a9d999c57
+export IMAGE='vllm/vllm-openai-xpu@sha256:1da0a95485455f08588c11080b9718992fd7d434c6a965d74654903a9d999c57'
+docker pull "$IMAGE"
 ```
 
-The launcher then applies the **Python** router fix in-container
-(`patches/patch_xpu_grouped_topk_native_v2.py` — same change as
-[vllm#52159](https://github.com/vllm-project/vllm/pull/52159) plus the
-measured native XPU body). That is enough to **serve** this recipe.
+The launcher applies `patches/patch_xpu_grouped_topk_native_v2.py` and SSU configurations automatically.
 
-Optional, after a kernels rebuild only: apply
-`patches/vllm-xpu-kernels/0001-zero-xe2-grouped-gemm-atomic.py` so
-temperature-0 graph replay is deterministic
-([vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524)).
-The Muse paged-decode tuple in the same PR is **not** needed for Nemotron.
-Do **not** treat a local Docker tag as a prerequisite.
-
-### 3. Download the two artifacts
-
+### Step 2: Download the target and draft models
 ```bash
 # Target ~18 GB
+export TARGET="$HOME/models/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym"
 huggingface-cli download SergiioB/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym \
-  --local-dir "$HOME/models/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym"
+  --local-dir "$TARGET"
 
 # Draft ~1.7 GB
+export DRAFT="$HOME/models/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16"
 huggingface-cli download SergiioB/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16 \
-  --local-dir "$HOME/models/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16"
+  --local-dir "$DRAFT"
 ```
 
-Confirm the draft has **no** live `hf_quant_config.json` (only a `.bak` is
-safe). If present, rename it or vLLM will treat the draft as NVFP4.
-
-### 4. Launch
-
+### Step 3: Launch server & verify health
 ```bash
-export TARGET="$HOME/models/Nemotron-3.5-Lightning-30B-A3B-GPTQ-INT4-G64-sym"
-export DRAFT="$HOME/models/Nemotron-3.5-Lightning-30B-A3B-DFlash-BF16"
-# Default serves 120000 (capacity). Speed-card reproduction:
-# MAX_MODEL_LEN=16384 bash benchmarks/nemotron35-30a3/launch-nemotron-dflash.sh "$TARGET" "$DRAFT" 8001
+# Capacity profile (120,000 max-model-len):
 bash benchmarks/nemotron35-30a3/launch-nemotron-dflash.sh "$TARGET" "$DRAFT" 8001
 curl -f http://127.0.0.1:8001/health
 ```
 
-### 5. Smoke
-
+### Smoke test
 ```bash
 curl -s http://127.0.0.1:8001/v1/completions \
   -H 'Content-Type: application/json' \
   -d '{"model":"nemotron-gptq-dflash7","prompt":"Return exactly this: SMOKE","max_tokens":32,"temperature":0,"seed":42}'
 ```
 
-You should see tokens. Spec counters (`vllm:spec_decode_num_accepted_tokens_total`)
-must increase. 0% acceptance means you are on the MTP path or the draft did not
-load.
+Speculative counters (`vllm:spec_decode_num_accepted_tokens_total`) will increment on valid drafting.
 
 ## Convert it yourself (optional)
 

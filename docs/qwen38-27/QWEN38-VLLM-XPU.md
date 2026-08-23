@@ -148,6 +148,29 @@ docker run -d --name qw38speed -p 8000:8000 --device /dev/dri --group-add $(stat
   "set -e; python /patch_mtp.py; python /patch_boundary.py; exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 131072 --gpu-memory-utilization 0.88 --kv-cache-dtype fp8 --port 8000 --max-num-seqs 64 --max-num-batched-tokens 8192 --no-enable-prefix-caching --served-model-name qwen38 --language-model-only --speculative-config '{\"method\":\"mtp\",\"num_speculative_tokens\":4}'"
 ```
 
+## 6b. Vision serving (full VLM)
+
+The artifact is a `Qwen3_5ForConditionalGeneration` VLM: INT4 language
+model, but the 333-tensor vision tower ships **unquantized F16
+(~0.92 GB)** next to the BF16 MTP heads. Serving images is a one-flag
+change: **remove `--language-model-only`**.
+
+Verified 2026-08-23 (image `f01e24f6`, MTP4, fp8 KV, util 0.92,
+131072 ctx): boots and answers a 64×64 red-PNG smoke test with `Red`
+(+78 prompt tokens vs text-only). Budget ~1 GB extra VRAM for the
+tower; if you need that VRAM back for KV, lower util or context instead
+of re-adding the flag.
+
+> [!WARNING]
+> **The image-processor configs must exist in the model dir.** The
+> published repo ships `preprocessor_config.json`,
+> `processor_config.json` and `video_preprocessor_config.json` (present
+> at the pinned `9d189a60` revision). Local re-conversions / re-packs
+> can drop them — vLLM then dies at startup with
+> `OSError: Can't load image processor for '/model'`. Fix: copy the
+> three JSONs from the BF16 source checkpoint (or re-download from the
+> repo). Text-only serving does not need them.
+
 ## 7. Results
 *Stack: vLLM 0.27.2rc1.dev77+gac7509e2b, XPU kernels 0.1.12.3, fp8 KV, scheduler 8192, context 131072, 230 W configured cap, cache disabled (zero hits), C1, client monotonic timing. All medians n=5 unless noted.*
 

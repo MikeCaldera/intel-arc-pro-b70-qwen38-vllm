@@ -117,6 +117,35 @@ applies `patches/patch_mtp_boundary.py` before `vllm serve`.
 No-spec (for the 230 W prefill class): `MODE=no-spec`. BF16 draft:
 `DRAFT_INT4=0`.
 
+## 3b. Vision serving (full VLM)
+
+The artifact is a `Qwen3_5MoeForConditionalGeneration` VLM: the language
+model is INT4, but the 333-tensor vision tower ships **unquantized BF16
+(~0.89 GB)** alongside the 785 BF16 MTP tensors (same scope in the
+published MixedCal-v2 artifact and the local AutoRound twin). Serving
+images is a one-flag change: **remove `--language-model-only`** and keep
+everything else identical (MTP1, fp8 or auto KV, same patches).
+
+Verified on the AutoRound twin 2026-08-23 (image `f01e24f6`, MTP1,
+fp8 KV, util 0.90, 180 W):
+
+- **Context must come down.** The tower + multimodal profiling eats
+  ~0.9 GiB of the KV budget. At `--max-model-len 160000` vLLM aborts at
+  startup: *"1.82 GiB KV cache is needed, which is larger than the
+  available KV cache memory (1.77 GiB). estimated maximum model length is
+  154176"*. At **131072** it boots with margin (~1.49 GiB needed).
+  Alternatives: raise `--gpu-memory-utilization`, or keep
+  `--language-model-only` for >131 K-context text work.
+- **Functional smoke test** (not a benchmark): 64×64 solid-red PNG +
+  "What is the dominant color of this image? One word." → answers
+  `red`; the image adds ~78 prompt tokens. Text-only requests are
+  unchanged.
+- Vision serving leaves the decode stack (MTP1 speculation, DraftINT4
+  overlay) untouched — the tower only adds weights and image preprocessing.
+
+Vision flags = the Default flags list above, minus
+`--language-model-only`, with `--max-model-len 131072`.
+
 ## 4. Measured
 
 Timing is **client monotonic SSE**. Decode = client post-first tok/s.

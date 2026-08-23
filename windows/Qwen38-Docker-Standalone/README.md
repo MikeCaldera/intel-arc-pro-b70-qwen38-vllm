@@ -124,10 +124,10 @@ Copy the repository contents directly into that folder. It must contain
 ## Main controls
 
 ```powershell
-.\Start-Qwen38-Docker.ps1              # prefix cache on (real sessions)
+.\Start-Qwen38-Docker.ps1              # prefix cache on, draft-INT4 on
+.\Start-Qwen38-Docker.ps1 -Recreate -DraftInt4 0     # recommended for long multi-hour/agentic sessions (stable 100% acceptance)
 .\Start-Qwen38-Docker.ps1 -Recreate    # after an image rebuild
 .\Start-Qwen38-Docker.ps1 -Recreate -PrefixCache 0   # cold decode test
-.\Start-Qwen38-Docker.ps1 -Recreate -DraftInt4 0     # 18 August BF16 draft
 .\Stop-Qwen38-Docker.ps1
 ```
 
@@ -143,8 +143,10 @@ Copy the repository contents directly into that folder. It must contain
 - Model name: `qwen38`
 - Tools: enabled with the `qwen3_coder` parser
 - Vision: disabled
-- Profile: MTP4, 100K context, FP8 KV cache, explicit 4.30 GiB cache,
-  draft-INT4 overlay on, prefix cache on
+- Profile: MTP4, 100K context, FP8 KV cache, explicit 4.30 GiB cache, prefix cache on
+
+> [!TIP]
+> **Long-running stability:** If running continuous 24/7 or agentic sessions over hours, use `-DraftInt4 0` (BF16 draft) to maintain consistent speculative acceptance. If degradation occurs after hours of continuous runtime, restart the container (`.\Stop-Qwen38-Docker.ps1` followed by `.\Start-Qwen38-Docker.ps1`) to clear Level Zero runtime buffers.
 
 The first image build and model download can take a long time. Model loading is
 also several minutes because the 18.2 GiB checkpoint is read from the Windows

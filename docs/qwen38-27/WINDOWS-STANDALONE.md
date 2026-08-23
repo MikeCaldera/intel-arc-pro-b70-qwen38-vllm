@@ -346,7 +346,7 @@ In controlled continuous testing without agent harnesses (repeated fixed-shape b
 
 **Recommendation for long-running / agentic workloads:**
 1. Use `-DraftInt4 0` (BF16 draft) for multi-hour stability. Keep `-DraftInt4 1` for short-session / benchmark speed.
-2. For display-attached single-B70 systems driving 4K monitors, lowering context to 32K or 64K provides additional VRAM safety headroom.
+2. The default **100,000 context** with explicit **4.30 GiB FP8 KV cache** and `GPU_MEMORY_UTILIZATION=0.75` is the proven sweet spot on single-card B70 Windows setups, leaving ~8 GiB for the OS and display.
 3. If running continuous 24/7 daemon tasks, schedule a periodic container restart.
 
 ## Measured results — self-reported, one Windows machine

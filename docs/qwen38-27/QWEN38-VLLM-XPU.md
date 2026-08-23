@@ -21,6 +21,44 @@ Prefix-on agentic A/B (separate campaign, cache on, isolated C1):
 
 ![Draft-INT4 prefix-on agentic](../assets/b70-qwen38-draft-int4-agentic-cacheon.svg)
 
+## Quick Start (3-Step Setup)
+
+### Step 1: Pull the image & verify environment
+```bash
+export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
+docker pull "$IMAGE"
+```
+
+### Step 2: Download the model
+```bash
+export MODEL_DIR="$HOME/models/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16"
+huggingface-cli download SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16 \
+  --revision 9d189a60e4c0ad7f9f47cd94bfa393ca10b3924e \
+  --local-dir "$MODEL_DIR"
+```
+
+### Step 3: Launch server & verify health
+```bash
+RENDER_GID="$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')"
+docker rm -f qw38speed >/dev/null 2>&1 || true
+docker run -d --name qw38speed -p 8000:8000 --device /dev/dri --group-add "$RENDER_GID" \
+  -v /dev/dri:/dev/dri:ro -v "$MODEL_DIR:/model:ro" \
+  -v "$PWD/patches/patch_mtp_nightly.py:/patch_mtp.py:ro" \
+  -v "$PWD/patches/patch_mtp_boundary.py:/patch_boundary.py:ro" \
+  -e VLLM_TARGET_DEVICE=xpu -e ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE -e ZE_AFFINITY_MASK=0 \
+  -e B70_MTP_BF16_DRAFT=1 -e VLLM_XPU_ENABLE_XPU_GRAPH=1 \
+  -e PYTORCH_ALLOC_CONF=expandable_segments:True \
+  --entrypoint bash "$IMAGE" -lc \
+  'set -e; python /patch_mtp.py; python /patch_boundary.py; exec vllm serve /model --quantization gptq --dtype float16 --max-model-len 100000 --gpu-memory-utilization 0.88 --kv-cache-dtype fp8 --port 8000 --max-num-seqs 1 --max-num-batched-tokens 8192 --no-enable-prefix-caching --served-model-name qwen38 --language-model-only --speculative-config "{\"method\":\"mtp\",\"num_speculative_tokens\":4}"'
+
+curl -f http://127.0.0.1:8000/health
+```
+
+> [!NOTE]
+> **Context & Headroom:** 100,000 tokens (`--max-model-len 100000`, `U=0.88`) provides ~1.5–2.0 GiB free VRAM headroom. If running full 131,072 context, keep `--gpu-memory-utilization 0.88` (leaves ~870 MiB free after load for isolated C1 runs).
+
+---
+
 ## 1. Model download from Hugging Face
 Download the exact preserved-MTP artifact using the Hugging Face CLI. The model repository contains 16 files totaling ~18.2 GiB. We pin to the `9d189a60` revision to ensure exact replication.
 
@@ -84,7 +122,7 @@ echo 230000000 | sudo tee /sys/class/hwmon/hwmon4/power1_cap
 ```
 *Note: A 300 W write is rejected by the driver; readback stays at the 230 W hardware ceiling. There is no clock control on the `xe` driver (no gt_min/gt_max). Under a 230 W cap load, the PMU reports actual frequencies of 3,400 MHz against requested 2,400 MHz.* Restore to 150 W after benchmark completion.
 
-## 6. Launch commands (per mode)
+## 6. Launch commands (isolated reference modes)
 Run the server for each mode sequentially.
 
 ### no-spec

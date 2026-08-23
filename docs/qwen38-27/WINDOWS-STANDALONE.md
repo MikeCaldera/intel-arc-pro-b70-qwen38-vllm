@@ -338,18 +338,16 @@ keeping graph-enabled speed (~104–106 tok/s short decode). Existing containers
 keep their old env: recreate with `.\Start-Qwen38-Docker.ps1 -Recreate` (or the
 WSLC twin) to pick it up.
 
-**Throughput and MTP acceptance degrade over hours, server stays alive.**
-One Windows reporter (issue #6) observed short-decode falling from ~104 to
-~19 tok/s, MTP acceptance from ~99% to ~70%, and TGP from ~120 W to ~82 W after
-an ~85-minute Hermes session, with the endpoint still responsive. A plain
-`docker restart` (or `.\Stop-Qwen38-Docker.ps1` + `.\Start-Qwen38-Docker.ps1`)
-restored full performance with no configuration change. This reads as a
-long-running runtime-state degradation (vLLM XPU / Level Zero), not a cookbook
-configuration error; it is not root-caused yet and is tracked in issue #6. If
-you hit it: restart the container, and if it recurs, post your env plus
-`docker logs` to the issue. The open isolation matrix there is BF16 draft
-(`-DraftInt4 0`), MTP2, graphs off, and a repeated-benchmark control without
-Hermes.
+**Throughput and MTP acceptance degrade over hours, server stays alive (Issue #6).**
+In controlled continuous testing without agent harnesses (repeated fixed-shape benchmark runs over hours):
+- **INT4 draft (`-DraftInt4 1`):** Experienced a gradual throughput drop followed by a severe speculative token acceptance collapse (falling from ~99% to ~59% by Cycle 5, reducing decode to ~60 tok/s).
+- **BF16 draft (`-DraftInt4 0`):** Maintained **100% MTP acceptance** throughout 18 cycles, though underlying runtime state accumulation showed a gradual ~19.9% throughput drift (77.3 -> 61.9 tok/s).
+- **Restoration:** A quick container restart (`.\Stop-Qwen38-Docker.ps1` followed by `.\Start-Qwen38-Docker.ps1`) immediately clears accumulated Level Zero / allocator state and completely restores 100% throughput and normal MTP acceptance.
+
+**Recommendation for long-running / agentic workloads:**
+1. Use `-DraftInt4 0` (BF16 draft) for multi-hour stability. Keep `-DraftInt4 1` for short-session / benchmark speed.
+2. For display-attached single-B70 systems driving 4K monitors, lowering context to 32K or 64K provides additional VRAM safety headroom.
+3. If running continuous 24/7 daemon tasks, schedule a periodic container restart.
 
 ## Measured results — self-reported, one Windows machine
 

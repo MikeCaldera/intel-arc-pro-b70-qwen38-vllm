@@ -23,26 +23,6 @@ Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
 means the payload was accepted into the public leaderboard.
 
-## Qwen3.6 family — current tested stack
-
-Use **this** table only for Qwen3.6 Pi / dense. Nemotron uses a different digest.
-
-| Component | Exact tested value |
-|---|---|
-| Public image | `vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97` |
-| vLLM observed in image | `0.26.1rc1.dev457+gc810e5ee9.xpu` |
-| `vllm-xpu-kernels` observed in image | `0.1.12` |
-| MoE model | `llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4` |
-| Dense model | `llmfan46/Qwen3.6-27B-uncensored-heretic-v2-Native-MTP-Preserved-GPTQ-Int4` |
-| Muse-Glimmer-30B (llama.cpp only) | `unsloth/Muse-Glimmer-30B-GGUF` UD-Q4_K_XL + mmproj-kquant + dflash-kquant → [docs/muse-glimmer/MUSE-GLIMMER-B70.md](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
-| Target / draft weights | GPTQ INT4 target / preserved BF16 MTP layer (both Qwen models) |
-| Patches, in order | `patch_mtp_nightly.py`, then `patch_mtp_boundary.py` |
-| MoE context / scheduler / memory | 131,072 / 8,192 / `gpu-memory-utilization=0.85` |
-| Dense context / scheduler / memory | 131,072 / 8,192 / `gpu-memory-utilization=0.88` (MTP4) or `0.90` (no-spec/MTP1/MTP2) |
-| Dense KV cache | **`fp8` required** — dense 27B needs 9.5 GiB fp16 KV at 128K, which does not fit; fp8 halves it |
-
-PyPI `vllm-xpu-kernels 0.1.12.2` is newer, but it was not installed or tested in this campaign. The historical `intel/vllm:0.21.0-xpu-int4moe` image was local and was never published.
-
 ## Quick Start (3-Step Setup)
 
 ### Step 1: Pull the image

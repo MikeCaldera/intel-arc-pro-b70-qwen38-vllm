@@ -168,31 +168,6 @@ Current machine-readable result: `results/cache-spec-matrix-20260808-summary.jso
 | Historical local vLLM 0.21 | 1 | `patches/patch_xpu_int4_moe_v4.py` | GPTQ uint8/int8 native-int4 load correction |
 | Historical local vLLM 0.21 | 2–4 | `patches/patch_mtp_bf16_draft.py` | BF16 draft, obsolete kwarg, and GDN metadata-guard corrections |
 
-The current patches are idempotent and fail closed when their source anchors differ. Qwen patch 2 changes only a truncated final speculative group. Full five-token MTP4 groups are unchanged. Nemotron kernel scripts in `patches/vllm-xpu-kernels/` are **source** edits; they do not rebuild a `.so` and are not a local Docker tag.
-
-## 5.1 Public-doc hygiene (mandatory)
-
-This repo is the **public** reproduce path. Never write:
-
-- host-only systemd units (`vllm-dense-profile`, `llama-profile`, `llama-profile.service`)
-- host-only container names (`b70dense`, `b70nightly`) as a prerequisite
-- LAN IPs, SSH aliases (`desktop-b70`), `/mnt/models*`, `/home/sergio/...`
-- a local Docker tag (`1da0a954-det0123` or similar) as required
-
-Empty-GPU language must stay generic: stop any other `vllm` / `llama-server`
-process **and** any container or unit that would respawn it. `docker rm` alone
-is not enough if something restarts the engine.
-
-Hard-coded `hwmon4` is this-host evidence, not a portable recipe. Discover
-`/sys/class/hwmon/hwmon*/name` in new commands.
-
-Open PRs that belong on the Nemotron page:
-
-- https://github.com/vllm-project/vllm/pull/52159
-- https://github.com/vllm-project/vllm-xpu-kernels/pull/524
-
-The repaired current request completed p130944/g128 with finish reason `length`, zero cache hits, 2,619 MiB free after load, and 165,961 tokens of logged KV capacity. Public artifact: `results/realworld-pi-20260808-summary.json`.
-
 ## 6. Benchmarking discipline (read before measuring)
 
 These rules are non-negotiable for valid data. Violating them produces
@@ -206,8 +181,9 @@ inflated/contaminated numbers.
 6. **Measure real power.** Diff `energy1_input` over the request interval and sample verified named temperatures. Maximum sampled power is an interval average, not instantaneous.
 
 ```bash
-# Cooldown loop (hwmon temp2_input is the B70 sensor, in millidegrees C):
-while [ $(($(cat /sys/class/hwmon/hwmon4/temp2_input)/1000)) -gt 52 ]; do sleep 2; done
+# Cooldown loop (wait until GPU temp drops below 52°C):
+HWMON=$(for h in /sys/class/hwmon/hwmon*; do [ -f "$h/name" ] && [ "$(cat "$h/name")" = "xe" ] && echo "$h"; done | head -n1)
+while [ $(($(cat ${HWMON:-/sys/class/hwmon/hwmon0}/temp2_input 2>/dev/null || echo 0)/1000)) -gt 52 ]; do sleep 2; done
 ```
 
 The public launchers and matrix runner do not change the host power cap. Record the configured cap in the evidence, but leave site-specific power policy to the operator.
@@ -346,8 +322,9 @@ export ZE_AFFINITY_MASK=0
 | 230W | `230000000` | Dense burst only (79°C) |
 
 ```bash
-cat /sys/class/hwmon/hwmon4/power1_cap                      # current cap (µW)
-echo $(($(cat /sys/class/hwmon/hwmon4/temp2_input)/1000))°C # current temp
+HWMON=$(for h in /sys/class/hwmon/hwmon*; do [ -f "$h/name" ] && [ "$(cat "$h/name")" = "xe" ] && echo "$h"; done | head -n1)
+cat ${HWMON:-/sys/class/hwmon/hwmon0}/power1_cap                      # current cap (µW)
+echo $(($(cat ${HWMON:-/sys/class/hwmon/hwmon0}/temp2_input 2>/dev/null || echo 0)/1000))°C # current temp
 sudo cat /sys/kernel/debug/dri/0000:0b:00.0/tile0/vram_mm   # VRAM (look for visible_avail)
 ```
 

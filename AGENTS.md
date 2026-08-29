@@ -165,6 +165,8 @@ Current machine-readable result: `results/cache-spec-matrix-20260808-summary.jso
 | Nemotron DFlash (newer digest) | 1 | `patches/patch_xpu_grouped_topk_native_v2.py` | XPU native grouped-topk + `torch.compiler.disable` ([vllm#52159](https://github.com/vllm-project/vllm/pull/52159)) |
 | Nemotron DFlash | 2 | `patches/ssu-b70-b8w4/` | B70 SSU B8/W4 JSON (device-specific, ~1%) |
 | Optional kernels rebuild | — | `patches/vllm-xpu-kernels/0001-*.py` + `0002-*.py` | `at::zeros` + Muse tuple ([vllm-xpu-kernels#524](https://github.com/vllm-project/vllm-xpu-kernels/pull/524)) |
+| Dual-B70 Multi-GPU (TP2 / PP2) | — | `patches/patch_vllm_worker_affinity.py` | Spawn-time per-worker `ZE_AFFINITY_MASK` injection + single-device remap (bypasses unsupported non-P2P Level Zero IPC `zeMemOpenIpcHandle` and prevents ~1:1 host-RAM tax) |
+| FP8 W8A16 serving (Qwen3.8 / vLLM f01) | — | `patches/patch_fp8_w8a16.py` | Reroutes block-FP8 linear to `fp8_gemm_w8a16` with `apply_input_quant = False` (removes per-linear act quant kernels; +34% speedup, 48 tok/s at p1024) |
 | Historical local vLLM 0.21 | 1 | `patches/patch_xpu_int4_moe_v4.py` | GPTQ uint8/int8 native-int4 load correction |
 | Historical local vLLM 0.21 | 2–4 | `patches/patch_mtp_bf16_draft.py` | BF16 draft, obsolete kwarg, and GDN metadata-guard corrections |
 

@@ -274,7 +274,7 @@
    "id": "dual-b70-tp2-serving-v1",
    "kind": "capability",
    "title": "Dual-B70 TP2 / PP2 serving",
-   "summary": "Validated multi-GPU serving path using spawn-time worker affinity and oneCCL simple-threshold variables. No complete matched numeric card is published yet.",
+   "summary": "Validated infrastructure path for dual-B70 TP2 / PP2 using spawn-time worker affinity, Docker SYS_PTRACE/ipc=host, and oneCCL simple-threshold variables. Model-specific numeric cards, exact stacks, and evidence are published separately.",
    "evidence_status": "validated",
    "hardware": {
     "gpu_model": "Intel Arc Pro B70",
@@ -441,8 +441,8 @@
     "speculation": "MTP8"
    },
    "evidence": {
-    "commit": "2c6de11d7f19659b746ed00fc4c6229136d9874b",
-    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11d7f19659b746ed00fc4c6229136d9874b/results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p512-g128.json"
+    "commit": "2c6de11bd7ab097040a11e3746d915b99c5552f0",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11bd7ab097040a11e3746d915b99c5552f0/results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p512-g128.json"
    }
   },
   {
@@ -490,8 +490,8 @@
     "speculation": "MTP8"
    },
    "evidence": {
-    "commit": "2c6de11d7f19659b746ed00fc4c6229136d9874b",
-    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11d7f19659b746ed00fc4c6229136d9874b/results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p1024-g128.json"
+    "commit": "2c6de11bd7ab097040a11e3746d915b99c5552f0",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11bd7ab097040a11e3746d915b99c5552f0/results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p1024-g128.json"
    }
   },
   {
@@ -538,8 +538,8 @@
     "speculation": "MTP8"
    },
    "evidence": {
-    "commit": "2c6de11d7f19659b746ed00fc4c6229136d9874b",
-    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11d7f19659b746ed00fc4c6229136d9874b/results/qwen38-27-fp8-tp2-k8-n5/localmaxxing-approved-receipt.json"
+    "commit": "2c6de11bd7ab097040a11e3746d915b99c5552f0",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11bd7ab097040a11e3746d915b99c5552f0/results/qwen38-27-fp8-tp2-k8-n5/localmaxxing-approved-receipt.json"
    }
   }
  ]

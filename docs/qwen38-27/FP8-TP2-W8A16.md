@@ -17,12 +17,13 @@ Raw per-request values: `results/qwen38-27-fp8-tp2-k8-n5/bench/`.
 
 Sampling label: these are **greedy (temperature 0)** runs on random-token
 prompts (`vllm bench serve --dataset-name random`). Speculative acceptance is
-content- and numerics-dependent; the same stack under the model-card
-recommended sampling (temp 0.7 / top_p 0.8 / top_k 20) is measurably slower
-(spec-decode acceptance drops from ~5.3–5.8 accepted tokens/step to ~2; the
-realistic-sampling cells are retained in the private campaign root). Decode
-values here are the diagnostic maximum of this build, not a guaranteed serving
-rate.
+content- and numerics-dependent. On matched random-token prompts with the
+model-card non-thinking sampling preset (temperature 0.7, top_p 0.8, top_k 20,
+presence penalty 1.5), the same stack measured **22.16 token/s median at
+p512/g128** and **11.66 token/s median at p1024/g128** (n=5 each). Mean accepted
+length fell from 5.27/5.75 under greedy to 1.98/1.14. These are sampling
+sensitivity diagnostics, not natural-content quality evaluations. The greedy
+values are the diagnostic maximum of this build, not guaranteed serving rates.
 
 Prefill label: cold-input rate = actual endpoint prompt tokens ÷ client TTFT
 (uncached, prefix-cache disabled; not engine-isolated prefill). The TTFT
@@ -68,12 +69,24 @@ decomposition is fixed overhead ~259 ms plus a marginal prefill rate of
 - p1024 median exceeds p512 (acceptance benefit); the max-observed 71.06 tok/s
   is a single-sample maximum and not representative.
 
+## Platform receipt
+
+LocalMaxxing accepted self-reported submission `cmtg4erjj001xqr01jhqw81dt`:
+**31.1 token/s median client post-first output**, 189.93 ms median TTFT, p74/g256,
+C1, n=3. The request used server-default temperature 1.0 because the platform
+payload schema did not carry a temperature field. `APPROVED` means accepted into
+the platform's self-reported dataset, not independently reproduced. An older
+contended 28.6 token/s row is superseded by this serialized-idle submission.
+
 ## Evidence
 
-- Raw bench JSON + power + parsed summaries:
+- Greedy raw bench JSON + power + parsed summaries:
   `results/qwen38-27-fp8-tp2-k8-n5/bench/`
-- Campaign root with full logs, monitor, counters, cleanup state: linked from
-  the catalog record; private lab paths removed.
-- Correctness: deterministic greedy output matches the no-spec target over the
-  stable prompt set of the campaign (coherent-prefix parity, greedy); MTP is
-  lossless-equivalent by construction.
+- Sanitized model-card-sampling summaries:
+  `results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p512-g128.json` and
+  `results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p1024-g128.json`.
+- Sanitized LocalMaxxing receipt:
+  `results/qwen38-27-fp8-tp2-k8-n5/localmaxxing-approved-receipt.json`.
+- Correctness scope: all fixed-length benchmark requests completed at g128.
+  The separate Pi quality phase was stopped and voided; no completed quality
+  evaluation or independent reproduction is claimed here.

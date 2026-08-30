@@ -28,6 +28,31 @@ otherwise unchanged.
 Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
 public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.
 
+## Dual-B70 multi-GPU (TP2 / PP2)
+
+Serving one model across both cards needs **both** pieces — the affinity
+patch alone still crashes at `zeMemOpenIpcHandle` on other dual-B70 hosts
+([issue #8](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/8)):
+
+1. `patches/patch_vllm_worker_affinity.py` (spawn-time per-worker `ZE_AFFINITY_MASK`).
+2. The four oneCCL simple-threshold variables — Intel's workaround for
+   non-P2P platforms ([intel/llm-scaler#594](https://github.com/intel/llm-scaler/issues/594)):
+
+   ```bash
+   -e CCL_SYCL_ALLREDUCE_SIMPLE_THRESHOLD=4294967296
+   -e CCL_SYCL_REDUCE_SCATTER_SIMPLE_THRESHOLD=4294967296
+   -e CCL_SYCL_ALLGATHERV_SIMPLE_THRESHOLD=4294967296
+   -e CCL_SYCL_ALLTOALL_TMP_BUF=1
+   ```
+
+   plus Docker `--cap-add SYS_PTRACE --ipc=host`. Do **not** set
+   `CCL_ZE_IPC_EXCHANGE` / `CCL_ATL_TRANSPORT` / `FI_PROVIDER` overrides —
+   they select how IPC handles are exchanged, not whether device IPC is
+   used, and some push oneCCL back into the failing path.
+
+Full launch, root cause, verification logs, and the 60-second isolation
+repro: [DUAL-B70-TP2.md](DUAL-B70-TP2.md).
+
 ## Nemotron DFlash generation (2026-08-13)
 
 ```text

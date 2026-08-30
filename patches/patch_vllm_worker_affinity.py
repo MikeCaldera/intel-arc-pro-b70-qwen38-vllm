@@ -12,6 +12,16 @@ ROOT CAUSE:
    per 1 GiB VRAM driver duplication.
 3) Setting ZE_AFFINITY_MASK inside init_device is too late (Level Zero initializes
    upon subprocess start/import).
+4) Per-worker masks alone are NOT sufficient on every dual-GPU host: above a small
+   message size oneCCL's SYCL allreduce uses the "large" multi-kernel algorithm,
+   which performs a Level Zero IPC exchange of peer ranks' temp buffers on every
+   collective ("perform IPC exchange every time",
+   oneCCL src/coll/algorithms/allreduce/sycl/allreduce_large_sycl.hpp) — the exact
+   zeMemOpenIpcHandle call xe rejects on non-P2P boards. The CCL_SYCL_*_SIMPLE_THRESHOLD
+   variables below pin every realistic TP2 message on the simple/tmp-buffer
+   algorithms, which never open peer device memory. Intel's workaround for the
+   identical 2x B60 failure: intel/llm-scaler#594. Dual-B70 confirmations:
+   intel-arc-pro-b70-inference-cookbook issue #8.
 
 WHAT THIS PATCH DOES:
 1) vllm/v1/executor/multiproc_executor.py: injects ZE_AFFINITY_MASK=rank at worker spawn time.
@@ -20,8 +30,16 @@ WHAT THIS PATCH DOES:
 3) vllm/v1/worker/mamba_utils.py: wraps pointer offsets safely for high 64-bit addresses.
 
 REQUIREMENTS:
-- Run container with: --cap-add SYS_PTRACE (or seccomp=unconfined)
-- Env: CCL_TOPO_P2P_ACCESS=0 CCL_ZE_IPC_EXCHANGE=pidfd FI_PROVIDER=shm CCL_ATL_SHM=1
+- Run container with: --cap-add SYS_PTRACE (or seccomp=unconfined) and --ipc=host
+- Env (required on non-P2P dual-GPU hosts — Intel workaround, llm-scaler#594):
+    CCL_SYCL_ALLREDUCE_SIMPLE_THRESHOLD=4294967296
+    CCL_SYCL_REDUCE_SCATTER_SIMPLE_THRESHOLD=4294967296
+    CCL_SYCL_ALLGATHERV_SIMPLE_THRESHOLD=4294967296
+    CCL_SYCL_ALLTOALL_TMP_BUF=1
+- Leave CCL_ZE_IPC_EXCHANGE / CCL_ATL_TRANSPORT / FI_PROVIDER / CCL_ATL_SHM at their
+  defaults: they only choose how IPC handles are exchanged, not whether device IPC is
+  used, and some overrides push oneCCL back into the failing path.
+- Full guide (root cause, launch, verification, isolation repro): docs/DUAL-B70-TP2.md
 """
 import os
 import sys

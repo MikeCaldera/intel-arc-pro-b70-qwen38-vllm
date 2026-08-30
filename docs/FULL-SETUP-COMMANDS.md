@@ -369,3 +369,34 @@ A research overlay of open vLLM PR #52816 + v5 **did load** on 2026-08-19
 (`/health` 200) but spec acceptance was **0/574**. One-shot post-first
 19.18 tok/s is not a median and is slower than MTP4. Keep MTP4. Details:
 [QWEN38-VLLM-XPU.md §13](qwen38-27/QWEN38-VLLM-XPU.md).
+
+## 12. Dual-B70 multi-GPU (TP2 / PP2)
+
+One model across both cards (`--tensor-parallel-size 2`). This needs the
+worker-affinity patch **and** the four oneCCL simple-threshold variables —
+the patch alone still aborts at `zeMemOpenIpcHandle` on other dual-B70 hosts
+(cookbook [issue #8](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/8);
+Intel's workaround for the identical 2× B60 failure:
+[intel/llm-scaler#594](https://github.com/intel/llm-scaler/issues/594)).
+
+Minimum delta vs the single-card launch in §11:
+
+```bash
+  --cap-add SYS_PTRACE --ipc=host \
+  -e ZE_AFFINITY_MASK=0,1 \
+  -e B70_WORKER_AFFINITY=1 \
+  -e VLLM_XPU_ENABLE_XPU_GRAPH=0 \
+  -e CCL_SYCL_ALLREDUCE_SIMPLE_THRESHOLD=4294967296 \
+  -e CCL_SYCL_REDUCE_SCATTER_SIMPLE_THRESHOLD=4294967296 \
+  -e CCL_SYCL_ALLGATHERV_SIMPLE_THRESHOLD=4294967296 \
+  -e CCL_SYCL_ALLTOALL_TMP_BUF=1
+```
+
+Apply `patch_mtp_nightly.py`, `patch_mtp_boundary.py`, then
+`patch_vllm_worker_affinity.py` (chained with `set -e` / `&&`), and add
+`--tensor-parallel-size 2` to the serve line. XPU graph capture is refused
+on multi-GPU on every tested build, so compile-only
+(`VLLM_XPU_ENABLE_XPU_GRAPH=0`) is the expected TP2 mode. The complete
+copy-paste launch, expected startup logs, patch selection by checkpoint,
+and the 60-second no-vLLM isolation repro:
+[DUAL-B70-TP2.md](DUAL-B70-TP2.md).

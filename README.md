@@ -138,6 +138,7 @@ Evidence and format:
 - [Stable cross-model benchmark format](docs/BENCHMARK-FORMAT.md)
 - [Current result plus prior Pi campaigns](docs/REAL-WORLD-PI-BENCHMARKS.md)
 - [Image and patch compatibility](docs/IMAGE-AND-PATCH-MATRIX.md)
+- [Dual-B70 multi-GPU serving (TP2 / PP2)](docs/DUAL-B70-TP2.md)
 - [Connecting Pi / omp / Hermes clients](docs/CONNECTING-CLIENTS.md)
 - [Historical campaign log](docs/CAMPAIGN-LOG.md)
 

@@ -395,6 +395,152 @@
     "commit": "8c69e5f5143aff60f0bc1cabc97c2fcc364697b2",
     "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/8c69e5f5143aff60f0bc1cabc97c2fcc364697b2/docs/qwen38-27/FP8-TP2-W8A16.md"
    }
+  },
+  {
+   "id": "qwen38-fp8-tp2-k8-modelsampling-p512-g128-c1",
+   "kind": "benchmark",
+   "title": "Qwen3.8-27B FP8 TP2 MTP8 model-card sampling",
+   "summary": "Dual B70 TP2 model-card non-thinking sampling on random-token synthetic prompts; sampling-sensitivity diagnostic, not a natural-content quality evaluation. p512/g128 C1.",
+   "evidence_status": "official-lab",
+   "workload": {
+    "concurrency": 1,
+    "prompt_tokens": 512,
+    "output_tokens": 128,
+    "context_limit_tokens": 9216,
+    "cache": "disabled-zero-hit"
+   },
+   "metrics": [
+    {
+     "name": "client_e2e_output_tps",
+     "value": 22.16,
+     "unit": "token/s"
+    },
+    {
+     "name": "client_e2e_output_tps_max",
+     "value": 36.8,
+     "unit": "token/s"
+    }
+   ],
+   "statistics": {
+    "statistic": "median",
+    "samples": 5
+   },
+   "hardware": {
+    "gpu_model": "Intel Arc Pro B70",
+    "gpu_count": 2,
+    "vram_gib_per_gpu": 32,
+    "power_cap_w": 230
+   },
+   "engine": {
+    "name": "vllm",
+    "version": "0.27.2rc1.dev77+gac7509e2b"
+   },
+   "model": {
+    "id": "Qwen/Qwen3.8-27B-FP8",
+    "quantization": "FP8 W8A16",
+    "speculation": "MTP8"
+   },
+   "evidence": {
+    "commit": "2c6de11d7f19659b746ed00fc4c6229136d9874b",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11d7f19659b746ed00fc4c6229136d9874b/results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p512-g128.json"
+   }
+  },
+  {
+   "id": "qwen38-fp8-tp2-k8-modelsampling-p1024-g128-c1",
+   "kind": "benchmark",
+   "title": "Qwen3.8-27B FP8 TP2 MTP8 model-card sampling",
+   "summary": "Dual B70 TP2 model-card non-thinking sampling on random-token synthetic prompts; sampling-sensitivity diagnostic, not a natural-content quality evaluation. p1024/g128 C1.",
+   "evidence_status": "official-lab",
+   "workload": {
+    "concurrency": 1,
+    "prompt_tokens": 1024,
+    "output_tokens": 128,
+    "context_limit_tokens": 9216,
+    "cache": "disabled-zero-hit"
+   },
+   "metrics": [
+    {
+     "name": "client_e2e_output_tps",
+     "value": 11.66,
+     "unit": "token/s"
+    },
+    {
+     "name": "client_e2e_output_tps_max",
+     "value": 28.21,
+     "unit": "token/s"
+    }
+   ],
+   "statistics": {
+    "statistic": "median",
+    "samples": 5
+   },
+   "hardware": {
+    "gpu_model": "Intel Arc Pro B70",
+    "gpu_count": 2,
+    "vram_gib_per_gpu": 32,
+    "power_cap_w": 230
+   },
+   "engine": {
+    "name": "vllm",
+    "version": "0.27.2rc1.dev77+gac7509e2b"
+   },
+   "model": {
+    "id": "Qwen/Qwen3.8-27B-FP8",
+    "quantization": "FP8 W8A16",
+    "speculation": "MTP8"
+   },
+   "evidence": {
+    "commit": "2c6de11d7f19659b746ed00fc4c6229136d9874b",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11d7f19659b746ed00fc4c6229136d9874b/results/qwen38-27-fp8-tp2-k8-n5/bench/model-card-sampling-p1024-g128.json"
+   }
+  },
+  {
+   "id": "qwen38-fp8-tp2-localmaxxing-p74-g256-c1",
+   "kind": "benchmark",
+   "title": "Qwen3.8-27B FP8 TP2 LocalMaxxing speed test",
+   "summary": "LocalMaxxing APPROVED self-reported submission cmtg4erjj001xqr01jhqw81dt; serialized-idle C1. Approval is platform acceptance, not independent reproduction.",
+   "evidence_status": "community-reviewed",
+   "workload": {
+    "concurrency": 1,
+    "prompt_tokens": 74,
+    "output_tokens": 256,
+    "context_limit_tokens": 9216,
+    "cache": "disabled-zero-hit"
+   },
+   "metrics": [
+    {
+     "name": "client_post_first_output_tps",
+     "value": 31.1,
+     "unit": "token/s"
+    },
+    {
+     "name": "client_ttft_ms",
+     "value": 189.93,
+     "unit": "ms"
+    }
+   ],
+   "statistics": {
+    "statistic": "median",
+    "samples": 3
+   },
+   "hardware": {
+    "gpu_model": "Intel Arc Pro B70",
+    "gpu_count": 2,
+    "vram_gib_per_gpu": 32,
+    "power_cap_w": 230
+   },
+   "engine": {
+    "name": "vllm"
+   },
+   "model": {
+    "id": "Qwen/Qwen3.8-27B-FP8",
+    "quantization": "FP8 W8A16",
+    "speculation": "MTP8"
+   },
+   "evidence": {
+    "commit": "2c6de11d7f19659b746ed00fc4c6229136d9874b",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11d7f19659b746ed00fc4c6229136d9874b/results/qwen38-27-fp8-tp2-k8-n5/localmaxxing-approved-receipt.json"
+   }
   }
  ]
 }

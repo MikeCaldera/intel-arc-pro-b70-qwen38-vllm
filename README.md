@@ -24,6 +24,22 @@ Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
 means the payload was accepted into the public leaderboard.
 
+### One benchmark source for the cookbook and XeCores
+
+Public summary records live in [`data/benchmarks.v1.json`](data/benchmarks.v1.json).
+XeCores reads that file directly and keeps a vendored fallback. To add or change
+a public result, edit the JSON once, then run:
+
+```bash
+python3 scripts/render-benchmark-catalog.py
+python3 scripts/render-benchmark-catalog.py --check
+```
+
+The command regenerates [`docs/BENCHMARK-CATALOG.md`](docs/BENCHMARK-CATALOG.md).
+Complete numeric rows require an exact workload, sample count, metric definition,
+and commit-pinned evidence. Working recipes without those coordinates stay as
+capability records and do not enter benchmark rankings.
+
 ## Quick Start (3-Step Setup)
 
 ### Step 1: Pull the image

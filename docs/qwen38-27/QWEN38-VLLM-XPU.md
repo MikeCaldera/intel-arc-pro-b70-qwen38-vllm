@@ -1,5 +1,10 @@
 # Qwen3.8-27B vLLM XPU 4-Mode Recipe
 
+This page is the **single-B70 GPTQ-INT4 route**. For route selection, including
+the separate dual-B70 FP8 W8A16 TP2 research recipe, start at the
+[Qwen3.8 family hub](README.md). Do not mix the FP8 kernel patches or FP8
+benchmark values into this GPTQ recipe.
+
 > **Windows 11 host?** Same image digest, 100K ctx, display-safe GPU budget.
 > Kit **2026.08.19** ships draft-INT4 S+M1 with prefix cache **on** for real
 > sessions. Already on 18 August? Rebuild, do not re-download:

@@ -121,7 +121,7 @@ def render_catalog(catalog: dict[str, Any]) -> str:
         lines.append(f"| {record['title']} | {hardware['gpu_count']}× {hardware['gpu_model']} | {record['engine']['name']} | {profile} | {metric_text(record)} | {evidence} |")
     lines.extend([
         "",
-        "## Capabilities awaiting complete benchmark cards",
+        "## Non-ranking capabilities",
         "",
         "| Capability | Hardware | Status | What is established | Evidence |",
         "|---|---|---|---|---|",
@@ -136,7 +136,7 @@ def render_catalog(catalog: dict[str, Any]) -> str:
         "",
         "- **Official lab:** measured under the cookbook's documented process.",
         "- **Community reviewed:** schema and evidence reviewed; contributor controls the machine.",
-        "- **Validated:** a recipe or capability worked, but no complete numeric comparison card is published.",
+        "- **Validated:** an operational capability worked; any model-specific numeric records are published separately.",
         "- **Provisional:** an early numeric claim is documented but lacks one or more required workload coordinates.",
         "",
     ])

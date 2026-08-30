@@ -1,69 +1,76 @@
-# Dual-B70 Multi-GPU Serving (TP2 / PP2)
+# Dual-B70 Multi-GPU Infrastructure (TP2 / PP2)
 
-Serving **one model across both Arc Pro B70 cards** with the pinned
-vLLM-XPU image (`--tensor-parallel-size 2`, or `--pipeline-parallel-size 2`).
-For two independent single-card servers, do **not** use this page — run the
-normal single-card launch twice, once with `ZE_AFFINITY_MASK=0` and once
-with `ZE_AFFINITY_MASK=1`.
+This page is the infrastructure and topology authority for serving one vLLM
+model across two Intel Arc Pro B70 cards with tensor or pipeline parallelism.
+It defines worker isolation, Docker permissions, oneCCL algorithm selection,
+verification, and the collective-only repro.
 
-Status: TP2 with the affinity patch was validated on the author's dual-B70
-host (ASUS ROG STRIX X570-F, kernel 7.0.0-28). The four oneCCL threshold
-variables below were then **confirmed serving on two additional dual-B70
-hosts** through cookbook
-[issue #8](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/8)
-— including one host that crashed without them even with the affinity patch
-and identical driver packages. A matched re-measure on the author's host
-with the variables set is pending; treat them as required, not optional.
+It is **not** a model recipe or benchmark authority. Model checkpoints, image
+digests, kernel builds, serve flags, context limits, performance numbers, power
+measurements, and evidence belong on model-specific pages and in the generated
+benchmark catalog.
 
-## The failure you will hit without the fix
+- Qwen3.8 family routes: [qwen38-27/README.md](qwen38-27/README.md)
+- Qwen3.8 FP8 W8A16 TP2 recipe and evidence:
+  [qwen38-27/FP8-TP2-W8A16.md](qwen38-27/FP8-TP2-W8A16.md)
+- Image and model patch compatibility:
+  [IMAGE-AND-PATCH-MATRIX.md](IMAGE-AND-PATCH-MATRIX.md)
+- Published numeric records: [BENCHMARK-CATALOG.md](BENCHMARK-CATALOG.md)
+
+For two independent single-card servers, do not use TP2 or PP2. Run one engine
+per card, with `ZE_AFFINITY_MASK=0` and `ZE_AFFINITY_MASK=1` respectively.
+
+## Infrastructure status
+
+Spawn-time worker affinity is validated on the author's dual-B70 host. The four
+oneCCL settings below were also confirmed serving on two additional dual-B70
+hosts through cookbook
+[issue #8](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/8),
+including a host that crashed without them despite using the affinity patch and
+matching driver packages. Treat both parts as required infrastructure.
+
+Current model-specific numeric cards supersede the earlier capability-only
+state. This page deliberately carries no benchmark values; follow the model
+recipe or catalog links above.
+
+## Failure without the infrastructure fix
 
 ```text
 RuntimeError: oneCCL: ze_call.cpp:28 do_call: EXCEPTION: ze error at
 zeMemOpenIpcHandle, code: ZE_RESULT_ERROR_INVALID_ARGUMENT
 ```
 
-It always aborts at the first `all_reduce` inside `profile_run` /
-`determine_available_memory` — before the server ever comes up — regardless
-of vLLM flags, `CCL_ZE_IPC_EXCHANGE` values, `--ipc=host`, or
-`VLLM_XPU_ENABLE_XPU_GRAPH`. The identical error reproduces in a bare
-two-process `xccl` all_reduce with no vLLM involved.
+The failure occurs at the first `all_reduce` during memory profiling, before the
+server becomes healthy. The same error reproduces in a two-process `xccl`
+all-reduce without vLLM, which isolates it from model code.
 
-## Root cause — two independent pieces
+## Root cause
 
-**1. Spawn-time device visibility (the affinity patch).** A container-level
-`ZE_AFFINITY_MASK=0,1` is not equivalent to per-worker masks: both worker
-subprocesses then see both GPUs in one Level Zero context, and setting the
-mask inside `init_device()` is already too late (Level Zero initializes when
-the subprocess starts). Exposing both cards to one process also costs about
-1 GiB of host RAM per 1 GiB of VRAM
-([intel/compute-runtime#986](https://github.com/intel/compute-runtime/issues/986)).
-`patches/patch_vllm_worker_affinity.py` injects `ZE_AFFINITY_MASK=<rank>`
-into each worker's environment *before* spawn, so every rank starts with
-exactly one visible device.
+### 1. Spawn-time device visibility
 
-**2. Allreduce algorithm selection (the CCL thresholds).** Above a small
-default message size, oneCCL's SYCL allreduce switches from the simple
-algorithm to the large multi-kernel algorithm, which performs a Level Zero
-IPC exchange of every peer rank's temp buffers — upstream source comment:
-*"perform IPC exchange every time"* (oneCCL
-`src/coll/algorithms/allreduce/sycl/allreduce_large_sycl.hpp`).
-`zeMemOpenIpcHandle` **is** that exchange, and the `xe` driver rejects it
-with `INVALID_ARGUMENT` on desktop boards where the two cards sit on their
-own CPU root ports with no shared PCIe switch and no GPU P2P. Raising the
-thresholds pins every realistic TP2 message (the largest is
-`max_num_batched_tokens × hidden × 2 B ≈ 40 MiB` in these recipes) on the
-simple/tmp-buffer algorithms, which never open peer device memory.
+A container-level `ZE_AFFINITY_MASK=0,1` is not equivalent to one mask per
+worker. Both subprocesses can otherwise initialize Level Zero while seeing both
+cards. Changing the mask later inside `init_device()` is too late.
 
-This is Intel's own workaround for the identical 2× B60 failure —
-[intel/llm-scaler#594](https://github.com/intel/llm-scaler/issues/594),
-Intel's Wesley-Du: *"please try this as a workaround as your host platform
-does not support P2P"*. The same error and the same fix class (host-staged
-collectives instead of device-IPC collectives) appear in the independent
-[humble-b70-llm](https://github.com/JP-devv/humble-b70-llm) dual-B70 stack.
+`patches/patch_vllm_worker_affinity.py` injects
+`ZE_AFFINITY_MASK=<rank>` before each worker is spawned, so each rank starts with
+one visible device. This also avoids exposing both cards' allocations to every
+worker process.
 
-## The fix
+### 2. oneCCL algorithm selection on non-P2P topology
 
-### 1. Container environment (required)
+Above a small message threshold, oneCCL's large SYCL all-reduce path exchanges
+peer device-memory handles. On desktop dual-card layouts without GPU P2P, the
+`xe` driver rejects the resulting `zeMemOpenIpcHandle` call.
+
+Raising the simple-algorithm thresholds keeps practical model collectives on
+simple/tmp-buffer algorithms that do not open peer device memory. This is the
+same workaround class Intel documented for dual B60 on a platform without P2P:
+[intel/llm-scaler#594](https://github.com/intel/llm-scaler/issues/594).
+
+## Required infrastructure contract
+
+### Container environment
 
 ```bash
 -e ZE_AFFINITY_MASK=0,1 \
@@ -71,120 +78,91 @@ collectives instead of device-IPC collectives) appear in the independent
 -e CCL_SYCL_ALLREDUCE_SIMPLE_THRESHOLD=4294967296 \
 -e CCL_SYCL_REDUCE_SCATTER_SIMPLE_THRESHOLD=4294967296 \
 -e CCL_SYCL_ALLGATHERV_SIMPLE_THRESHOLD=4294967296 \
--e CCL_SYCL_ALLTOALL_TMP_BUF=1 \
+-e CCL_SYCL_ALLTOALL_TMP_BUF=1
 ```
 
-`4294967296` (4 GiB) is Intel's value from llm-scaler#594; `1073741824`
-(1 GiB) is community-confirmed to work too (every allreduce here is ≪ 1 GiB).
+`4294967296` is Intel's documented workaround value. A lower value is only
+acceptable when the operator proves every collective remains below it.
 
-**Do not** add `CCL_ZE_IPC_EXCHANGE` / `CCL_ATL_TRANSPORT` / `FI_PROVIDER` /
-`CCL_ATL_SHM` overrides. They only choose *how* IPC handles are exchanged,
-not whether device IPC is used at all — and some of them push oneCCL back
-into the failing path. Leave every one of those at its default.
+Do not add `CCL_ZE_IPC_EXCHANGE`, `CCL_ATL_TRANSPORT`, `FI_PROVIDER`, or
+`CCL_ATL_SHM` overrides. They select how handles are exchanged, not whether the
+failing peer-device IPC algorithm is selected, and some combinations return the
+runtime to the failing path.
 
-### 2. Docker flags (required)
+### Docker flags
 
 ```bash
 --device /dev/dri --ipc=host --cap-add SYS_PTRACE
 ```
 
-`SYS_PTRACE` keeps oneCCL's cross-rank pidfd exchange working under Docker
-seccomp ([uxlfoundation/oneCCL#217](https://github.com/uxlfoundation/oneCCL/issues/217)).
-`--privileged` / `--security-opt seccomp=unconfined` are **not** required.
+`SYS_PTRACE` permits oneCCL's cross-rank pidfd exchange under Docker seccomp.
+`--privileged` and `--security-opt seccomp=unconfined` are not required.
 
-### 3. Patches
+### Worker-affinity patch
 
-```bash
-python /patches/patch_mtp_nightly.py && \
-python /patches/patch_mtp_boundary.py && \
-python /patches/patch_vllm_worker_affinity.py
+Apply `patches/patch_vllm_worker_affinity.py` at container startup and fail
+closed if it does not print its success line. Model-specific patches must come
+from the selected model recipe and
+[IMAGE-AND-PATCH-MATRIX.md](IMAGE-AND-PATCH-MATRIX.md); this infrastructure page
+does not define their order.
+
+### Parallelism and graph mode
+
+Use either:
+
+```text
+--tensor-parallel-size 2
 ```
 
-Chain them (`&&` or `set -e`) and confirm each prints its success line — a
-backslash-continued chain that repeats `python` on every line silently runs
-only the first script. Which patches apply to which checkpoint is in
-[IMAGE-AND-PATCH-MATRIX.md](IMAGE-AND-PATCH-MATRIX.md) and summarized below.
+or:
 
-### Complete launch — Qwen3.8-27B GPTQ-Int4 MTP example
-
-Community-confirmed working configuration (issue #8, second dual-B70 host):
-
-```bash
-export COOKBOOK="$HOME/intel-arc-pro-b70-inference-cookbook"
-export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
-export MODEL_DIR="$HOME/models/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16"
-RENDER_GID="$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')"
-
-docker rm -f qw38tp2 >/dev/null 2>&1 || true
-docker run -d --name qw38tp2 -p 8000:8000 \
-  --device /dev/dri --ipc=host --cap-add SYS_PTRACE --group-add "$RENDER_GID" \
-  -v /dev/dri:/dev/dri:ro -v "$MODEL_DIR:/model:ro" \
-  -v "$COOKBOOK/patches:/patches:ro" \
-  -e VLLM_TARGET_DEVICE=xpu \
-  -e ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE \
-  -e ZE_AFFINITY_MASK=0,1 \
-  -e B70_WORKER_AFFINITY=1 \
-  -e B70_MTP_BF16_DRAFT=1 \
-  -e VLLM_XPU_ENABLE_XPU_GRAPH=0 \
-  -e CCL_SYCL_ALLREDUCE_SIMPLE_THRESHOLD=4294967296 \
-  -e CCL_SYCL_REDUCE_SCATTER_SIMPLE_THRESHOLD=4294967296 \
-  -e CCL_SYCL_ALLGATHERV_SIMPLE_THRESHOLD=4294967296 \
-  -e CCL_SYCL_ALLTOALL_TMP_BUF=1 \
-  --entrypoint bash "$IMAGE" -lc '
-    set -e
-    python /patches/patch_mtp_nightly.py
-    python /patches/patch_mtp_boundary.py
-    python /patches/patch_vllm_worker_affinity.py
-    exec vllm serve /model --served-model-name qwen38
-      --quantization gptq --dtype float16 --kv-cache-dtype fp8
-      --speculative-config "{\"method\":\"mtp\",\"num_speculative_tokens\":4}"
-      --tensor-parallel-size 2
-      --max-model-len 262144 --max-num-seqs 8 --max-num-batched-tokens 4096
-      --gpu-memory-utilization 0.90 --port 8000'
+```text
+--pipeline-parallel-size 2 --tensor-parallel-size 1
 ```
 
-`--max-model-len 262144` is the community-confirmed value; lower it if you
-do not need full-context KV. BF16 vs FP16 dtype is a measured wash on this
-stack. For PP2 use `--pipeline-parallel-size 2` with
-`--tensor-parallel-size 1` — the affinity patch covers both topologies.
+The affinity patch covers both worker topologies. XPU graph capture has been
+refused for multi-GPU execution on the tested image generations, so TP2/PP2 uses
+compile-only execution. The model recipe remains authoritative for all other
+serve flags.
 
-`VLLM_XPU_ENABLE_XPU_GRAPH=0` is deliberate: XPU graph capture is refused on
-multi-GPU ("only supports single-GPU execution") on every build tested
-(0.21.1 / 0.27.2 / 0.28.0). Compile-only is the expected TP2 execution mode.
+## Verification
 
-## Verify
-
-Expected lines after startup:
+Expected worker lines:
 
 ```text
 [B70_WORKER_AFFINITY_SPAWN] rank=0 mask=0
 [B70_WORKER_AFFINITY_SPAWN] rank=1 mask=1
 [B70_WORKER_AFFINITY] pid=... rank=0 visible=1
 [B70_WORKER_AFFINITY] pid=... rank=1 visible=1
-|CCL_WARN| value of CCL_ATL_TRANSPORT changed to be ofi (default:mpi)
-|CCL_WARN| comm_dev_uuids is not sub-vector of node_dev_uuids, comm_dev_uuids size 2, node_dev_uuids size 1, ...
-|CCL_WARN| number of result device uuids does not match number of ranks per host, result size 1, host_rank_info_vec size 2, ...
 ```
 
-The `CCL_WARN` lines are **expected and benign** — they are oneCCL noticing
-that each rank enumerates one device while the communicator holds two UUIDs,
-which is exactly the state the per-worker masks create. Healthy runs print
-them immediately before successful collectives. Then check
-`curl -f http://127.0.0.1:8000/health`.
+oneCCL may also warn that each process sees one device while the communicator
+contains two UUIDs. That is expected with per-worker masks. A valid verification
+requires successful collectives followed by a healthy model endpoint; warning
+text alone is not proof of success.
 
-## 60-second isolation repro (no vLLM)
+## Collective-only isolation repro
 
-If anything still fails, isolate the collective from the server. Inside the
-same container (`SYS_PTRACE`, `/dev/dri` mounted):
+Run this inside the same container with `/dev/dri`, `SYS_PTRACE`, and the oneCCL
+threshold environment configured:
 
 ```python
 # xccl_minirepro.py
-import os, datetime, torch, torch.distributed as dist
+import datetime
+import os
+
+import torch
+import torch.distributed as dist
 
 rank = int(os.environ["RANK"])
-torch.xpu.set_device(0)  # each process sees exactly one GPU via ZE_AFFINITY_MASK
-dist.init_process_group("xccl", init_method="env://", world_size=2, rank=rank,
-                        timeout=datetime.timedelta(seconds=60))
+torch.xpu.set_device(0)  # each process sees one GPU through its spawn-time mask
+dist.init_process_group(
+    "xccl",
+    init_method="env://",
+    world_size=2,
+    rank=rank,
+    timeout=datetime.timedelta(seconds=60),
+)
 t = torch.zeros(8, device="xpu:0") + rank + 1
 dist.all_reduce(t)
 print(f"[mini rank={rank}] allreduce OK mean={t.float().mean().item()}", flush=True)
@@ -197,38 +175,23 @@ ZE_AFFINITY_MASK=0 RANK=0 WORLD_SIZE=2 MASTER_ADDR=127.0.0.1 MASTER_PORT=29517 p
 ZE_AFFINITY_MASK=1 RANK=1 WORLD_SIZE=2 MASTER_ADDR=127.0.0.1 MASTER_PORT=29517 python xccl_minirepro.py
 ```
 
-Expected: `allreduce OK mean=3.0` from both ranks.
+Expected result: both ranks report `allreduce OK mean=3.0` and `DONE`.
 
-## Which patches apply (Qwen3.8-27B on the pinned nightly)
+## Topology notes
 
-| Patch | Status |
-|---|---|
-| `patch_mtp_nightly.py`, `patch_mtp_boundary.py` | Required (preserved-MTP checkpoint; boundary completes an exact final MTP group) |
-| `patch_vllm_worker_affinity.py` | Required for TP2 / PP2 |
-| `patch_draft_lmhead_int4.py` **then** `patch_draft_mtp_int4.py` (with `B70_DRAFT_LMHEAD_INT4=1 B70_DRAFT_MTP_INT4=1`) | Optional MTP speed: matched same-image n=5 p512/g128 81.20 → 112.65, p8192/g128 77.52 → 103.63; acceptance 95.9% → 94.4% |
-| `patch_gdn_mixed_split_v5.py` | Optional, concurrency only (mixed prefill + spec-decode batches); C1 speed-flat |
-| `patch_fp8_w8a16.py` | Skip — reroutes block-**FP8** weights only; GPTQ-Int4 checkpoints never take this path |
-| `patch_xpu_int4_moe_v4.py`, `patch_mtp_bf16_draft.py` | Never on this nightly (historical local vLLM 0.21 image) |
+- `pcie_acs_override` is not required. The failure is a user-space Level Zero
+  peer-memory open, not kernel PCIe routing.
+- The relevant class is two CPU-attached cards without a shared P2P-capable
+  switch. Host-staged collectives are therefore part of the infrastructure
+  contract.
+- One TP2/PP2 engine occupies both cards. Independent single-card engines remain
+  a separate deployment topology.
+- Do not infer a scaling factor from topology alone. Performance and power
+  claims require a model-specific matched card.
 
-## Notes
-
-- **`pcie_acs_override` is not needed.** The failing call is a user-space
-  Level Zero IPC open inside oneCCL, not kernel P2P routing. Hosts serve
-  with stock kernel parameters once the algorithm is forced off the device
-  IPC path.
-- **Topology is not the differentiator.** The author's working host has the
-  same class of layout as the failing hosts: a desktop board with each B70
-  on its own CPU-attached root port (`00:03.1` / `00:03.2` on X570-F),
-  no shared switch, no GPU P2P. The author's host ran TP2 without the CCL
-  thresholds (kernel 7.0.0-28); the confirmed-failing hosts run 7.0.0-30 and
-  other kernels — the exact host delta is not pinned, and with the algorithm
-  forced explicitly it stops mattering.
-- **What TP2 buys.** Decode gains scale (~1.4× class on comparable stacks);
-  prefill does not scale over the CPU-attached x8 links (activations bounce
-  through host RAM). Both cards are occupied while TP2 runs.
-- **Provenance.** Intel workaround: [intel/llm-scaler#594](https://github.com/intel/llm-scaler/issues/594)
-  (Wesley-Du). Dual-B70 confirmations and the debugging trail:
-  [cookbook issue #8](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/8)
-  (deriknel's working config, uldiseihenbergs' isolation bisect). Same-error
-  convergence with host-staged collectives:
-  [JP-devv/humble-b70-llm](https://github.com/JP-devv/humble-b70-llm).
+Provenance: Intel workaround
+[intel/llm-scaler#594](https://github.com/intel/llm-scaler/issues/594), cookbook
+confirmations and debugging trail
+[issue #8](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/8),
+and the independently developed
+[humble-b70-llm](https://github.com/JP-devv/humble-b70-llm) host-staged route.

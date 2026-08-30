@@ -15,13 +15,15 @@ Benchmark rows require exact workload coordinates, sample counts, metric semanti
 | Nemotron-3.5-Lightning DFlash | 1× Intel Arc Pro B70 | vllm | P2048 / G128 / C1 · n=5 median | 186.61 token/s (client post first output tps) | [Official lab](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/a4ba875413728bd787a2a01a2fc0cac46b035701/docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
 | Muse-Glimmer-30B DFlash | 1× Intel Arc Pro B70 | llama.cpp | P512 / G128 / C1 · n=5 median | 26.8 token/s (engine predicted output tps) | [Official lab](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/a4ba875413728bd787a2a01a2fc0cac46b035701/docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
 | Ornith-1.5-35B-A3B MTP1 | 1× Intel Arc Pro B70 | vllm | P512 / G128 / C1 · n=5 median | 106.27 token/s (client post first output tps) | [Official lab](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/a4ba875413728bd787a2a01a2fc0cac46b035701/docs/ornith15-35a3/ORNITH-VLLM-XPU.md) |
+| Qwen3.8-27B FP8 TP2 MTP8 decode | 2× Intel Arc Pro B70 | vllm | P1024 / G128 / C1 · n=5 median | 60.13 token/s (client e2e output tps) · 71.06 token/s (client e2e output tps max) | [Official lab](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/8c69e5f5143aff60f0bc1cabc97c2fcc364697b2/docs/qwen38-27/FP8-TP2-W8A16.md) |
+| Qwen3.8-27B FP8 TP2 cold-input prefill | 2× Intel Arc Pro B70 | vllm | P1024 / G128 / C1 · n=5 median | 1736.2 token/s (cold input rate tps) | [Official lab](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/8c69e5f5143aff60f0bc1cabc97c2fcc364697b2/docs/qwen38-27/FP8-TP2-W8A16.md) |
 
 ## Capabilities awaiting complete benchmark cards
 
 | Capability | Hardware | Status | What is established | Evidence |
 |---|---|---|---|---|
 | Dual-B70 TP2 / PP2 serving | 2× Intel Arc Pro B70 | Validated | Validated multi-GPU serving path using spawn-time worker affinity and oneCCL simple-threshold variables. No complete matched numeric card is published yet. | [source](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/a4ba875413728bd787a2a01a2fc0cac46b035701/docs/DUAL-B70-TP2.md) |
-| Qwen3.8-27B FP8 W8A16 | 1× Intel Arc Pro B70 | Provisional | The XPU reroute removes dynamic activation quantization and reports roughly 34% speedup and 48 token/s at p1024. Output length, sample count, and full public result coordinates are not yet recorded, so this is excluded from benchmark rankings. | [source](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/0f876e141c7a45b9db6081fba53b207b150206ca/patches/patch_fp8_w8a16.py) |
+| Qwen3.8-27B FP8 W8A16 | 1× Intel Arc Pro B70 | Provisional | The XPU reroute removes dynamic activation quantization and reports roughly 34% speedup and 48 token/s at p1024. Output length, sample count, and full public result coordinates are not yet recorded, so this is excluded from benchmark rankings. Superseded by qwen38-fp8-tp2-k8-p1024-g128-c1 (same recipe lineage, n=5, dual-card). | [source](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/0f876e141c7a45b9db6081fba53b207b150206ca/patches/patch_fp8_w8a16.py) |
 
 ## Trust labels
 

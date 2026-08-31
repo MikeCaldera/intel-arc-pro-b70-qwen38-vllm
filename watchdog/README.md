@@ -39,7 +39,27 @@ When both hold, the recovery command runs (default `docker restart
 A health failure **without** a kernel signature logs `DEGRADED` and notifies -
 an app-level hang that a GPU restart will not fix.
 
-## Install (systemd, 5 min)
+## Install (one command)
+
+```bash
+sudo bash watchdog/install-watchdog.sh --container vllm-serve
+```
+
+The installer copies the script to `/usr/local/bin`, writes a tuned systemd
+unit, and starts the service. Useful flags:
+
+- `--container NAME` - the docker container your serve runs as (the cookbook
+  launchers take it from `$CONTAINER`; the watchdog needs the same name).
+- `--health URL` - health endpoint (default `http://127.0.0.1:8000/health`).
+- `--recovery-cmd "systemctl restart llama-profile"` - for native/systemd
+  deploys that do not use docker.
+- `--webhook URL` - optional notification endpoint.
+- `--dry-run` - print the generated unit without touching the system.
+- `--uninstall` - remove service, binary and state file.
+
+Verify: `journalctl -u xpu-wedge-watchdog -f`
+
+## Install (manual, 5 min)
 
 ```bash
 sudo cp watchdog/xpu-wedge-watchdog.sh /usr/local/bin/xpu-wedge-watchdog.sh

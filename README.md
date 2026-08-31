@@ -121,6 +121,23 @@ Use [Full setup commands](docs/FULL-SETUP-COMMANDS.md) for the render-device che
 
 Benchmark graphics are rendered from the canonical `summary.json` with the public renderer [`benchmarks/render-prefill-decode-svg.py`](benchmarks/render-prefill-decode-svg.py) (dashboard + method diagram).
 
+## Serve reliably: Xe2 wedge watchdog (production)
+
+Under sustained Level-Zero load the `xe` driver can reset a compute/copy engine
+and wedge the userspace context permanently - the server stops responding until
+the container is restarted (intel/compute-runtime#948, vllm-project/vllm#41663).
+The watchdog detects the wedge (health poll + kernel engine-reset signatures)
+and restarts the serving container for you:
+
+```bash
+sudo bash watchdog/install-watchdog.sh --container vllm-serve
+```
+
+(adjust `--container` to the name your launcher uses - the launch scripts read
+it from `$CONTAINER`; for non-docker deploys pass
+`--recovery-cmd "systemctl restart <your-unit>"`). Full docs:
+[watchdog/README.md](watchdog/README.md).
+
 ## Model Architecture Guides
 
 Every model has its own dedicated recipe and benchmarks in `docs/<family>/`:
@@ -218,6 +235,7 @@ results/
   <root>             shared cross-model summaries
 research/            kernel and quantization investigations
 submissions/         historical LocalMaxxing payloads
+watchdog/            production reliability: Xe2 wedge detection + auto-recovery
 ```
 
 Model-specific files live under the family directory; cross-model contracts

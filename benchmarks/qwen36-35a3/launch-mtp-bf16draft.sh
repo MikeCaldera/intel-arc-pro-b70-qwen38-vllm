@@ -30,7 +30,7 @@ printf '%s\n' '{"method":"mtp","num_speculative_tokens":1}' > "$SPEC_FILE"
 RENDER_GID=$(stat -c "%g" /dev/dri/render* | head -n1)
 : > "$LOG"
 
-CID=$(sudo docker run -d --name b70vllm -p ${PORT}:8000 \
+CID=$(sudo docker run -d --restart unless-stopped --name b70vllm -p ${PORT}:8000 \
   --device /dev/dri --group-add "${RENDER_GID}" \
   -v /dev/dri:/dev/dri:ro \
   -v "${MODEL_DIR}:/model:ro" \

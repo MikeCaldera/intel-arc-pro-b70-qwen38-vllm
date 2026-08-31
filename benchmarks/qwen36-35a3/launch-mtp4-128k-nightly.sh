@@ -31,7 +31,7 @@ printf '%s\n' '{"method":"mtp","num_speculative_tokens":4}' > "$SPEC"
 sudo docker rm -f b70-mtp4-128k >/dev/null 2>&1 || true
 RENDER_GID=$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')
 
-sudo docker run -d --name b70-mtp4-128k -p "$PORT:8000" \
+sudo docker run -d --restart unless-stopped --name b70-mtp4-128k -p "$PORT:8000" \
   --device /dev/dri --group-add "$RENDER_GID" \
   -v /dev/dri:/dev/dri:ro \
   -v "$MODEL_DIR:/model:ro" \

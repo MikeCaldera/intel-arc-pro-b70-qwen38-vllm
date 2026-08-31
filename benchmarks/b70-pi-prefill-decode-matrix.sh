@@ -200,7 +200,7 @@ run_mode() {
   printf 'milestone=launch_start mode=%s\n' "$mode"
   local gid
   gid=$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')
-  sudo -n docker run -d --name "$CONTAINER" -p "$PORT:8000" \
+  sudo -n docker run -d --restart unless-stopped --name "$CONTAINER" -p "$PORT:8000" \
     --device /dev/dri --group-add "$gid" -v /dev/dri:/dev/dri:ro \
     -v "$MODEL_DIR:/model:ro" -v "$spec_file:/spec.json:ro" \
     -v "$PATCH_MTP:/patch_mtp.py:ro" -v "$PATCH_BOUNDARY:/patch_boundary.py:ro" \

@@ -135,7 +135,9 @@ sudo bash watchdog/install-watchdog.sh --container vllm-serve
 
 (adjust `--container` to the name your launcher uses - the launch scripts read
 it from `$CONTAINER`; for non-docker deploys pass
-`--recovery-cmd "systemctl restart <your-unit>"`). Full docs:
+`--recovery-cmd "systemctl restart <your-unit>"`). Container launchers now set
+`--restart unless-stopped`, so a clean engine exit is recovered automatically
+and the watchdog covers the GPU-wedge case where that exit never happens. Full docs:
 [watchdog/README.md](watchdog/README.md).
 
 ## Model Architecture Guides

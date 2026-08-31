@@ -58,7 +58,7 @@ esac
 sudo docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 RENDER_GID=$(stat -c '%g' /dev/dri/render* | sort -u | sed -n '1p')
 
-sudo docker run -d --name "$CONTAINER" -p "$PORT:8000" \
+sudo docker run -d --restart unless-stopped --name "$CONTAINER" -p "$PORT:8000" \
   --device /dev/dri --group-add "$RENDER_GID" \
   -v /dev/dri:/dev/dri:ro \
   -v "$MODEL_DIR:/model:ro" \

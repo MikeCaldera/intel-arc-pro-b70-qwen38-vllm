@@ -10,7 +10,9 @@ El LM head fp16 compartido (5120x248320 = 2.54 GB) se lee 5x/paso MTP4
 Lossless: el draft MTP usa SU PROPIO lm_head (DraftModelProposer._maybe_share
 _lm_head es no-op — no comparte el del target). Cuantizar la copia del draft
 no toca el target de verificacion (fp16) y los tokens del draft se verifican
-contra el target: la secuencia emitida es identica a MTP4 baseline (greedy).
+contra el target: la secuencia emitida es identica SOLO en C1/TP1 (greedy).
+NO usar con TP>1: bajo `--tensor-parallel-size 2` la verificacion del target
+no protege la salida emitida (issue #9).
 
 Formato del peso INT4 = exactamente el que consume la op YA existente
 ``torch.ops._xpu_C.int4_gemm_w4a16`` (el que usan los layers INC/GPTQ del

@@ -10,7 +10,9 @@ decoder layer) esta en BF16 (forzado por B70_MTP_BF16_DRAFT=1) y se lee
 ~2.6 GB/paso de lecturas de DRAM.
 
 Lossless: el target de verificacion no se toca; los tokens del draft se
-verifican contra el target (greedy) -> la secuencia emitida es identica.
+verifican contra el target (greedy) -> la secuencia emitida es identica
+SOLO en C1/TP1. NO usar con TP>1: bajo `--tensor-parallel-size 2` la
+verificacion no protege la salida emitida (issue #9).
 GATE de aceptacion: el draft INT4 puede proponer distinto; si la aceptacion
 baja >0.03 la ganancia de bytes puede perderse -> medir ANTES vs DESPUES.
 

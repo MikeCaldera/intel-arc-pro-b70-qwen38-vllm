@@ -6,7 +6,13 @@ linears through `torch.ops._xpu_C.int4_gemm_w4a16`.
 
 Production image: `vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f`
 (vLLM `0.27.2rc1.dev77+gac7509e2b`, kernels `0.1.12.3`). The patches fail
-closed if `qwen3_5_mtp.py` anchors differ.
+closed if `qwen3_5_mtp.py` anchors differ - and that guard is anchor-only:
+it knows nothing about topology, so it does not protect TP>1.
+
+> **Do not enable with `--tensor-parallel-size 2`.** Under TP2, target
+> verification does not protect the emitted sequence: output can be
+> corrupted or non-deterministic even at temperature 0 (issue #9). The
+> INT4 draft overlay is a single-card C1 speed keep.
 
 ## What is and is not lossless
 
@@ -17,8 +23,9 @@ closed if `qwen3_5_mtp.py` anchors differ.
 | Draft LM head copy | runtime INT4 g128 RTN |
 | Draft MTP 5 linears | runtime INT4 g128 RTN |
 
-The target still verifies. Draft **logits are not** identical. Acceptance
-can drop. This is a **speed** keep, not a quality-parity claim.
+Single-card C1 only: the target still verifies. Draft **logits are not**
+identical. Acceptance can drop. This is a **speed** keep, not a
+quality-parity claim.
 
 ## Same-image n=5 (2026-08-18)
 

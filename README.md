@@ -21,6 +21,8 @@ Nemotron DFlash.
 | **Ornith-1.5-35B-A3B** (converters) | vLLM XPU (nightly digest) | GPTQ→AutoRound converter head-to-head; MTP1; **reference logprob parity vs BF16** | MTP1 96.4 t/s n=5 @150 W; AutoRound equal-or-best parity (self-report, E2) | [AUTOROUND-VS-GPTQ](docs/ornith15-35a3/AUTOROUND-VS-GPTQ.md) |
 
 Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
+
+**Reliability map (what breaks and which layer owns it):** [RELIABILITY-REPORT.md](docs/RELIABILITY-REPORT.md) — single-card baseline, multi-GPU failure modes, Linux bring-up, ranked fix list. Evidence-linked as of 2026-08-31.
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
 means the payload was accepted into the public leaderboard.
 

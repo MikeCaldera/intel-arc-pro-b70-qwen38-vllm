@@ -106,8 +106,9 @@ git checkout 9723942adc518b43c4b95dc4dce6906903eb5e09
 ### 3. Patches (this cookbook, in this order)
 
 ```bash
-git apply /path/to/intel-arc-pro-b70-inference-cookbook/patches/llamacpp-sycl/flashnext-arch-overlay.patch
-git apply /path/to/intel-arc-pro-b70-inference-cookbook/patches/llamacpp-sycl/sycl-fused-mmvq-and-gpu-group.patch
+git apply patches/llamacpp-sycl/flashnext-arch-overlay.patch
+git apply patches/llamacpp-sycl/sycl-fused-mmvq-and-gpu-group.patch
+# run from the cookbook checkout; both files are in-repo under patches/llamacpp-sycl/
 ```
 
 SHA-256:

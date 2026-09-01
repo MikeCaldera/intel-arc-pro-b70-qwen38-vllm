@@ -38,8 +38,8 @@ Raw JSON: [results/qwen38-flash-next-dual-b70-c1/](../../results/qwen38-flash-ne
 |---|---|
 | GPUs | **Two** Intel Arc Pro B70 32 GB (64 GB combined). Layer split, no GPU P2P. One card cannot hold this GGUF. |
 | VRAM | ~32,656 MiB visible per card. Empty-card `visible_avail` ~31 GiB on **both** cards before load. |
-| Host RAM | **32 GB is enough** with mmap. Do **not** `--mlock` or `--no-mmap` — the file is 88 GiB. |
-| Disk | **≥110 GiB free**: 88.03 GiB GGUF (33 shards) + ~20 GiB for llama.cpp source and **two** SYCL builds. KV cache lives entirely in VRAM, not on disk. |
+| Host RAM | **32 GB is enough** with mmap. Do **not** `--mlock` or `--no-mmap` — the file is 88 GiB. The ~36 GiB N-gram table (shard `00002`, Q5_1) is mmap-backed and served from host memory/disk, never VRAM. |
+| Disk | **≥110 GiB free**: 88.03 GiB GGUF (33 shards) + ~20 GiB for llama.cpp source and **two** SYCL builds. KV cache lives entirely in VRAM, not on disk. Shard `00002` (N-gram table) alone is ~38.4 GiB. |
 | CPU | 16-thread class (Ryzen 7 5700X3D here). Server uses `-t 6 -tb 14`. |
 | OS / driver | Linux, `xe` driver, Level Zero. `sycl-ls` must list both B70s as SYCL0 / SYCL1. |
 | Compiler | Intel oneAPI **IntelLLVM 2026.0.0**, CMake, git, `huggingface-cli`. |
@@ -54,9 +54,26 @@ This is not the Qwen3.8-27B vLLM recipe.
 - GGUF: [`AtomicChat/Qwen3.8-Flash-Next-GGUF`](https://huggingface.co/AtomicChat/Qwen3.8-Flash-Next-GGUF)
   folder `Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64`, revision
   `142262902a46f7daed19c79d0771534c8106ad59` (33 shards, 88.03 GiB).
-- Mixed quant: gate/up **IQ3_S**, down **IQ4_NL**, per-layer embeddings **Q5_1**
-  on CPU. The folder name `Q4_K_M` is not a uniform Q4_K_M file.
+- Mixed quant: gate/up **IQ3_S**, down **IQ4_NL**. The folder name `Q4_K_M` is
+  not a uniform Q4_K_M file.
 - KV: `q8_0` K + `q4_1` V. Flash attention on. No MTP in this artifact.
+
+#### N-gram (per-layer token embedding) table
+
+The N-gram lookup table lives **on disk, not in VRAM**. It is a single tensor
+`per_layer_token_embd.weight`, dims `[160, 320001536]` (160 per-layer rows × a
+320 M vocab-lookup axis, ~51.2 B elements), quantized **Q5_1** (GGUF dtype 7),
+and it occupies shard **`00002`** of 33 entirely on its own (~38.4 GiB on disk;
+BF16 source would be ~95.4 GiB). Everything after it (`00003`+) holds the layer
+weights: routed/shared experts IQ3_S (gate/up) + IQ4_NL (down), and Q8_0
+attention/SSM/head projections. Shard `00001` holds only the LM head.
+
+It never enters GPU memory. The serve line forces it to host RAM with
+`-ot 'per_layer_token_embd=CPU'`; at ~35.8 GiB Q5_1 it cannot fit in the
+combined ~65 GiB VRAM next to the experts and the `q8_0`/`q4_1` KV cache, so
+llama.cpp memory-maps it from the GGUF and serves the lookups from CPU/disk.
+Treat it as a separate placement and quantization axis from the GPU-resident
+weights (see `docs/qwen38-27/README.md` for the sibling 27B route; do not mix).
 
 ## Reproduce
 
@@ -167,6 +184,10 @@ Shared flags for every context size:
 --cache-type-k q8_0 --cache-type-v q4_1
 --no-warmup --no-cache-prompt --host 127.0.0.1 --port 8001
 ```
+
+`-ot 'per_layer_token_embd=CPU'` pins the N-gram table (shard `00002`, Q5_1)
+to host memory — see "N-gram (per-layer token embedding) table" above. It is
+never loaded into VRAM.
 
 Only `-c` and `-b` / `--ubatch-size` change:
 

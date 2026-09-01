@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Run the pinned image (`f01e24f6` or `2c427ef` per family). Without image sha + full docker/serve line the issue stays `needs-info`. Hangs also need dmesg.
+        Run a pinned image by **sha256 digest**. Without digest + full launch line the issue stays `needs-info`. Hangs also need kernel log (seqno + guc_id or dmesg).
 
   - type: dropdown
     id: b70_count

@@ -15,6 +15,7 @@ CHECKS = [
     ("generated-catalog", [sys.executable, "scripts/render-benchmark-catalog.py", "--check"]),
     ("python-syntax", [sys.executable, "-m", "compileall", "-q", "scripts", "tests"]),
     ("unit-tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"]),
+    ("triage-lib", ["node", "--test", "tests/test_triage_lib.js"]),
 ]
 
 

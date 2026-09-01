@@ -6,7 +6,7 @@
 
 ## Image
 
-Pinned digest you ran against (sha256 or `f01e24f6` / `2c427ef`):
+Pinned digest you ran against (`sha256:` + 12 or more hex):
 
 ```
 vllm/vllm-openai-xpu@sha256:

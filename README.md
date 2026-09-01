@@ -2,6 +2,18 @@
 
 Repeatable vLLM XPU and llama.cpp SYCL recipes for Intel Arc Pro B60/B70 GPUs.
 
+## Agent control plane
+
+Agents should begin with [`data/system-map.v1.json`](data/system-map.v1.json),
+choose one intent (`read`, `reproduce`, `publish`, or `triage`), and load only
+that route's authorities. The design and change-routing model is
+[`docs/AGENT-SYSTEM.md`](docs/AGENT-SYSTEM.md). Add or change a family route
+through [`docs/ADDING-A-RECIPE.md`](docs/ADDING-A-RECIPE.md).
+
+The repository is a five-layer system: control -> contracts -> family recipes
+-> evidence -> generated reader views. Edit the owning authority, then render
+and validate downstream views. Do not maintain copied benchmark or patch tables.
+
 This is **one cookbook with one page per model family**. Do not start a second
 repo when a new architecture lands: add `docs/<family>/` + `benchmarks/<family>/`
 and pin that family's image digest. **Do not mix patch lists or numbers across

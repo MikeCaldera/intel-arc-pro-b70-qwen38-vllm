@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Fail closed when the cookbook control map points at missing authorities."""
+
+from __future__ import annotations
+
+import json
+import pathlib
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+MAP_PATH = ROOT / "data" / "system-map.v1.json"
+
+
+def validate_system_map(data: dict) -> list[str]:
+    errors: list[str] = []
+    if data.get("schema_version") != "1.0":
+        errors.append("schema_version must be 1.0")
+
+    intents = data.get("intents")
+    if not isinstance(intents, dict) or set(intents) != {"read", "reproduce", "publish", "triage"}:
+        errors.append("intents must be exactly read, reproduce, publish, triage")
+        intents = {}
+
+    authorities = data.get("authorities")
+    if not isinstance(authorities, dict) or not authorities:
+        errors.append("authorities must be a non-empty object")
+        authorities = {}
+
+    concrete_paths: set[str] = set(authorities.values())
+    for intent, route in intents.items():
+        if not isinstance(route, dict) or "start" not in route or "then" not in route:
+            errors.append(f"intent {intent} must define start and then")
+            continue
+        concrete_paths.add(route["start"])
+        concrete_paths.update(route["then"])
+
+    for relative in sorted(concrete_paths):
+        if "<" in relative:
+            continue
+        if not (ROOT / relative).exists():
+            errors.append(f"missing referenced path: {relative}")
+
+    layers = data.get("layers")
+    if not isinstance(layers, list) or [layer.get("id") for layer in layers] != ["L0", "L1", "L2", "L3", "L4"]:
+        errors.append("layers must be ordered L0 through L4")
+
+    invariants = data.get("invariants")
+    if not isinstance(invariants, list) or len(invariants) < 5:
+        errors.append("at least five system invariants are required")
+
+    validation = data.get("validation")
+    if not isinstance(validation, list) or "python3 scripts/validate-system-map.py" not in validation:
+        errors.append("validation must include this validator")
+
+    return errors
+
+
+def main() -> int:
+    try:
+        data = json.loads(MAP_PATH.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ERROR: cannot read {MAP_PATH.relative_to(ROOT)}: {exc}", file=sys.stderr)
+        return 1
+
+    errors = validate_system_map(data)
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+
+    print(f"OK: {MAP_PATH.relative_to(ROOT)} ({len(data['authorities'])} authorities, {len(data['invariants'])} invariants)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

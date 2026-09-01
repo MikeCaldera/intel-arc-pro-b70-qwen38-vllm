@@ -2,7 +2,7 @@ name: pr-precheck
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
 
 permissions:
   pull-requests: write
@@ -13,6 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate system map
+        run: python3 scripts/validate-system-map.py
+      - name: Check generated benchmark catalog
+        run: python3 scripts/render-benchmark-catalog.py --check
+      - name: Run repository tests
+        run: python3 -m unittest discover -s tests -v
       - uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

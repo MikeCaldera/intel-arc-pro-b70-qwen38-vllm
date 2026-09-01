@@ -22,7 +22,7 @@ Self-reported, n=5 after one discarded warmup. Sampling: temperature 1.0,
 | FP32 (`GGML_SYCL_F16=OFF`) | 8K | p512 / g128 | **23.38** tok/s (23.22–23.73) | 183.98 |
 | F16 (`GGML_SYCL_F16=ON`) | 16K | actual p9096 / g128 | 20.34 tok/s | **594.49** (594.11–595.45) |
 
-`GGML_SYCL_F16` is a compile-time flag. Build one binary per server.
+`GGML_SYCL_F16` is a compile-time SYCL flag, not the weight dtype. Build one binary per server. F16 wins prefill; FP32 is a bit faster on decode. The F16 16K server is also the 20.3 tok/s decode / 594 tok/s prefill pair.
 
 Average card draw on those cells was about 97–99 W (GPU 0) and 108 W (GPU 1)
 against a 195 W cap. With the 88 GiB model resident, GPU 1 package sat near
@@ -36,15 +36,18 @@ Raw JSON: [results/qwen38-flash-next-dual-b70-c1/](../../results/qwen38-flash-ne
 
 | Need | What we used |
 |---|---|
-| GPUs | **Two** Intel Arc Pro B70 32 GB (64 GB combined). Layer split, no GPU P2P. |
-| VRAM | ~32 GB visible per card. Empty-card `visible_avail` should be ~31 GiB before load. |
-| Host RAM | **32 GB is enough** if you mmap. Do not `--mlock` this 88 GiB GGUF. |
-| Disk | **≥90 GiB** for the GGUF, plus **≥20 GiB** for llama.cpp source and two SYCL builds. |
-| OS / driver | Linux, `xe` driver, Level Zero. `sycl-ls` must show both B70s. |
+| GPUs | **Two** Intel Arc Pro B70 32 GB (64 GB combined). Layer split, no GPU P2P. One card cannot hold this GGUF. |
+| VRAM | ~32,656 MiB visible per card. Empty-card `visible_avail` ~31 GiB on **both** cards before load. |
+| Host RAM | **32 GB is enough** with mmap. Do **not** `--mlock` or `--no-mmap` — the file is 88 GiB. |
+| Disk | **≥110 GiB free**: 88.03 GiB GGUF (33 shards) + ~20 GiB for llama.cpp source and **two** SYCL builds. |
+| CPU | 16-thread class (Ryzen 7 5700X3D here). Server uses `-t 6 -tb 14`. |
+| OS / driver | Linux, `xe` driver, Level Zero. `sycl-ls` must list both B70s as SYCL0 / SYCL1. |
 | Compiler | Intel oneAPI **IntelLLVM 2026.0.0**, CMake, git, `huggingface-cli`. |
 | Power | Stock cap 150 W. Campaign used 195 W; restore 150 W after. |
 
-One B70 cannot hold this artifact. This is not the Qwen3.8-27B vLLM recipe.
+This is not the Qwen3.8-27B vLLM recipe.
+
+**F16 vs FP32** is not the GGUF. Weights stay mixed IQ3_S / IQ4_NL. `GGML_SYCL_F16` is a compile-time SYCL math flag, so you build two binaries. F16 wins prefill; FP32 is a bit faster on decode.
 
 ## Hardware and weights
 

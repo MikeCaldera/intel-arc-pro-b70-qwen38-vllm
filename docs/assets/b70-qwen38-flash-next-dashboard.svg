@@ -1,26 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040" role="img" aria-labelledby="title desc">
 <title id="title">Qwen3.8-Flash-Next C1 leaders on two Intel Arc Pro B70 GPUs</title>
-<desc id="desc">n=5 C1 leaders on the same dual-B70 llama.cpp SYCL recipe. Best decode 23.38 tok/s at 8K context (FP32, p512/g128). Best prefill 594.49 tok/s at 16K context (F16, actual p9096/g128). The recipe also serves 128K. Single request. Self-reported.</desc>
-<rect width="1600" height="720" fill="#07111f"/>
+<desc id="desc">llama.cpp SYCL, one request. Same F16 server at 16K: 20.3 tok/s decode and 594 tok/s prefill on a 9k prompt (n=5). 128K also serves. Short-prompt decode stays ~23 tok/s from 8K through 128K. F16 vs FP32 is GGML_SYCL_F16, a compile-time SYCL flag, not the GGUF. Weights are mixed IQ3_S/IQ4_NL. Self-reported.</desc>
+<rect width="1600" height="1040" fill="#07111f"/>
 <text x="56" y="56" fill="#55d6be" font-size="22" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">QWEN3.8-FLASH-NEXT · 2× INTEL ARC PRO B70</text>
 <text x="56" y="108" fill="#f5f8fc" font-size="40" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">llama.cpp SYCL · one request at a time</text>
 <text x="56" y="146" fill="#9caec4" font-size="20" font-family="ui-sans-serif, system-ui, sans-serif">Community M64 GGUF · layer split · 195 W cap · n=5 medians · serves 8K–128K</text>
 
 <rect x="56" y="172" width="728" height="460" rx="28" fill="#0f1d30"/>
-<text x="92" y="228" fill="#55d6be" font-size="20" font-weight="700" letter-spacing="0.8" font-family="ui-sans-serif, system-ui, sans-serif">BEST DECODE · FP32 · measured at 8K</text>
-<text x="92" y="338" fill="#55d6be" font-size="88" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">23.38</text>
-<text x="92" y="392" fill="#9caec4" font-size="22" font-family="ui-sans-serif, system-ui, sans-serif">engine tok/s · p512 / g128</text>
-<text x="92" y="444" fill="#f5f8fc" font-size="18" font-family="ui-sans-serif, system-ui, sans-serif">range 23.22–23.73 · cold input 184</text>
-<text x="92" y="488" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">GGML_SYCL_F16=OFF · -b 512 · q8_0 K / q4_1 V</text>
+<text x="92" y="224" fill="#55d6be" font-size="20" font-weight="700" letter-spacing="0.6" font-family="ui-sans-serif, system-ui, sans-serif">BEST DECODE · measured at 8K</text>
+<text x="92" y="256" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">FP32 binary · GGML_SYCL_F16=OFF · not the GGUF</text>
+<text x="92" y="352" fill="#55d6be" font-size="88" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">23.38</text>
+<text x="92" y="406" fill="#9caec4" font-size="22" font-family="ui-sans-serif, system-ui, sans-serif">engine tok/s · p512 / g128</text>
+<text x="92" y="454" fill="#f5f8fc" font-size="18" font-family="ui-sans-serif, system-ui, sans-serif">range 23.22–23.73 · cold input 184</text>
+<text x="92" y="496" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">-b 512 · q8_0 K / q4_1 V · weights IQ3_S / IQ4_NL</text>
 <text x="92" y="584" fill="#9caec4" font-size="15" font-family="ui-sans-serif, system-ui, sans-serif">timings.predicted_per_second · cache off</text>
 
 <rect x="816" y="172" width="728" height="460" rx="28" fill="#0f1d30"/>
-<text x="852" y="228" fill="#68a7ff" font-size="20" font-weight="700" letter-spacing="0.8" font-family="ui-sans-serif, system-ui, sans-serif">BEST PREFILL · F16 · measured at 16K</text>
-<text x="852" y="338" fill="#68a7ff" font-size="88" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">594.49</text>
-<text x="852" y="392" fill="#9caec4" font-size="22" font-family="ui-sans-serif, system-ui, sans-serif">engine tok/s · actual p9096 / g128</text>
-<text x="852" y="444" fill="#f5f8fc" font-size="18" font-family="ui-sans-serif, system-ui, sans-serif">range 594.11–595.45 · decode 20.34</text>
-<text x="852" y="488" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">GGML_SYCL_F16=ON · -b 3072 · q8_0 K / q4_1 V</text>
+<text x="852" y="224" fill="#68a7ff" font-size="20" font-weight="700" letter-spacing="0.6" font-family="ui-sans-serif, system-ui, sans-serif">BEST PREFILL · measured at 16K</text>
+<text x="852" y="256" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">F16 binary · GGML_SYCL_F16=ON · not the GGUF</text>
+<text x="852" y="352" fill="#68a7ff" font-size="88" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">594.49</text>
+<text x="852" y="406" fill="#9caec4" font-size="22" font-family="ui-sans-serif, system-ui, sans-serif">engine tok/s · actual p9096 / g128</text>
+<text x="852" y="454" fill="#f5f8fc" font-size="18" font-family="ui-sans-serif, system-ui, sans-serif">range 594.11–595.45 · decode 20.34</text>
+<text x="852" y="496" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">-b 3072 · q8_0 K / q4_1 V · weights IQ3_S / IQ4_NL</text>
 <text x="852" y="584" fill="#9caec4" font-size="15" font-family="ui-sans-serif, system-ui, sans-serif">timings.prompt_per_second · cache off</text>
 
-<text x="800" y="688" fill="#64748b" font-size="15" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">Same recipe serves 8K, 16K, and 128K · these cards are the n=5 leaders, not a 16K cap · two compile-time binaries</text>
+<rect x="56" y="656" width="1488" height="340" rx="28" fill="#0f1d30"/>
+<text x="88" y="700" fill="#f5f8fc" font-size="18" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">Qwen3.8-Flash-Next on 2× Intel Arc Pro B70. llama.cpp SYCL. One request.</text>
+<text x="88" y="736" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">Same F16 server, 16K context: 20.3 tok/s decode, 594 tok/s prefill on a 9k prompt (n=5).</text>
+<text x="88" y="768" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">128K also serves. Short-prompt decode stays ~23 tok/s from 8K through 128K. After a 9k prompt it stays ~20.3. Prefill peaks at 16K, then drops at 128K.</text>
+<text x="88" y="800" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">F16 vs FP32 is not the GGUF. Weights are mixed IQ3_S / IQ4_NL. GGML_SYCL_F16 is a compile-time SYCL flag (two binaries).</text>
+<text x="88" y="832" fill="#9caec4" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">F16 wins prefill. FP32 is a bit faster on decode (23.4 at 8K).</text>
+<text x="88" y="872" fill="#f5f8fc" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">8K / 16K / 128K = context, not concurrency. Self-reported.</text>
+<text x="88" y="960" fill="#64748b" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif">Recipe: github.com/SergiioB/intel-arc-pro-b70-inference-cookbook · docs/qwen38-flash-next/QWEN38-FLASH-NEXT-LLAMACPP.md</text>
 </svg>

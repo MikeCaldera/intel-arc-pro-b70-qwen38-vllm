@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc">
+<title id="title">Qwen3.8-Flash-Next C1 llama.cpp SYCL dashboard on two Intel Arc Pro B70 GPUs</title>
+<desc id="desc">Two separate C1 recipes. Fused FP32 8K context p512/g128 decode median 23.38 engine tok/s n=5. Fused F16 16K context actual p9096/g128 cold input median 594.49 engine tok/s n=5. c8 and c16 are context windows, not concurrency. Do not mix the two binaries as one recipe. Self-reported E2.</desc>
+<rect width="1600" height="1180" fill="#07111f"/>
+<text x="48" y="48" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">QWEN3.8-FLASH-NEXT · 2× INTEL ARC PRO B70 · llama.cpp SYCL</text>
+<text x="48" y="94" fill="#f5f8fc" font-size="34" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">C1 only · two binaries, two recipes</text>
+<text x="48" y="128" fill="#9caec4" font-size="17" font-weight="400" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">c8 / c16 = context windows, not concurrency · 195 W configured cap · loaded-idle GPU1 pkg ~62 °C</text>
+<rect x="1168" y="28" width="384" height="88" rx="18" fill="#0f1d30"/>
+<text x="1360" y="64" fill="#55d6be" font-size="18" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">E2 SELF-REPORTED</text>
+<text x="1360" y="94" fill="#9caec4" font-size="13" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">independent reproduction pending</text>
+<rect x="48" y="164" width="736" height="430" rx="28" fill="#0f1d30"/>
+<text x="82" y="206" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">DECODE-FIRST · FUSED FP32 · 8K CONTEXT</text>
+<text x="82" y="246" fill="#f5f8fc" font-size="22" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">p512 / g128 · C1 · n=5 median</text>
+<text x="82" y="340" fill="#55d6be" font-size="72" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">23.38</text>
+<text x="360" y="332" fill="#9caec4" font-size="22" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">engine tok/s</text>
+<text x="82" y="386" fill="#ffb45c" font-size="16" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">maximum observed  23.73 · range 23.22–23.73</text>
+<text x="82" y="424" fill="#9caec4" font-size="16" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">cold input on this server  183.98 tok/s</text>
+<text x="82" y="460" fill="#9caec4" font-size="16" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">GGML_SYCL_F16=OFF · -b/-ub 512 · q8_0/q4_1</text>
+<text x="82" y="548" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">timings.predicted_per_second · cache_n=0</text>
+<rect x="816" y="164" width="736" height="430" rx="28" fill="#0f1d30"/>
+<text x="850" y="206" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">PREFILL-FIRST · FUSED F16 · 16K CONTEXT</text>
+<text x="850" y="246" fill="#f5f8fc" font-size="22" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">actual p9096 / g128 · C1 · n=5 median</text>
+<text x="850" y="340" fill="#68a7ff" font-size="72" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">594.49</text>
+<text x="1178" y="332" fill="#9caec4" font-size="22" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">engine tok/s</text>
+<text x="850" y="386" fill="#ffb45c" font-size="16" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">maximum observed  595.45 · range 594.11–595.45</text>
+<text x="850" y="424" fill="#9caec4" font-size="16" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">decode on this server  20.34 tok/s</text>
+<text x="850" y="460" fill="#9caec4" font-size="16" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">GGML_SYCL_F16=ON · -b/-ub 3072 · q8_0/q4_1</text>
+<text x="850" y="548" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">timings.prompt_per_second · cache_n=0</text>
+<rect x="48" y="622" width="1504" height="430" rx="28" fill="#0f1d30"/>
+<text x="82" y="666" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">DO NOT MIX AS ONE RECIPE</text>
+<text x="82" y="710" fill="#f5f8fc" font-size="24" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 is a compile-time flag · layer split, not tensor-parallel vLLM</text>
+<rect x="82" y="748" width="700" height="250" rx="18" fill="#0b1829"/>
+<text x="106" y="790" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">Artifact</text>
+<text x="106" y="828" fill="#f5f8fc" font-size="18" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">AtomicChat AD-4.27bpw M64</text>
+<text x="106" y="860" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">IQ3_S gate/up · IQ4_NL down · Q5_1 PLE CPU</text>
+<text x="106" y="892" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">88.03 GiB · no usable MTP</text>
+<text x="106" y="924" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">llama.cpp 9723942 · IntelLLVM 2026.0.0</text>
+<text x="106" y="956" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">t=1.0 / top_p=0.95 / top_k=20 · ignore_eos</text>
+<rect x="818" y="748" width="700" height="250" rx="18" fill="#0b1829"/>
+<text x="842" y="790" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">Placement and power</text>
+<text x="842" y="828" fill="#f5f8fc" font-size="18" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">SYCL0+SYCL1 · split-mode layer 1,1</text>
+<text x="842" y="860" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">CPU-attached x8+x8 · no GPU P2P · not vLLM TP2</text>
+<text x="842" y="892" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">-np 1 · -t 6 -tb 14 · FA on · --no-cache-prompt</text>
+<text x="842" y="924" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">draw ~97–99 / 108 W vs 195 W cap</text>
+<text x="842" y="956" fill="#ffb45c" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">not ordinary ≤55 °C cooldown</text>
+<text x="800" y="1148" fill="#64748b" font-size="14" font-weight="400" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">Official-lab C1 n=5 · smoke B70-FLASH-OK / 703 / Paris · do not mix with Qwen3.8-27B vLLM numbers</text>
+</svg>

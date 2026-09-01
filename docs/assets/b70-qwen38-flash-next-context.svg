@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="title desc">
+<title id="title">Qwen3.8-Flash-Next C1 context scaling on two Intel Arc Pro B70 GPUs</title>
+<desc id="desc">Provisional n=3 C1 screens. c8, c16, and c128 are context windows. Fused F16 16K actual-p9096 cold input 593.98; fused FP32 16K 478.71; 128K F16 398.02 and FP32 353.95. p512 decode stays about 23 tok/s across 8K to 128K. Not n=5 ranking cells.</desc>
+<rect width="1600" height="1100" fill="#07111f"/>
+<text x="48" y="48" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">QWEN3.8-FLASH-NEXT · CONTEXT WINDOWS · C1 n=3 PROVISIONAL</text>
+<text x="48" y="94" fill="#f5f8fc" font-size="32" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">c8 / c16 / c128 are context, not concurrency</text>
+<text x="48" y="128" fill="#9caec4" font-size="17" font-weight="400" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">Overnight screens · one discarded warmup · not ranking cells · 128K uses -b/-ub 1024</text>
+<rect x="1220" y="28" width="332" height="88" rx="18" fill="#0f1d30"/>
+<text x="1386" y="64" fill="#ffb45c" font-size="18" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">PROVISIONAL n=3</text>
+<text x="1386" y="94" fill="#9caec4" font-size="13" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">not the n=5 catalog rows</text>
+<rect x="48" y="164" width="1504" height="430" rx="28" fill="#0f1d30"/>
+<text x="82" y="208" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">COLD INPUT · actual p9096 except 8K (p512)</text>
+<text x="82" y="248" fill="#f5f8fc" font-size="22" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">engine prompt_per_second · cache_n=0</text>
+<text x="100" y="300" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 16K</text>
+<rect x="220" y="278" width="1180" height="28" rx="8" fill="#1f2937"/>
+<rect x="220" y="278" width="1180" height="28" rx="8" fill="#68a7ff"/>
+<text x="1420" y="300" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">593.98</text>
+<text x="100" y="360" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 16K</text>
+<rect x="220" y="338" width="951" height="28" rx="8" fill="#1f2937"/>
+<rect x="220" y="338" width="951" height="28" rx="8" fill="#55d6be"/>
+<text x="1186" y="360" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">478.71</text>
+<text x="100" y="420" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 128K</text>
+<rect x="220" y="398" width="791" height="28" rx="8" fill="#1f2937"/>
+<rect x="220" y="398" width="791" height="28" rx="8" fill="#68a7ff"/>
+<text x="1026" y="420" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">398.02</text>
+<text x="100" y="480" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 128K</text>
+<rect x="220" y="458" width="703" height="28" rx="8" fill="#1f2937"/>
+<rect x="220" y="458" width="703" height="28" rx="8" fill="#55d6be"/>
+<text x="938" y="480" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">353.95</text>
+<text x="100" y="540" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 8K p512</text>
+<rect x="220" y="518" width="381" height="28" rx="8" fill="#1f2937"/>
+<rect x="220" y="518" width="381" height="28" rx="8" fill="#68a7ff"/>
+<text x="616" y="540" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">191.55</text>
+<text x="800" y="572" fill="#9caec4" font-size="14" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">cold-input token/s · F16 16K n=5 confirmation is 594.49, not this n=3 593.98</text>
+<rect x="48" y="620" width="1504" height="390" rx="28" fill="#0f1d30"/>
+<text x="82" y="664" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">DECODE · p512/g128 stays ~23 tok/s from 8K to 128K</text>
+<rect x="82" y="700" width="452" height="250" rx="18" fill="#0b1829"/>
+<text x="106" y="740" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">8K context</text>
+<text x="106" y="802" fill="#55d6be" font-size="40" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">23.38</text>
+<text x="106" y="844" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 · n=5 catalog cell</text>
+<text x="106" y="876" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 n=3  22.96</text>
+<rect x="558" y="700" width="452" height="250" rx="18" fill="#0b1829"/>
+<text x="582" y="740" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">16K context</text>
+<text x="582" y="802" fill="#f5f8fc" font-size="40" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">23.37</text>
+<text x="582" y="844" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 n=3 · F16 n=3  23.31</text>
+<text x="582" y="876" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">p9096 decode ~20.3</text>
+<rect x="1034" y="700" width="452" height="250" rx="18" fill="#0b1829"/>
+<text x="1058" y="740" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">128K context</text>
+<text x="1058" y="802" fill="#f5f8fc" font-size="40" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">23.54</text>
+<text x="1058" y="844" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 n=3 · F16 n=3  23.06</text>
+<text x="1058" y="876" fill="#ffb45c" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">capacity observation, not n=5</text>
+<text x="800" y="1068" fill="#64748b" font-size="14" font-weight="400" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">GPU grouping n=3 F16 16K p9096: 599.48 vs disable 594.67 (+0.81%) · occupancy D2H remains</text>
+</svg>

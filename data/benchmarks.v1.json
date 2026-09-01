@@ -593,8 +593,8 @@
     "samples": 5
    },
    "evidence": {
-    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
-    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n5-fused-fp32-c8k-p512-g128/summary.json"
+    "commit": "53836d9df7225a83ea6dcef3a38dcdb6abf2453e",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/53836d9df7225a83ea6dcef3a38dcdb6abf2453e/results/qwen38-flash-next-dual-b70-c1/n5-fused-fp32-c8k-p512-g128/summary.json"
    }
   },
   {
@@ -643,8 +643,8 @@
     "samples": 5
    },
    "evidence": {
-    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
-    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n5-fused-f16-c16k-p9096-g128/summary.json"
+    "commit": "53836d9df7225a83ea6dcef3a38dcdb6abf2453e",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/53836d9df7225a83ea6dcef3a38dcdb6abf2453e/results/qwen38-flash-next-dual-b70-c1/n5-fused-f16-c16k-p9096-g128/summary.json"
    }
   },
   {
@@ -669,8 +669,8 @@
     "speculation": "none"
    },
    "evidence": {
-    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
-    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n3-context-map.json"
+    "commit": "53836d9df7225a83ea6dcef3a38dcdb6abf2453e",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/53836d9df7225a83ea6dcef3a38dcdb6abf2453e/results/qwen38-flash-next-dual-b70-c1/n3-context-map.json"
    }
   },
   {
@@ -695,8 +695,8 @@
     "speculation": "none"
    },
    "evidence": {
-    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
-    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n3-f16-gpu-group-c16k-p9096-g128/summary.json"
+    "commit": "53836d9df7225a83ea6dcef3a38dcdb6abf2453e",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/53836d9df7225a83ea6dcef3a38dcdb6abf2453e/results/qwen38-flash-next-dual-b70-c1/n3-f16-gpu-group-c16k-p9096-g128/summary.json"
    }
   }
  ]

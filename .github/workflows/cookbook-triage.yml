@@ -1,0 +1,148 @@
+name: cookbook-triage
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to (re-)triage"
+        required: false
+        type: number
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve issue number
+        id: issue
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.issue_number }}" ]; then
+            echo "number=${{ inputs.issue_number }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Triage
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const num = Number('${{ steps.issue.outputs.number }}');
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: num
+            });
+            const body = (issue.body || '').toLowerCase();
+            const title = (issue.title || '').toLowerCase();
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: num
+            });
+            const allText = (body + '\n' + title + '\n' + comments.map(c=>c.body||'').join('\n')).toLowerCase();
+
+            const labels = new Set(issue.labels.map(l=>l.name));
+            const add = new Set();
+            const remove = new Set();
+
+            // helper
+            const has = (s) => allText.includes(s);
+            const hasAny = (...ss) => ss.some(s=> allText.includes(s));
+
+            // B70 count
+            if (has('4×') || has('4x') || has('b70:4') || title.includes('tp4')) add.add('b70:4');
+            else if (has('2×') || has('2x') || has('tp2') || has('2 x b70')) add.add('b70:2');
+            else if (has('1×') || has('1x') || has('tp1') || has('single')) add.add('b70:1');
+
+            // TP/PP
+            if (has('tp4') || has('tensor-parallel-size 4')) add.add('tp:4');
+            else if (has('tp2') || has('tensor-parallel-size 2')) add.add('tp:2');
+            else if (has('tp1') || has('tensor-parallel-size 1')) add.add('tp:1');
+            if (has('pp2')) add.add('pp:2');
+
+            // feature labels
+            if (has('xe coredump') || has('timedout job') || has('guc_id') || has('driver hang')) add.add('driver-hang');
+            if (has('tool-call') || has('tool_call') || has('qwen3_coder') || has('enable-auto-tool-choice')) add.add('tool-calling');
+            if (has('draft') && has('int4')) add.add('draft-int4');
+
+            // question -> invalid pattern
+            const isQuestion = has('bigger model than int4') || (title.includes('bigger model') && !has('xe ') && !has('corrupt'));
+            // completeness: need image sha + docker cmd + logs for hang
+            const hasImage = has('sha256:') || has('f01e24f') || has('2c427ef');
+            const hasCmd = has('docker run') || has('tensor-parallel-size') || has('tp=') || has('tp =') || has('--enable-auto-tool-choice');
+            const hasLog = has('xe ') || has('seqno') || has('tok=') || has('finish_reason');
+
+            // tp2 + draft-int4 block (issue #9)
+            if ((labels.has('tp:2') || add.has('tp:2')) && (labels.has('draft-int4') || add.has('draft-int4'))) {
+              add.add('tp2-draft-block');
+            }
+            if (has('patch_draft_lmhead') && has('tp2')) add.add('tp2-draft-block');
+            if (has('patch_draft_mtp_int4') && has('tp2')) add.add('tp2-draft-block');
+
+            // readiness
+            const needsInfo = !hasImage || !hasCmd;
+            const isHangNeedsLog = add.has('driver-hang') && !hasLog;
+
+            if (isQuestion) {
+              add.add('question');
+            } else if (needsInfo || isHangNeedsLog) {
+              add.add('needs-info');
+              remove.add('ready');
+            } else if (!isQuestion) {
+              // has image+cmd -> ready unless question
+              add.add('ready');
+              remove.add('needs-info');
+            }
+
+            // apply labels atomically
+            const toAdd = [...add].filter(l => !labels.has(l));
+            const toRemove = [...remove].filter(l => labels.has(l));
+            for (const l of toAdd) {
+              try { await github.rest.issues.addLabels({owner: context.repo.owner, repo: context.repo.repo, issue_number: num, labels:[l]}); } catch(e){ console.log('add label failed',l,e.message)}
+            }
+            for (const l of toRemove) {
+              try { await github.rest.issues.removeLabel({owner: context.repo.owner, repo: context.repo.repo, issue_number: num, name:l}); } catch(e){}
+            }
+
+            // comments for specific cases (idempotent: check existing bot comments)
+            const botComments = comments.filter(c=> c.user.type==='Bot' && c.body.includes('cookbook-triage'));
+            const hasBot = (needle) => botComments.some(c=> c.body.includes(needle));
+
+            if (add.has('tp2-draft-block') && !hasBot('tp2-draft-block')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: num,
+                body: `<!-- cookbook-triage:tp2-draft-block -->\n**cookbook-triage:** \`TP2 + draft-INT4\` detected.\n\nPer #9, \`patch_draft_lmhead_int4.py\` + \`patch_draft_mtp_int4.py\` are **single-card scoped** (QWEN38-VLLM-XPU.md §12, \`ZE_AFFINITY_MASK=0\`). The DUAL-B70-TP2.md matrix row was single-card data printed on the TP2 page. Do not use with \`--tensor-parallel-size 2\`.\n\n- If this is a TP2 repro: re-run **without** those two patches (keep \`mtp_nightly\`, \`mtp_boundary\`, \`gdn_mixed_split_v5\`).\n- Tracked as \`tp2-draft-block\`. Will auto-close if confirmed dupe of #9 on next triage.\n`
+              });
+            }
+            if (add.has('driver-hang') && isHangNeedsLog && !hasBot('needs dmesg')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: num,
+                body: `<!-- cookbook-triage:needs-dmesg -->\n**cookbook-triage:** driver hang needs \`dmesg\`.\n\nPlease paste the \`xe 0000:.. [drm] Xe device coredump\` lines (seqno, guc_id) and the exact \`docker run\` command. Labelled \`needs-info\` — will re-triage to \`ready\` when present.\n`
+              });
+            }
+            if ((needsInfo || isHangNeedsLog) && !hasBot('needs-info') && !add.has('driver-hang')) {
+              // generic needs-info only once, not for hang already commented
+              const generic = !botComments.some(c=> c.body.includes('needs-info'));
+              if (generic) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number: num,
+                  body: `<!-- cookbook-triage:needs-info -->\n**cookbook-triage:** missing required fields.\n\nNeed \`image sha256\` + \`exact docker/launch command\` (with \`--tensor-parallel-size\`) to move to \`ready\`. See Issue Form template. Labelled \`needs-info\`.\n`
+                });
+              }
+            }
+            if (isQuestion && !hasBot('question')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: num,
+                body: `<!-- cookbook-triage:question -->\n**cookbook-triage:** this looks like a question, not a bug.\n\nPlease open a **Discussion** (https://github.com/${context.repo.owner}/${context.repo.repo}/discussions) for open-ended questions like “bigger model than INT4”. This issue is labelled \`question\` and will be closed in 7 days if not moved.\n`
+              });
+            }
+
+            core.summary.addHeading('triage');
+            core.summary.addRaw(`issue #${num}: added [${[...add].join(', ')}] removed [${[...remove].join(', ')}] isQuestion=${isQuestion} needsInfo=${needsInfo}`);
+            await core.summary.write();

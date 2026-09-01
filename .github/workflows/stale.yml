@@ -1,0 +1,25 @@
+name: stale
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-stale: 14
+          days-before-close: 7
+          stale-issue-message: |
+            <!-- stale -->
+            Labelled `needs-info` for 14 days without reporter reply — marking stale. Reply with the requested `image sha` / `docker cmd` / `dmesg` to re-triage to `ready`. Auto-close in 7 days if no update.
+          stale-issue-label: "stale"
+          exempt-issue-labels: "ready,confirmed"
+          days-before-issue-stale: 14
+          days-before-issue-close: 7
+          operations-per-run: 50

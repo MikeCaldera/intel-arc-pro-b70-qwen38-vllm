@@ -1,3 +1,5 @@
+<!-- GENERATED: source=data/benchmarks.v1.json command='python3 scripts/render-benchmark-catalog.py'; DO NOT EDIT -->
+
 # Public benchmark catalog
 
 > Generated from `data/benchmarks.v1.json`. Edit the JSON, then run

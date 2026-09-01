@@ -14,11 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate system map
-        run: python3 scripts/validate-system-map.py
-      - name: Check generated benchmark catalog
-        run: python3 scripts/render-benchmark-catalog.py --check
-      - name: Run repository tests
-        run: python3 -m unittest discover -s tests -v
+        run: python3 scripts/check-repo.py
       - uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

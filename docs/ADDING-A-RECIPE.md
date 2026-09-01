@@ -64,10 +64,10 @@ Do not hand-edit `docs/BENCHMARK-CATALOG.md`. README contains route summaries, n
 ## 6. Run the acceptance gates
 
 ```bash
-python3 scripts/validate-system-map.py
-python3 scripts/render-benchmark-catalog.py --check
-python3 -m unittest discover -s tests -v
+python3 scripts/check-repo.py
 ```
+
+Use `python3 scripts/check-repo.py --format json` for machine-readable handoff.
 
 For executable recipes, also run the narrowest applicable text-patch verifier or live smoke test and state whether it used a GPU. A GPU-free apply test proves source compatibility only; it does not prove runtime correctness or performance.
 

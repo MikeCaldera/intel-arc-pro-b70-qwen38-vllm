@@ -75,7 +75,7 @@ Combined with three load-path patches (BF16 draft, kwarg strip), MTP runs →
   single-layer MTP ceiling (their `num_spec=2` may have hit).
 - **KL/acceptance audit** of the MTP path vs eager — the correctness gate
   before production use.
-- **Dense FP8 XPU kernel** — see [DENSE-FP8-GAP.md](DENSE-FP8-GAP.md).
+- **Dense FP8 XPU kernel** — see [DENSE-FP8-GAP.md](qwen36-27/DENSE-FP8-GAP.md).
 
 ## Full data
 

@@ -8,7 +8,7 @@ This repository is a layered publication system. Use the narrowest authority tha
 2. Read `data/system-map.v1.json` and follow that intent's `start` and `then` paths.
 3. Select one model family and one serving route before reading commands.
 4. Change an authority, not a rendered view.
-5. Run every command in the system map's `validation` list.
+5. Run `python3 scripts/check-repo.py`, the stable GPU-free validation entry point.
 6. Report the changed authority, generated outputs, evidence, and remaining uncertainty.
 
 ## Tower of abstractions
@@ -28,6 +28,7 @@ Dependencies flow downward when deciding and upward when publishing: control sel
 - Read the system map first, then at most one contract and one family hub until the task requires more.
 - Search by stable record ID, family slug, image digest prefix, or patch filename. Do not search by a copied throughput value.
 - Prefer JSON authorities and deterministic renderers over prose synchronization.
+- Use `python3 scripts/check-repo.py --format json` when another agent needs structured gate results.
 - Reuse an existing family route unless the engine, artifact class, or compatibility boundary is genuinely different.
 - Keep raw campaign evidence outside the public catalog when it contains private paths or excessive bulk. Publish a compact, commit-pinned summary.
 

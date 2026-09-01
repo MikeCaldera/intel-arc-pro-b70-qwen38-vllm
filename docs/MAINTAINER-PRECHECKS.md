@@ -25,7 +25,10 @@ On open, a bot comments once: which `patches/*.py` files changed, whether a veri
 For text patches, GPU-free apply on the pinned image is enough:
 
 ```
-IMAGE=vllm/vllm-openai-xpu@sha256:<pinned> bash scripts/verify-mtp-apc-fixes.sh
+IMAGE=vllm/vllm-openai-xpu@sha256:<pinned> bash scripts/verify-<change>.sh
 ```
 
-`docker run` without `--device`. Pass means the patches apply, re-apply is a no-op, and the touched files compile in both vLLM trees. That is not a live corruption measurement.
+Use the verifier shipped in the PR; there is no repository-wide patch verifier.
+`docker run` without `--device`. Pass means the patches apply, re-apply is a no-op,
+and the touched files compile in the targeted vLLM trees. That is not a live
+corruption measurement.

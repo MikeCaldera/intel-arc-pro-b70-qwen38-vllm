@@ -14,6 +14,8 @@ The repository is a five-layer system: control -> contracts -> family recipes
 -> evidence -> generated reader views. Edit the owning authority, then render
 and validate downstream views. Do not maintain copied benchmark or patch tables.
 
+Run all GPU-free repository gates with `python3 scripts/check-repo.py`.
+
 This is **one cookbook with one page per model family**. Do not start a second
 repo when a new architecture lands: add `docs/<family>/` + `benchmarks/<family>/`
 and pin that family's image digest. **Do not mix patch lists or numbers across

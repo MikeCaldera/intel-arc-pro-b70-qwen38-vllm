@@ -47,6 +47,7 @@
     "Historical evidence remains immutable and labeled; supersession uses links, not rewriting."
   ],
   "validation": [
+    "python3 scripts/check-repo.py",
     "python3 scripts/validate-system-map.py",
     "python3 scripts/render-benchmark-catalog.py --check",
     "python3 -m unittest discover -s tests -v"

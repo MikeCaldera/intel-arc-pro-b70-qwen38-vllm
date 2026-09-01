@@ -35,7 +35,5 @@ Owning authority changed (one): system map / benchmark catalog / benchmark
 contract / image-patch matrix / reliability map / family recipe
 
 - [ ] I followed `docs/ADDING-A-RECIPE.md` for a new or changed route
-- [ ] `python3 scripts/validate-system-map.py`
-- [ ] `python3 scripts/render-benchmark-catalog.py --check`
-- [ ] `python3 -m unittest discover -s tests -v`
+- [ ] `python3 scripts/check-repo.py`
 - [ ] Generated views were regenerated, not hand-edited

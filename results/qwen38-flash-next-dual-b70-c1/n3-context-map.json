@@ -18,22 +18,24 @@
    "p9096_decode_median": null,
    "p9096_cold_input_median": null
   },
-  {
-   "binary": "fused-FP32",
-   "context_limit_tokens": 16384,
-   "batch": 3072,
-   "p512_decode_median": 23.37,
-   "p9096_decode_median": 20.25,
-   "p9096_cold_input_median": 478.71
-  },
-  {
-   "binary": "fused-FP32",
-   "context_limit_tokens": 131072,
-   "batch": 1024,
-   "p512_decode_median": 23.54,
-   "p9096_decode_median": 20.41,
-   "p9096_cold_input_median": 353.95
-  },
+   {
+    "binary": "fused-FP32",
+    "context_limit_tokens": 16384,
+    "batch": 3072,
+    "p512_decode_median": 23.37,
+    "p512_cold_input_median": 183.61,
+    "p9096_decode_median": 20.25,
+    "p9096_cold_input_median": 478.71
+   },
+   {
+    "binary": "fused-FP32",
+    "context_limit_tokens": 131072,
+    "batch": 1024,
+    "p512_decode_median": 23.54,
+    "p512_cold_input_median": 183.38,
+    "p9096_decode_median": 20.41,
+    "p9096_cold_input_median": 353.95
+   },
   {
    "binary": "fused-F16",
    "context_limit_tokens": 8192,
@@ -43,22 +45,24 @@
    "p9096_decode_median": null,
    "p9096_cold_input_median": null
   },
-  {
-   "binary": "fused-F16",
-   "context_limit_tokens": 16384,
-   "batch": 3072,
-   "p512_decode_median": 23.31,
-   "p9096_decode_median": 20.4,
-   "p9096_cold_input_median": 593.98
-  },
-  {
-   "binary": "fused-F16",
-   "context_limit_tokens": 131072,
-   "batch": 1024,
-   "p512_decode_median": 23.06,
-   "p9096_decode_median": 20.25,
-   "p9096_cold_input_median": 398.02
-  }
+   {
+    "binary": "fused-F16",
+    "context_limit_tokens": 16384,
+    "batch": 3072,
+    "p512_decode_median": 23.31,
+    "p512_cold_input_median": 192.64,
+    "p9096_decode_median": 20.4,
+    "p9096_cold_input_median": 593.98
+   },
+   {
+    "binary": "fused-F16",
+    "context_limit_tokens": 131072,
+    "batch": 1024,
+    "p512_decode_median": 23.06,
+    "p512_cold_input_median": 195.57,
+    "p9096_decode_median": 20.25,
+    "p9096_cold_input_median": 398.02
+   }
  ],
  "128k_batch_limit": "b1536+ rejected with n_gpu_layers already set by user to 99; measured 128K cells used -b/-ub 1024"
 }

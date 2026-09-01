@@ -1,53 +1,121 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="title desc">
-<title id="title">Qwen3.8-Flash-Next C1 context scaling on two Intel Arc Pro B70 GPUs</title>
-<desc id="desc">Provisional n=3 C1 screens. c8, c16, and c128 are context windows. Fused F16 16K actual-p9096 cold input 593.98; fused FP32 16K 478.71; 128K F16 398.02 and FP32 353.95. p512 decode stays about 23 tok/s across 8K to 128K. Not n=5 ranking cells.</desc>
-<rect width="1600" height="1100" fill="#07111f"/>
-<text x="48" y="48" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">QWEN3.8-FLASH-NEXT · CONTEXT WINDOWS · C1 n=3 PROVISIONAL</text>
-<text x="48" y="94" fill="#f5f8fc" font-size="32" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">c8 / c16 / c128 are context, not concurrency</text>
-<text x="48" y="128" fill="#9caec4" font-size="17" font-weight="400" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">Overnight screens · one discarded warmup · not ranking cells · 128K uses -b/-ub 1024</text>
-<rect x="1220" y="28" width="332" height="88" rx="18" fill="#0f1d30"/>
-<text x="1386" y="64" fill="#ffb45c" font-size="18" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">PROVISIONAL n=3</text>
-<text x="1386" y="94" fill="#9caec4" font-size="13" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">not the n=5 catalog rows</text>
-<rect x="48" y="164" width="1504" height="430" rx="28" fill="#0f1d30"/>
-<text x="82" y="208" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">COLD INPUT · actual p9096 except 8K (p512)</text>
-<text x="82" y="248" fill="#f5f8fc" font-size="22" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">engine prompt_per_second · cache_n=0</text>
-<text x="100" y="300" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 16K</text>
-<rect x="220" y="278" width="1180" height="28" rx="8" fill="#1f2937"/>
-<rect x="220" y="278" width="1180" height="28" rx="8" fill="#68a7ff"/>
-<text x="1420" y="300" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">593.98</text>
-<text x="100" y="360" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 16K</text>
-<rect x="220" y="338" width="951" height="28" rx="8" fill="#1f2937"/>
-<rect x="220" y="338" width="951" height="28" rx="8" fill="#55d6be"/>
-<text x="1186" y="360" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">478.71</text>
-<text x="100" y="420" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 128K</text>
-<rect x="220" y="398" width="791" height="28" rx="8" fill="#1f2937"/>
-<rect x="220" y="398" width="791" height="28" rx="8" fill="#68a7ff"/>
-<text x="1026" y="420" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">398.02</text>
-<text x="100" y="480" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 128K</text>
-<rect x="220" y="458" width="703" height="28" rx="8" fill="#1f2937"/>
-<rect x="220" y="458" width="703" height="28" rx="8" fill="#55d6be"/>
-<text x="938" y="480" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">353.95</text>
-<text x="100" y="540" fill="#9caec4" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 8K p512</text>
-<rect x="220" y="518" width="381" height="28" rx="8" fill="#1f2937"/>
-<rect x="220" y="518" width="381" height="28" rx="8" fill="#68a7ff"/>
-<text x="616" y="540" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">191.55</text>
-<text x="800" y="572" fill="#9caec4" font-size="14" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">cold-input token/s · F16 16K n=5 confirmation is 594.49, not this n=3 593.98</text>
-<rect x="48" y="620" width="1504" height="390" rx="28" fill="#0f1d30"/>
-<text x="82" y="664" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">DECODE · p512/g128 stays ~23 tok/s from 8K to 128K</text>
-<rect x="82" y="700" width="452" height="250" rx="18" fill="#0b1829"/>
-<text x="106" y="740" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">8K context</text>
-<text x="106" y="802" fill="#55d6be" font-size="40" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">23.38</text>
-<text x="106" y="844" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 · n=5 catalog cell</text>
-<text x="106" y="876" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 n=3  22.96</text>
-<rect x="558" y="700" width="452" height="250" rx="18" fill="#0b1829"/>
-<text x="582" y="740" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">16K context</text>
-<text x="582" y="802" fill="#f5f8fc" font-size="40" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">23.37</text>
-<text x="582" y="844" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 n=3 · F16 n=3  23.31</text>
-<text x="582" y="876" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">p9096 decode ~20.3</text>
-<rect x="1034" y="700" width="452" height="250" rx="18" fill="#0b1829"/>
-<text x="1058" y="740" fill="#9caec4" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">128K context</text>
-<text x="1058" y="802" fill="#f5f8fc" font-size="40" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">23.54</text>
-<text x="1058" y="844" fill="#9caec4" font-size="15" font-weight="500" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 n=3 · F16 n=3  23.06</text>
-<text x="1058" y="876" fill="#ffb45c" font-size="15" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">capacity observation, not n=5</text>
-<text x="800" y="1068" fill="#64748b" font-size="14" font-weight="400" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">GPU grouping n=3 F16 16K p9096: 599.48 vs disable 594.67 (+0.81%) · occupancy D2H remains</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1480" viewBox="0 0 1600 1480" role="img" aria-labelledby="title desc">
+<title id="title">Qwen3.8-Flash-Next C1 decode and prefill scaling from 8K to 128K context</title>
+<desc id="desc">Provisional n=3 C1 screens on two Intel Arc Pro B70 GPUs. Context windows c8, c16, and c128, not concurrency. Prefill: p512 cold input stays about 183-196 tok/s from 8K to 128K; actual-p9096 cold input peaks at 16K (F16 593.98, FP32 478.71) then falls at 128K (F16 398.02, FP32 353.95). Decode: p512/g128 stays about 23 tok/s from 8K to 128K; p9096/g128 stays about 20.3 tok/s at 16K and 128K. 8K cannot hold a 9096-token prompt. Not n=5 ranking cells.</desc>
+<rect width="1600" height="1480" fill="#07111f"/>
+<text x="48" y="48" fill="#55d6be" font-size="16" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">QWEN3.8-FLASH-NEXT · 2× B70 · llama.cpp SYCL · C1</text>
+<text x="48" y="94" fill="#f5f8fc" font-size="32" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">Decode and prefill vs context</text>
+<text x="48" y="128" fill="#9caec4" font-size="17" font-weight="400" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">Low 8K → 16K → maximum 128K · c8/c16/c128 are context windows, not concurrency · n=3 provisional</text>
+<rect x="1188" y="28" width="364" height="88" rx="18" fill="#0f1d30"/>
+<text x="1370" y="64" fill="#ffb45c" font-size="18" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">PROVISIONAL n=3</text>
+<text x="1370" y="94" fill="#9caec4" font-size="13" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">n=5 leaders are 23.38 / 594.49</text>
+
+<rect x="48" y="164" width="1504" height="620" rx="28" fill="#0f1d30"/>
+<text x="82" y="208" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">PREFILL · engine prompt_per_second · cache_n=0</text>
+<text x="82" y="246" fill="#f5f8fc" font-size="24" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">Cold input rises at 16K, then falls at 128K</text>
+<line x1="158" y1="714.0" x2="1462" y2="714.0" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="719.0" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">0</text>
+<line x1="158" y1="612.5" x2="1462" y2="612.5" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="617.5" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">150</text>
+<line x1="158" y1="510.9" x2="1462" y2="510.9" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="515.9" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">300</text>
+<line x1="158" y1="409.4" x2="1462" y2="409.4" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="414.4" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">450</text>
+<line x1="158" y1="307.8" x2="1462" y2="307.8" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="312.8" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">600</text>
+<line x1="158.0" y1="274" x2="158.0" y2="714" stroke="#20344d" stroke-width="1"/>
+<text x="158.0" y="742" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">8K</text>
+<text x="158.0" y="762" fill="#9caec4" font-size="13" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">c8 context</text>
+<line x1="810.0" y1="274" x2="810.0" y2="714" stroke="#20344d" stroke-width="1"/>
+<text x="810.0" y="742" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">16K</text>
+<text x="810.0" y="762" fill="#9caec4" font-size="13" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">c16 context</text>
+<line x1="1462.0" y1="274" x2="1462.0" y2="714" stroke="#20344d" stroke-width="1"/>
+<text x="1462.0" y="742" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">128K</text>
+<text x="1462.0" y="762" fill="#9caec4" font-size="13" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">c128 context</text>
+<polyline fill="none" stroke="#68a7ff" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round" points="810.0,311.9 1462.0,444.6"/>
+<polyline fill="none" stroke="#55d6be" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round" points="810.0,390.0 1462.0,474.4"/>
+<polyline fill="none" stroke="#68a7ff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 6" points="158.0,584.3 810.0,583.6 1462.0,581.6"/>
+<polyline fill="none" stroke="#55d6be" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 6" points="158.0,590.0 810.0,589.7 1462.0,589.9"/>
+<circle cx="810.0" cy="311.9" r="8" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="444.6" r="8" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="810.0" cy="390.0" r="8" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="474.4" r="8" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="158.0" cy="584.3" r="6" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="810.0" cy="583.6" r="6" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="581.6" r="6" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="158.0" cy="590.0" r="6" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="810.0" cy="589.7" r="6" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="589.9" r="6" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<text x="810.0" y="293.9" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">593.98</text>
+<text x="1462.0" y="426.6" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">398.02</text>
+<text x="810.0" y="418.0" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">478.71</text>
+<text x="1462.0" y="502.4" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">353.95</text>
+<text x="158.0" y="566.3" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">191.55</text>
+<text x="158.0" y="618.0" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">183.17</text>
+<text x="1462" y="266" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">token/s</text>
+<rect x="82" y="722" width="18" height="6" rx="2" fill="#68a7ff"/>
+<text x="108" y="728" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 p9096</text>
+<rect x="250" y="722" width="18" height="6" rx="2" fill="#55d6be"/>
+<text x="276" y="728" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 p9096</text>
+<line x1="470" y1="725" x2="500" y2="725" stroke="#68a7ff" stroke-width="3" stroke-dasharray="7 6"/>
+<text x="508" y="728" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 p512</text>
+<line x1="640" y1="725" x2="670" y2="725" stroke="#55d6be" stroke-width="3" stroke-dasharray="7 6"/>
+<text x="678" y="728" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 p512</text>
+<text x="980" y="728" fill="#ffb45c" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">no p9096 at 8K · 128K uses -b 1024</text>
+
+<rect x="48" y="810" width="1504" height="560" rx="28" fill="#0f1d30"/>
+<text x="82" y="854" fill="#55d6be" font-size="15" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">DECODE · engine predicted_per_second · g128 · C1</text>
+<text x="82" y="892" fill="#f5f8fc" font-size="24" font-weight="700" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">p512 stays ~23 tok/s from 8K to 128K · long prompt ~20.3</text>
+<line x1="158" y1="1300.0" x2="1462" y2="1300.0" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="1305.0" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">0</text>
+<line x1="158" y1="1205.0" x2="1462" y2="1205.0" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="1210.0" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">7</text>
+<line x1="158" y1="1110.0" x2="1462" y2="1110.0" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="1115.0" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">14</text>
+<line x1="158" y1="1015.0" x2="1462" y2="1015.0" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="1020.0" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">21</text>
+<line x1="158" y1="920.0" x2="1462" y2="920.0" stroke="#20344d" stroke-width="1"/>
+<text x="142" y="925.0" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">28</text>
+<line x1="158.0" y1="920" x2="158.0" y2="1300" stroke="#20344d" stroke-width="1"/>
+<text x="158.0" y="1328" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">8K</text>
+<text x="158.0" y="1348" fill="#9caec4" font-size="13" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">c8 context</text>
+<line x1="810.0" y1="920" x2="810.0" y2="1300" stroke="#20344d" stroke-width="1"/>
+<text x="810.0" y="1328" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">16K</text>
+<text x="810.0" y="1348" fill="#9caec4" font-size="13" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">c16 context</text>
+<line x1="1462.0" y1="920" x2="1462.0" y2="1300" stroke="#20344d" stroke-width="1"/>
+<text x="1462.0" y="1328" fill="#f5f8fc" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">128K</text>
+<text x="1462.0" y="1348" fill="#9caec4" font-size="13" font-weight="500" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">c128 context</text>
+<polyline fill="none" stroke="#55d6be" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round" points="158.0,982.7 810.0,982.8 1462.0,980.5"/>
+<polyline fill="none" stroke="#68a7ff" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round" points="158.0,988.4 810.0,983.7 1462.0,987.0"/>
+<polyline fill="none" stroke="#55d6be" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 6" points="810.0,1025.2 1462.0,1023.0"/>
+<polyline fill="none" stroke="#68a7ff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 6" points="810.0,1023.1 1462.0,1025.2"/>
+<circle cx="158.0" cy="982.7" r="8" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="810.0" cy="982.8" r="8" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="980.5" r="8" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="158.0" cy="988.4" r="8" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="810.0" cy="983.7" r="8" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="987.0" r="8" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="810.0" cy="1025.2" r="6" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="1023.0" r="6" fill="#55d6be" stroke="#07111f" stroke-width="2"/>
+<circle cx="810.0" cy="1023.1" r="6" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<circle cx="1462.0" cy="1025.2" r="6" fill="#68a7ff" stroke="#07111f" stroke-width="2"/>
+<text x="158.0" y="964.7" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">23.38</text>
+<text x="810.0" y="964.8" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">23.37</text>
+<text x="1462.0" y="962.5" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">23.54</text>
+<text x="158.0" y="1016.4" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">22.96</text>
+<text x="810.0" y="1011.7" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">23.31</text>
+<text x="1462.0" y="1015.0" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">23.06</text>
+<text x="810.0" y="1007.2" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">20.25</text>
+<text x="1462.0" y="1005.0" fill="#55d6be" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">20.41</text>
+<text x="810.0" y="1051.1" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">20.40</text>
+<text x="1462.0" y="1053.2" fill="#68a7ff" font-size="15" font-weight="700" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">20.25</text>
+<text x="1462" y="912" fill="#9caec4" font-size="13" font-weight="500" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">token/s</text>
+<rect x="82" y="1322" width="18" height="6" rx="2" fill="#55d6be"/>
+<text x="108" y="1328" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 p512/g128</text>
+<rect x="290" y="1322" width="18" height="6" rx="2" fill="#68a7ff"/>
+<text x="316" y="1328" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 p512/g128</text>
+<line x1="520" y1="1325" x2="550" y2="1325" stroke="#55d6be" stroke-width="3" stroke-dasharray="7 6"/>
+<text x="558" y="1328" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">FP32 p9096/g128</text>
+<line x1="760" y1="1325" x2="790" y2="1325" stroke="#68a7ff" stroke-width="3" stroke-dasharray="7 6"/>
+<text x="798" y="1328" fill="#9caec4" font-size="14" font-weight="600" text-anchor="start" font-family="ui-sans-serif, system-ui, sans-serif">F16 p9096/g128</text>
+<text x="800" y="1448" fill="#64748b" font-size="14" font-weight="400" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif">n=5 catalog cells remain fused-FP32 8K decode 23.38 and fused-F16 16K p9096 cold input 594.49 · do not mix binaries as one recipe</text>
 </svg>

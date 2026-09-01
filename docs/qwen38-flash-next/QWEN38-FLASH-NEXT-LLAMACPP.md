@@ -14,7 +14,7 @@ between samples. They are not concurrency 8/16/128.
 
 ![C1 dashboard](../assets/b70-qwen38-flash-next-dashboard.svg)
 
-![Context map](../assets/b70-qwen38-flash-next-context.svg)
+![Decode and prefill vs 8K → 16K → 128K context](../assets/b70-qwen38-flash-next-context.svg)
 
 ## Executive overview
 
@@ -153,14 +153,14 @@ cool-card comparison.
 
 Not ranking cells. Evidence: [`n3-context-map.json`](../../results/qwen38-flash-next-dual-b70-c1/n3-context-map.json).
 
-| Binary | Context | Batch | p512 decode | p9096 decode | p9096 cold input |
-|---|---|---:|---:|---:|---:|
-| fused FP32 | 8K | 512 | 23.38 | — | 183.17 (p512) |
-| fused FP32 | 16K | 3072 | 23.37 | 20.25 | 478.71 |
-| fused FP32 | 128K | 1024 | 23.54 | 20.41 | 353.95 |
-| fused F16 | 8K | 512 | 22.96 | — | 191.55 (p512) |
-| fused F16 | 16K | 3072 | 23.31 | 20.40 | 593.98 |
-| fused F16 | 128K | 1024 | 23.06 | 20.25 | 398.02 |
+| Binary | Context | Batch | p512 decode | p512 cold input | p9096 decode | p9096 cold input |
+|---|---|---:|---:|---:|---:|---:|
+| fused FP32 | 8K | 512 | 23.38 | 183.17 | — | — |
+| fused FP32 | 16K | 3072 | 23.37 | 183.61 | 20.25 | 478.71 |
+| fused FP32 | 128K | 1024 | 23.54 | 183.38 | 20.41 | 353.95 |
+| fused F16 | 8K | 512 | 22.96 | 191.55 | — | — |
+| fused F16 | 16K | 3072 | 23.31 | 192.64 | 20.40 | 593.98 |
+| fused F16 | 128K | 1024 | 23.06 | 195.57 | 20.25 | 398.02 |
 
 128K completed C1 p512/g128 and actual-p9096/g128 requests. That is a
 capacity/shape observation, not an n=5 speed card.

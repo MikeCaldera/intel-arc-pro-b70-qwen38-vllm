@@ -232,6 +232,18 @@ Same C1 contract. 8K cannot hold a 9096-token prompt. Decode at p512 stays
 
 JSON: [`n3-context-map.json`](../../results/qwen38-flash-next-dual-b70-c1/n3-context-map.json).
 
+## LocalMaxxing
+
+`APPROVED` means accepted self-report, not independent reproduction. Platform
+`quantization` is `IQ3_S`; mixed IQ3_S/IQ4_NL is in the notes.
+
+| Cell | `tokSOut` | `tokSPrefill` | Context | Run |
+|---|---:|---:|---:|---|
+| FP32 p512/g128 | 23.38 | 183.98 | 8192 | `cmtigo30804dyp401alu7nger` |
+| F16 p9096/g128 | 20.34 | 594.49 | 16384 | `cmtigo39n04e2p401eumx5joo` |
+
+Receipts: [`localmaxxing-receipts.json`](../../results/qwen38-flash-next-dual-b70-c1/localmaxxing-receipts.json).
+
 ## Limits
 
 - Layer split across two cards, not vLLM tensor parallel.

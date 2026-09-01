@@ -6,13 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        > **Before you file:** run the pinned image (`f01e24f6` or `2c427ef` per family) at `195W`/`230W` as per `README.md`. Logs without `image sha` + `exact docker cmd` + `dmesg` for hangs will be auto-closed as `needs-info`.
+        Run the pinned image (`f01e24f6` or `2c427ef` per family). Without image sha + full docker/serve line the issue stays `needs-info`. Hangs also need dmesg.
 
   - type: dropdown
     id: b70_count
     attributes:
       label: "B70 count"
-      options: ["1× B70", "2× B70", "4× B70", "other"]
+      options: ["1× B70", "2× B70", "4× B70", "7× B70", "other"]
       default: 1
     validations: { required: true }
 
@@ -43,8 +43,8 @@ body:
     id: cmd
     attributes:
       label: "Exact docker / launch command"
-      description: "Paste the full command. Must include --tensor-parallel-size, --dtype, --kv-cache-dtype, patches mounted."
-      placeholder: "docker run --device /dev/dri ... vllm/vllm-openai-xpu@sha256:... --tensor-parallel-size 2 ..."
+      description: "Full command. Include image digest, patches mounted, prefix-cache flag, TP only if not 1."
+      placeholder: "docker run --device /dev/dri ... vllm/vllm-openai-xpu@sha256:f01e24f6... --quantization gptq ..."
       render: shell
     validations: { required: true }
 

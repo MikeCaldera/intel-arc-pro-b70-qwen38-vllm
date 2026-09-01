@@ -15,11 +15,12 @@ jobs:
         with:
           days-before-stale: 14
           days-before-close: 7
+          only-issue-labels: "needs-info"
           stale-issue-message: |
             <!-- stale -->
-            Labelled `needs-info` for 14 days without reporter reply — marking stale. Reply with the requested `image sha` / `docker cmd` / `dmesg` to re-triage to `ready`. Auto-close in 7 days if no update.
+            Still `needs-info` after 14 days. Reply with image sha + docker/serve line (and dmesg for hangs). Closes in 7 days if nothing new.
           stale-issue-label: "stale"
-          exempt-issue-labels: "ready,confirmed"
-          days-before-issue-stale: 14
-          days-before-issue-close: 7
+          exempt-issue-labels: "ready,confirmed,tp2-draft-block,driver-hang"
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
           operations-per-run: 50

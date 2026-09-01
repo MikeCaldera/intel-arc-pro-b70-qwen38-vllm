@@ -24,6 +24,9 @@ Nemotron DFlash.
 Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
 
 **Reliability map (what breaks and which layer owns it):** [RELIABILITY-REPORT.md](docs/RELIABILITY-REPORT.md) — single-card baseline, multi-GPU failure modes, Linux bring-up, ranked fix list. Evidence-linked as of 2026-08-31.
+
+Issue/PR pre-checks: [MAINTAINER-PRECHECKS.md](docs/MAINTAINER-PRECHECKS.md).
+
 Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
 means the payload was accepted into the public leaderboard.
 

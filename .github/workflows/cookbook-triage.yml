@@ -55,16 +55,17 @@ jobs:
             const has = (s) => allText.includes(s);
             const hasAny = (...ss) => ss.some(s=> allText.includes(s));
 
-            // B70 count
-            if (has('4×') || has('4x') || has('b70:4') || title.includes('tp4')) add.add('b70:4');
-            else if (has('2×') || has('2x') || has('tp2') || has('2 x b70')) add.add('b70:2');
-            else if (has('1×') || has('1x') || has('tp1') || has('single')) add.add('b70:1');
+            // B70 count / TP/PP — use word boundaries to avoid false positives from mtp/bigger etc.
+            const hasTP = (n) => new RegExp(`\\btp\\s*[:=]?\\s*${n}\\b|tensor-parallel-size\\s+${n}\\b`, 'i').test(allText);
+            const hasB70 = (n) => new RegExp(`\\b${n}\\s*[×x]\\s*b70\\b|\\b${n}\\s*x\\s*b70\\b`, 'i').test(allText);
+            if (hasB70(4) || hasTP(4)) add.add('b70:4');
+            else if (hasB70(2) || hasTP(2)) add.add('b70:2');
+            else if (hasB70(1) || hasTP(1)) add.add('b70:1');
 
-            // TP/PP
-            if (has('tp4') || has('tensor-parallel-size 4')) add.add('tp:4');
-            else if (has('tp2') || has('tensor-parallel-size 2')) add.add('tp:2');
-            else if (has('tp1') || has('tensor-parallel-size 1')) add.add('tp:1');
-            if (has('pp2')) add.add('pp:2');
+            if (hasTP(4)) add.add('tp:4');
+            else if (hasTP(2)) add.add('tp:2');
+            else if (hasTP(1)) add.add('tp:1');
+            if (/\bpp\s*2\b/i.test(allText)) add.add('pp:2');
 
             // feature labels
             if (has('xe coredump') || has('timedout job') || has('guc_id') || has('driver hang')) add.add('driver-hang');

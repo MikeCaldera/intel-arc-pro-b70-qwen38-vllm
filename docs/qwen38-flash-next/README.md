@@ -1,12 +1,10 @@
-# Qwen3.8-Flash-Next on two Arc Pro B70s (llama.cpp SYCL)
+# Qwen3.8-Flash-Next on two Arc Pro B70s
 
-This directory is the family hub for **Qwen3.8-Flash-Next**, not Qwen3.8-27B.
-The 27B GPTQ/MTP and FP8 TP2 recipes stay under [`docs/qwen38-27/`](../qwen38-27/README.md).
-Do not mix those numbers with this page.
+llama.cpp SYCL on two cards, one request at a time. 8K / 16K / 128K are
+**context windows**.
 
-| Route | Hardware | Serving goal | Start here |
-|---|---|---|---|
-| llama.cpp SYCL, community M64 GGUF | Two B70 cards, **C1** | Decode-first fused FP32 or prefill-first fused F16 | [QWEN38-FLASH-NEXT-LLAMACPP.md](QWEN38-FLASH-NEXT-LLAMACPP.md) |
-| vLLM XPU / AutoRound / official BF16 | — | Not a public recipe on this host | Closed |
+| Route | Hardware | Start here |
+|---|---|---|
+| llama.cpp SYCL, AtomicChat M64 GGUF | Two B70s, C1 | [QWEN38-FLASH-NEXT-LLAMACPP.md](QWEN38-FLASH-NEXT-LLAMACPP.md) |
 
-`c8` / `c16` / `c128` on this family are **context windows**. Every published speed cell is **C1**.
+Qwen3.8-27B GPTQ and FP8 TP2 live under [`docs/qwen38-27/`](../qwen38-27/README.md).

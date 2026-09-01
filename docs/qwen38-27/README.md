@@ -36,6 +36,5 @@ separate evidence, sampling conditions, cache states, context limits, and
 hardware scope. Do not compare or combine numbers across the routes without a
 matched comparison.
 
-Qwen3.8-Flash-Next is a **different model family**:
-[docs/qwen38-flash-next/](../qwen38-flash-next/README.md). Do not paste those
-llama.cpp C1 numbers into this 27B hub.
+Qwen3.8-Flash-Next is a different model:
+[docs/qwen38-flash-next/](../qwen38-flash-next/README.md).

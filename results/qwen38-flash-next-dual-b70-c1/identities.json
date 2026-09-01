@@ -14,9 +14,14 @@
   "prefill_fused_f16_llama_server_sha256": "2da6e9fc89d9cb68368feb1a2e7ef1045ff705acb16721755ac1f72149dd1ee3",
   "grouped_libggml_sycl_sha256": "85e7409157a44992c2f14d7af409df5413d40297971c9e8530b0f6a03fa83fae"
  },
- "patches": {
-  "flashnext-arch-overlay.patch": "bf9b00b89cf132c6db95bd51f7f3398b5362986c7c116e083631ac9cec8972b1",
-  "sycl-fused-mmvq-iq3s-iq4nl.patch": "2d8709fff6c6fad0c50faabddaf9ef8ae204931b83eb818b973e77c8c5bee00f",
-  "sycl-mmid-gpu-group-20260901.patch": "c84ebfcade8a993dd61603f69dbac0e08c00c1af208adcb0f79ba63e9d969511"
- }
+  "patches": {
+   "flashnext-arch-overlay.patch": "bf9b00b89cf132c6db95bd51f7f3398b5362986c7c116e083631ac9cec8972b1",
+   "sycl-fused-mmvq-and-gpu-group.patch": "4fb812ee13d0df5217b2a93f3d11e9cb98afccaf55d08963d16674da4ad2c836",
+   "sycl-fused-mmvq-iq3s-iq4nl.patch": "2d8709fff6c6fad0c50faabddaf9ef8ae204931b83eb818b973e77c8c5bee00f",
+   "sycl-mmid-gpu-group-20260901.patch": "c84ebfcade8a993dd61603f69dbac0e08c00c1af208adcb0f79ba63e9d969511"
+  },
+  "apply_order": [
+   "flashnext-arch-overlay.patch",
+   "sycl-fused-mmvq-and-gpu-group.patch"
+  ]
 }

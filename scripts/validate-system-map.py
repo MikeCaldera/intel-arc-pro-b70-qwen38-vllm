@@ -9,6 +9,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MAP_PATH = ROOT / "data" / "system-map.v1.json"
+REQUIRED_INTENTS = {"read", "setup", "reproduce", "connect", "operate", "submit", "publish", "triage"}
 
 
 def validate_system_map(data: dict) -> list[str]:
@@ -17,8 +18,8 @@ def validate_system_map(data: dict) -> list[str]:
         errors.append("schema_version must be 1.0")
 
     intents = data.get("intents")
-    if not isinstance(intents, dict) or set(intents) != {"read", "reproduce", "publish", "triage"}:
-        errors.append("intents must be exactly read, reproduce, publish, triage")
+    if not isinstance(intents, dict) or set(intents) != REQUIRED_INTENTS:
+        errors.append(f"intents must be exactly {', '.join(sorted(REQUIRED_INTENTS))}")
         intents = {}
 
     authorities = data.get("authorities")
@@ -49,8 +50,8 @@ def validate_system_map(data: dict) -> list[str]:
         errors.append("at least five system invariants are required")
 
     validation = data.get("validation")
-    if not isinstance(validation, list) or "python3 scripts/validate-system-map.py" not in validation:
-        errors.append("validation must include this validator")
+    if validation != ["python3 scripts/check-repo.py"]:
+        errors.append("validation must contain only the stable check-repo entry point")
 
     return errors
 

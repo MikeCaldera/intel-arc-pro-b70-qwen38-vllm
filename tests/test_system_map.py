@@ -29,9 +29,24 @@ class SystemMapTests(unittest.TestCase):
         errors = validator.validate_system_map(broken)
         self.assertIn("missing referenced path: docs/DOES-NOT-EXIST.md", errors)
 
+    def test_validation_has_one_stable_entry_point(self):
+        self.assertEqual(self.system_map["validation"], ["python3 scripts/check-repo.py"])
+        broken = json.loads(json.dumps(self.system_map))
+        broken["validation"].append("python3 scripts/validate-system-map.py")
+        self.assertIn(
+            "validation must contain only the stable check-repo entry point",
+            validator.validate_system_map(broken),
+        )
+
     def test_control_graph_has_all_intents_and_layers(self):
-        self.assertEqual(set(self.system_map["intents"]), {"read", "reproduce", "publish", "triage"})
+        self.assertEqual(set(self.system_map["intents"]), validator.REQUIRED_INTENTS)
         self.assertEqual([layer["id"] for layer in self.system_map["layers"]], ["L0", "L1", "L2", "L3", "L4"])
+
+    def test_every_concrete_route_path_exists(self):
+        for route in self.system_map["intents"].values():
+            for relative in [route["start"], *route["then"]]:
+                if "<" not in relative:
+                    self.assertTrue((ROOT / relative).exists(), relative)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,9 @@ Repeatable vLLM XPU and llama.cpp SYCL recipes for Intel Arc Pro B60/B70 GPUs.
 ## Agent control plane
 
 Agents should begin with [`data/system-map.v1.json`](data/system-map.v1.json),
-choose one intent (`read`, `reproduce`, `publish`, or `triage`), and load only
-that route's authorities. The design and change-routing model is
+choose the closest task intent, and load only that route's authorities. Routes
+cover reading, setup, reproduction, client connection, operation, submission,
+publication, and triage. The design and change-routing model is
 [`docs/AGENT-SYSTEM.md`](docs/AGENT-SYSTEM.md). Add or change a family route
 through [`docs/ADDING-A-RECIPE.md`](docs/ADDING-A-RECIPE.md).
 

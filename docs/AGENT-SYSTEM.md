@@ -4,12 +4,16 @@ This repository is a layered publication system. Use the narrowest authority tha
 
 ## Control loop
 
-1. Classify the intent: `read`, `reproduce`, `publish`, or `triage`.
+1. Classify the intent using the system map: read, setup, reproduce, connect,
+   operate, submit, publish, or triage.
 2. Read `data/system-map.v1.json` and follow that intent's `start` and `then` paths.
 3. Select one model family and one serving route before reading commands.
 4. Change an authority, not a rendered view.
 5. Run `python3 scripts/check-repo.py`, the stable GPU-free validation entry point.
 6. Report the changed authority, generated outputs, evidence, and remaining uncertainty.
+
+The check command validates the system map, all tracked Markdown links, generated
+catalog drift, Python syntax, and unit tests.
 
 ## Tower of abstractions
 
@@ -41,6 +45,10 @@ Dependencies flow downward when deciding and upward when publishing: control sel
 | Measurement method | `docs/BENCHMARK-FORMAT.md` | Harness/compiler and generation boundary |
 | New family or route | `docs/ADDING-A-RECIPE.md` | Hub, launcher, evidence, catalog record |
 | Failure ownership | `docs/RELIABILITY-REPORT.md` | Recipe warning or issue precheck |
+| Host setup | `docs/FULL-SETUP-COMMANDS.md` | Image matrix and selected family recipe |
+| Client connection | `docs/CONNECTING-CLIENTS.md` | Selected family recipe |
+| Production operation | `docs/RELIABILITY-REPORT.md` | Watchdog, power, and topology guides |
+| Leaderboard submission | `docs/localmaxxing-submission-schema.md` | Benchmark contract and catalog record |
 | Reader navigation | `data/system-map.v1.json` | README/AGENTS links |
 
 ## Accretion rule

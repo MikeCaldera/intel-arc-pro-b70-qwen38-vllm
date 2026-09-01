@@ -8,9 +8,25 @@
       "start": "README.md",
       "then": ["docs/AGENT-SYSTEM.md"]
     },
+    "setup": {
+      "start": "docs/FULL-SETUP-COMMANDS.md",
+      "then": ["docs/IMAGE-AND-PATCH-MATRIX.md"]
+    },
     "reproduce": {
       "start": "docs/IMAGE-AND-PATCH-MATRIX.md",
       "then": ["docs/<family>/README.md", "docs/<family>/<recipe>.md"]
+    },
+    "connect": {
+      "start": "docs/CONNECTING-CLIENTS.md",
+      "then": ["docs/<family>/<recipe>.md"]
+    },
+    "operate": {
+      "start": "docs/RELIABILITY-REPORT.md",
+      "then": ["watchdog/README.md", "docs/POWER-SWEET-SPOTS.md", "docs/DUAL-B70-TP2.md"]
+    },
+    "submit": {
+      "start": "docs/localmaxxing-submission-schema.md",
+      "then": ["docs/BENCHMARK-FORMAT.md", "data/benchmarks.v1.json"]
     },
     "publish": {
       "start": "docs/ADDING-A-RECIPE.md",
@@ -27,6 +43,11 @@
     "generated_numeric_view": "docs/BENCHMARK-CATALOG.md",
     "benchmark_contract": "docs/BENCHMARK-FORMAT.md",
     "image_patch_compatibility": "docs/IMAGE-AND-PATCH-MATRIX.md",
+    "full_setup": "docs/FULL-SETUP-COMMANDS.md",
+    "client_connections": "docs/CONNECTING-CLIENTS.md",
+    "power_policy": "docs/POWER-SWEET-SPOTS.md",
+    "submission_schema": "docs/localmaxxing-submission-schema.md",
+    "watchdog_operations": "watchdog/README.md",
     "reliability_ownership": "docs/RELIABILITY-REPORT.md",
     "contribution_workflow": "docs/ADDING-A-RECIPE.md",
     "reporter_prechecks": "docs/MAINTAINER-PRECHECKS.md"
@@ -47,9 +68,6 @@
     "Historical evidence remains immutable and labeled; supersession uses links, not rewriting."
   ],
   "validation": [
-    "python3 scripts/check-repo.py",
-    "python3 scripts/validate-system-map.py",
-    "python3 scripts/render-benchmark-catalog.py --check",
-    "python3 -m unittest discover -s tests -v"
+    "python3 scripts/check-repo.py"
   ]
 }

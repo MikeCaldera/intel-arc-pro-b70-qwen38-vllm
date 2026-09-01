@@ -12,6 +12,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHECKS = [
     ("system-map", [sys.executable, "scripts/validate-system-map.py"]),
+    ("markdown-links", [sys.executable, "scripts/check-markdown-links.py"]),
     ("generated-catalog", [sys.executable, "scripts/render-benchmark-catalog.py", "--check"]),
     ("python-syntax", [sys.executable, "-m", "compileall", "-q", "scripts", "tests"]),
     ("unit-tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"]),

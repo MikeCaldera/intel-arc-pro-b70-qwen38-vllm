@@ -50,7 +50,7 @@ Fixed cell: p2k prompt, g128 gen, single-stream.
 | **150W** | **125.7** | 7308 | 69 | ~58°C |
 | 230W | 115.4 | 7345 | — | ~58°C |
 
-**MoE sweet spot = 150W.** Δ 150→230W = -10.3 t/s (-8.2%). MoE self-limits power draw to ~140W regardless of cap (AGENTS.md §15.2) — raising to 230W gives ~0 gain and wastes 80W of heat. **Run MoE at 150W.**
+**MoE sweet spot = 150W.** Δ 150→230W = -10.3 t/s (-8.2%). MoE self-limits power draw to ~140W regardless of cap ([power guide](../docs/POWER-SWEET-SPOTS.md)) — raising to 230W gives ~0 gain and wastes 80W of heat. **Run MoE at 150W.**
 
 ---
 
@@ -65,7 +65,7 @@ Dense scales WITH power (unlike MoE). vLLM dense FP8 has **no XPU kernel** (`Key
 | p1k | 20 | 19 | 25 | 24 | +5.0 (+27%) |
 | p2k | 19 | 18 | 24 | 23 | +4.8 (+26%) |
 
-**Dense sweet spot = 180W (efficiency) or 230W (max speed).** Dense @230W gives +18-30% over 150W (21.5→25.5 t/s at short/g32). But dense runs HOT: sustained load hit **71°C @150W, 79°C @230W** (vs MoE's flat ~58°C). For sustained dense use, **180W is the thermal-safe sweet spot** (AGENTS.md §6: 0.155 t/s/W efficiency). 230W only for short bursts.
+**Dense sweet spot = 180W (efficiency) or 230W (max speed).** Dense @230W gives +18-30% over 150W (21.5→25.5 t/s at short/g32). But dense runs HOT: sustained load hit **71°C @150W, 79°C @230W** (vs MoE's flat ~58°C). For sustained dense use, **180W is the thermal-safe sweet spot** ([power guide](../docs/POWER-SWEET-SPOTS.md): 0.155 t/s/W efficiency). 230W only for short bursts.
 
 ---
 
@@ -82,6 +82,6 @@ Dense scales WITH power (unlike MoE). vLLM dense FP8 has **no XPU kernel** (`Key
 **Key takeaways:**
 1. **MoE is 5-6× faster decode than dense** on B70 (126 vs 23 t/s) — MoE reads ~3GB/token, dense reads ~19GB/token (bandwidth-bound both).
 2. **vLLM MTP wins MoE** (1.8× decode, 4.2× prefill over llama.cpp) — but needs patched engine (GDN spec assert + BF16 draft).
-3. **llama.cpp wins dense by default** — vLLM has no dense XPU kernel (FP8 block kernel missing). llama.cpp dense+MTP (~24-30 t/s, per AGENTS.md) is the only path past the ~23 t/s Q4 baseline.
+3. **llama.cpp wins dense by default** — vLLM has no dense XPU kernel (FP8 block kernel missing). llama.cpp dense+MTP (~24-30 t/s; see the [dense gap analysis](../docs/qwen36-27/DENSE-FP8-GAP.md)) is the only path past the ~23 t/s Q4 baseline.
 4. **Power: MoE=150W (self-limits), Dense=180W sweet / 230W burst** (scales +18-30%, but thermal cost).
 

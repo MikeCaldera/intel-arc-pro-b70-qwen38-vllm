@@ -48,7 +48,7 @@ Combined with three load-path patches (BF16 draft, kwarg strip), MTP runs →
   This avoids the `reasoning_content` undercount trap (reasoning models emit
   reasoning tokens separately from `content`).
 - **llama.cpp decode**: `/completion` endpoint, `timings.predicted_per_second`
-  (the engine rate, not wall-clock — per AGENTS.md §9.4).
+  (the engine rate, not wall-clock; see [BENCHMARK-FORMAT.md](BENCHMARK-FORMAT.md)).
 - **Best steady-state rep**: drop JIT warmup (first rep), report best of
   remaining. 2 reps/cell.
 - **Thermal discipline**: cooldown to ≤52°C between runs. No two inference

@@ -1,12 +1,12 @@
 # AGENTS.md - Intel Arc Pro B60/B70 Inference Cookbook
 
-> Control plane for agents reproducing, extending, or publishing this cookbook.
+> Public control plane for agents reproducing, operating, or extending this cookbook.
 
 ## Start here
 
 1. Read `data/system-map.v1.json`.
-2. Choose one intent: `read`, `reproduce`, `publish`, or `triage`.
-3. Follow only that intent's path until the task requires another authority.
+2. Choose the closest task intent: read, setup, reproduce, connect, operate, submit, publish, or triage.
+3. Follow only that intent's `start` and `then` paths until the task requires another authority.
 4. Read `docs/AGENT-SYSTEM.md` before changing repository structure or public claims.
 
 This repository is the public recipe and evidence catalog. Private lab campaigns do not belong here. Never publish credentials, private host paths, local addresses, unpublished image names, or raw evidence that exposes them.
@@ -22,13 +22,15 @@ This repository is the public recipe and evidence catalog. Private lab campaigns
 - Historical evidence stays immutable and labeled. Supersede by adding a new generation and linking the old one.
 - A GPU-free patch apply test proves source compatibility only. It does not prove runtime correctness, stability, or speed.
 
-## Change path
+## Common task routes
 
+- Host setup: `docs/FULL-SETUP-COMMANDS.md`
+- Reproduction or patch choice: `docs/IMAGE-AND-PATCH-MATRIX.md`
+- Client configuration: `docs/CONNECTING-CLIENTS.md`
+- Production operation: `docs/RELIABILITY-REPORT.md`
+- Leaderboard submission: `docs/localmaxxing-submission-schema.md`
 - New or changed recipe: `docs/ADDING-A-RECIPE.md`
 - Benchmark or capability record: `data/benchmarks.v1.json`
-- Image or patch change: `docs/IMAGE-AND-PATCH-MATRIX.md`
-- Method change: `docs/BENCHMARK-FORMAT.md`
-- Failure ownership: `docs/RELIABILITY-REPORT.md`
 - Issue or PR triage: `docs/MAINTAINER-PRECHECKS.md`
 
 Do not add a second family guide when the existing route can be extended. Do not copy authority tables into README or family prose.

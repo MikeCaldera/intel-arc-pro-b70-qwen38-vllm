@@ -1,7 +1,8 @@
 # Qwen3.8-Flash-Next on two Arc Pro B70s
 
 llama.cpp SYCL on two cards, one request at a time. 8K / 16K / 128K are
-**context windows**.
+**context windows**. The same recipe serves all three; 16K is the prefill
+peak, not a maximum context.
 
 | Route | Hardware | Start here |
 |---|---|---|

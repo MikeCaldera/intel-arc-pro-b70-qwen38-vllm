@@ -2,13 +2,13 @@
 <title id="title">Qwen3.8-Flash-Next C1 prefill and decode from 8K to 128K context</title>
 <desc id="desc">Grouped bar charts, y-axis from zero. Prefill: 8K is p512 only (F16 191.55, FP32 183.17). 16K p9096 peaks (F16 593.98, FP32 478.71) then 128K falls (F16 398.02, FP32 353.95). Decode p512/g128 stays 22.96 to 23.54 tok/s from 8K to 128K. C1 llama.cpp SYCL on two Intel Arc Pro B70 GPUs. n=3 screens. 8K, 16K, and 128K are context windows.</desc>
 <rect width="1600" height="1280" fill="#07111f"/>
-<text x="56" y="52" fill="#55d6be" font-size="16" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">QWEN3.8-FLASH-NEXT · 2× INTEL ARC PRO B70 · llama.cpp SYCL</text>
-<text x="56" y="100" fill="#f5f8fc" font-size="34" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">How speed changes with context</text>
-<text x="56" y="136" fill="#9caec4" font-size="17" font-family="ui-sans-serif, system-ui, sans-serif">Single request (C1) · 8K → 16K → 128K context windows · y-axis starts at 0</text>
+<text x="56" y="56" fill="#55d6be" font-size="22" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">QWEN3.8-FLASH-NEXT · 2× INTEL ARC PRO B70 · llama.cpp SYCL</text>
+<text x="56" y="108" fill="#f5f8fc" font-size="40" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">How speed changes with context</text>
+<text x="56" y="148" fill="#9caec4" font-size="20" font-family="ui-sans-serif, system-ui, sans-serif">Single request (C1) · 8K → 16K → 128K context windows · y-axis starts at 0</text>
 
 <rect x="56" y="168" width="1488" height="520" rx="28" fill="#0f1d30"/>
-<text x="88" y="212" fill="#68a7ff" font-size="14" font-weight="700" letter-spacing="1.2" font-family="ui-sans-serif, system-ui, sans-serif">PREFILL · COLD INPUT tok/s</text>
-<text x="88" y="248" fill="#f5f8fc" font-size="22" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">Peaks at 16K, then drops at 128K</text>
+<text x="88" y="218" fill="#68a7ff" font-size="20" font-weight="700" letter-spacing="0.6" font-family="ui-sans-serif, system-ui, sans-serif">PREFILL · COLD INPUT tok/s</text>
+<text x="88" y="254" fill="#f5f8fc" font-size="26" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">Peaks at 16K, then drops at 128K</text>
 <line x1="160" y1="292" x2="1480" y2="292" stroke="#20344d" stroke-width="1"/>
 <text x="148" y="296" fill="#9caec4" font-size="13" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">650</text>
 <line x1="160" y1="369.5" x2="1480" y2="369.5" stroke="#20344d" stroke-width="1"/>
@@ -47,8 +47,8 @@
 <text x="190" y="664" fill="#9caec4" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif">FP32</text>
 
 <rect x="56" y="712" width="1488" height="480" rx="28" fill="#0f1d30"/>
-<text x="88" y="756" fill="#55d6be" font-size="14" font-weight="700" letter-spacing="1.2" font-family="ui-sans-serif, system-ui, sans-serif">DECODE · p512 / g128 tok/s</text>
-<text x="88" y="792" fill="#f5f8fc" font-size="22" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">Holds ~23 tok/s from 8K through 128K</text>
+<text x="88" y="762" fill="#55d6be" font-size="20" font-weight="700" letter-spacing="0.6" font-family="ui-sans-serif, system-ui, sans-serif">DECODE · p512 / g128 tok/s</text>
+<text x="88" y="798" fill="#f5f8fc" font-size="26" font-weight="700" font-family="ui-sans-serif, system-ui, sans-serif">Holds ~23 tok/s from 8K through 128K</text>
 <line x1="160" y1="820" x2="1480" y2="820" stroke="#20344d" stroke-width="1"/>
 <text x="148" y="824" fill="#9caec4" font-size="13" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif">28</text>
 <line x1="160" y1="871.4" x2="1480" y2="871.4" stroke="#20344d" stroke-width="1"/>

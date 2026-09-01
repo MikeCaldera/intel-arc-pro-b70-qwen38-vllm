@@ -1,7 +1,9 @@
 # Qwen3.8-Flash-Next on two Arc Pro B70s
 
 llama.cpp SYCL, one request at a time (`-np 1`). 8K / 16K / 128K on this page
-are **context windows**, not concurrency.
+are **context windows**, not concurrency. The same patched tree serves all
+three. The n=5 leader cells happen to be 8K decode and 16K prefill — that is
+not a 16K cap.
 
 This is a different model from [Qwen3.8-27B](../qwen38-27/README.md). The
 numbers are llama.cpp engine timings, not vLLM client rates.
@@ -30,6 +32,20 @@ Smoke on every measured server: `B70-FLASH-OK`, `37*19=703`, `Paris`.
 
 Raw JSON: [results/qwen38-flash-next-dual-b70-c1/](../../results/qwen38-flash-next-dual-b70-c1/).
 
+## Prerequisites
+
+| Need | What we used |
+|---|---|
+| GPUs | **Two** Intel Arc Pro B70 32 GB (64 GB combined). Layer split, no GPU P2P. |
+| VRAM | ~32 GB visible per card. Empty-card `visible_avail` should be ~31 GiB before load. |
+| Host RAM | **32 GB is enough** if you mmap. Do not `--mlock` this 88 GiB GGUF. |
+| Disk | **≥90 GiB** for the GGUF, plus **≥20 GiB** for llama.cpp source and two SYCL builds. |
+| OS / driver | Linux, `xe` driver, Level Zero. `sycl-ls` must show both B70s. |
+| Compiler | Intel oneAPI **IntelLLVM 2026.0.0**, CMake, git, `huggingface-cli`. |
+| Power | Stock cap 150 W. Campaign used 195 W; restore 150 W after. |
+
+One B70 cannot hold this artifact. This is not the Qwen3.8-27B vLLM recipe.
+
 ## Hardware and weights
 
 - Two Intel Arc Pro B70 32 GB, CPU-attached x8 + x8, no GPU P2P.
@@ -42,8 +58,6 @@ Raw JSON: [results/qwen38-flash-next-dual-b70-c1/](../../results/qwen38-flash-ne
 
 ## Reproduce
 
-Need Intel oneAPI (IntelLLVM 2026.0.0), CMake, and two B70s with Level Zero.
-
 ### 1. Weights
 
 ```bash
@@ -53,10 +67,13 @@ huggingface-cli download AtomicChat/Qwen3.8-Flash-Next-GGUF \
   --local-dir "$HOME/models/qwen38-flash-next-m64"
 ```
 
-First shard:
+llama.cpp split GGUF: pass **only the first shard** to `-m`. The other 32 files
+must stay in the same directory with the same prefix. The first file’s metadata
+points at `00002`…`00033`; llama.cpp opens them from that folder.
 
-```text
-$HOME/models/qwen38-flash-next-m64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf
+```bash
+export MODEL="$HOME/models/qwen38-flash-next-m64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf"
+ls "$(dirname "$MODEL")" | wc -l   # expect 33
 ```
 
 ### 2. llama.cpp pin
@@ -98,7 +115,7 @@ source /opt/intel/oneapi/setvars.sh --force
 
 ### 5. Build the binary you will serve
 
-Decode recipe (8K numbers above):
+FP32 binary (n=5 decode leader at 8K; also used for the 16K/128K FP32 map):
 
 ```bash
 cmake -S . -B build-sycl \
@@ -109,7 +126,7 @@ cmake -S . -B build-sycl \
 cmake --build build-sycl --target llama-server -j
 ```
 
-Prefill recipe (16K numbers above):
+F16 binary (n=5 prefill leader at 16K; also used for the 8K/128K F16 map):
 
 ```bash
 cmake -S . -B build-sycl-f16 \
@@ -139,13 +156,29 @@ finished). Confirm with `sycl-ls` that SYCL0 / SYCL1 are the two B70s.
 
 ### 7. Serve
 
-Export the first shard:
+Shared flags for every context size:
 
-```bash
-export MODEL="$HOME/models/qwen38-flash-next-m64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf"
+```text
+-m "$MODEL"
+--device SYCL0,SYCL1 --tensor-split 1,1 --split-mode layer -ngl 99
+-ot 'per_layer_token_embd=CPU' -fa on -t 6 -tb 14 -np 1
+--cache-type-k q8_0 --cache-type-v q4_1
+--no-warmup --no-cache-prompt --host 127.0.0.1 --port 8001
 ```
 
-8K decode recipe (FP32 binary):
+Only `-c` and `-b` / `--ubatch-size` change:
+
+| Context | `-c` | `-b` / `--ubatch-size` | Binary for the published n=5 cell |
+|---|---:|---:|---|
+| 8K | 8192 | 512 | FP32 (`build-sycl`) |
+| 16K | 16384 | 3072 | F16 (`build-sycl-f16`) |
+| 128K | 131072 | 1024 | either; n=5 leaders were not 128K |
+
+`-b 1536+` at 128K was rejected (`n_gpu_layers already set by user to 99`).
+Do not pass `--no-mmap` or `--mlock` on this GGUF. `-fa on` is required:
+`q4_1` V refuses flash-attention off.
+
+8K (FP32 binary) — n=5 decode **23.38**:
 
 ```bash
 ./build-sycl/bin/llama-server -m "$MODEL" \
@@ -155,7 +188,7 @@ export MODEL="$HOME/models/qwen38-flash-next-m64/Qwen3.8-Flash-Next-AD-4.27bpw-Q
   --no-warmup --no-cache-prompt --host 127.0.0.1 --port 8001
 ```
 
-16K prefill recipe (F16 binary):
+16K (F16 binary) — n=5 prefill **594.49**:
 
 ```bash
 ./build-sycl-f16/bin/llama-server -m "$MODEL" \
@@ -165,11 +198,15 @@ export MODEL="$HOME/models/qwen38-flash-next-m64/Qwen3.8-Flash-Next-AD-4.27bpw-Q
   --no-warmup --no-cache-prompt --host 127.0.0.1 --port 8001
 ```
 
-128K: same flags with `-c 131072 -b 1024 --ubatch-size 1024`. Larger `-b` was
-rejected (`n_gpu_layers already set by user to 99`). Do not pass `--no-mmap`
-or `--mlock` on this GGUF.
+128K (same F16 binary, smaller ubatch):
 
-`-fa on` is required: `q4_1` V refuses flash-attention off.
+```bash
+./build-sycl-f16/bin/llama-server -m "$MODEL" \
+  --device SYCL0,SYCL1 --tensor-split 1,1 --split-mode layer -ngl 99 \
+  -ot 'per_layer_token_embd=CPU' -c 131072 -fa on -t 6 -tb 14 -np 1 \
+  -b 1024 --ubatch-size 1024 --cache-type-k q8_0 --cache-type-v q4_1 \
+  --no-warmup --no-cache-prompt --host 127.0.0.1 --port 8001
+```
 
 ### 8. Smoke
 
@@ -181,7 +218,8 @@ curl -s http://127.0.0.1:8001/v1/chat/completions \
 
 ## Context map (n=3)
 
-Same C1 contract. 8K cannot hold a 9096-token prompt.
+Same C1 contract. 8K cannot hold a 9096-token prompt. Decode at p512 stays
+~23 tok/s through 128K.
 
 | Build | Context | Batch | p512 decode | p512 cold input | p9096 decode | p9096 cold input |
 |---|---|---:|---:|---:|---:|---:|

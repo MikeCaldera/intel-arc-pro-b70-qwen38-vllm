@@ -8,9 +8,9 @@
 
 Open recipes to run LLMs on **Intel Arc Pro B60/B70 (Battlemage, Xe2)** GPUs.
 
-This repo is the **public** catalog + recipes. Private campaigns live in `B70-DOCS` and never belong here. XeCores (`xmxlab`) renders `data/benchmarks.v1.json`; do not copy tok/s into other Markdown as a second ranking table.
+This repo is the **public** catalog + recipes. Private lab campaigns never belong here. XeCores renders `data/benchmarks.v1.json`; do not copy tok/s into other Markdown as a second ranking table.
 
-Agent compile: intent `publish` for catalog edits, `site` for XeCores, `bench` only on the private lab host. See B70-DOCS `docs/governance/agent-operating-system.md` (private) and xmxlab `DESIGN-AGENT-SYSTEM.md`.
+Agent compile: intent `publish` for catalog edits. Do not bench from this tree.
 
 - **Current vLLM XPU GPTQ-INT4 + MTP4** — pinned public nightly, two current patches, exact 131,072-token completion, and real-world Pi workloads.
 - **llama.cpp SYCL** — production single-user engine and dense-model path.

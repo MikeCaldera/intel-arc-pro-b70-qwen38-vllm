@@ -39,11 +39,10 @@ Raw JSON: [results/qwen38-flash-next-dual-b70-c1/](../../results/qwen38-flash-ne
 | GPUs | **Two** Intel Arc Pro B70 32 GB (64 GB combined). Layer split, no GPU P2P. One card cannot hold this GGUF. |
 | VRAM | ~32,656 MiB visible per card. Empty-card `visible_avail` ~31 GiB on **both** cards before load. |
 | Host RAM | **32 GB is enough** with mmap. Do **not** `--mlock` or `--no-mmap` — the file is 88 GiB. |
-| Disk | **≥110 GiB free**: 88.03 GiB GGUF (33 shards) + ~20 GiB for llama.cpp source and **two** SYCL builds. |
+| Disk | **≥110 GiB free**: 88.03 GiB GGUF (33 shards) + ~20 GiB for llama.cpp source and **two** SYCL builds. KV cache lives entirely in VRAM, not on disk. |
 | CPU | 16-thread class (Ryzen 7 5700X3D here). Server uses `-t 6 -tb 14`. |
 | OS / driver | Linux, `xe` driver, Level Zero. `sycl-ls` must list both B70s as SYCL0 / SYCL1. |
 | Compiler | Intel oneAPI **IntelLLVM 2026.0.0**, CMake, git, `huggingface-cli`. |
-| Power | Stock cap 150 W. Campaign used 195 W; restore 150 W after. |
 
 This is not the Qwen3.8-27B vLLM recipe.
 
@@ -154,8 +153,8 @@ export SYCL_DEVICE_FILTER=level_zero
 export ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE
 ```
 
-Set each card to 195 W through the `xe` hwmon `power1_cap` (restore 150 W when
-finished). Confirm with `sycl-ls` that SYCL0 / SYCL1 are the two B70s.
+Set each card's power cap through the `xe` hwmon `power1_cap`. Confirm with
+`sycl-ls` that SYCL0 / SYCL1 are the two B70s.
 
 ### 7. Serve
 

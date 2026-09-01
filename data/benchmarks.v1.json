@@ -1,6 +1,6 @@
 {
  "schema_version": "1.0",
- "updated_at": "2026-08-30",
+ "updated_at": "2026-09-01",
  "source": {
   "repository": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook",
   "branch": "master"
@@ -540,6 +540,163 @@
    "evidence": {
     "commit": "2c6de11bd7ab097040a11e3746d915b99c5552f0",
     "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/2c6de11bd7ab097040a11e3746d915b99c5552f0/results/qwen38-27-fp8-tp2-k8-n5/localmaxxing-approved-receipt.json"
+   }
+  },
+  {
+   "id": "qwen38-flash-next-fused-fp32-p512-g128-c1",
+   "kind": "benchmark",
+   "title": "Qwen3.8-Flash-Next fused-FP32 C1 decode",
+   "summary": "Dual B70 llama.cpp SYCL, fused IQ3_S/IQ4_NL MMVQ, GGML_SYCL_F16=OFF, 8K context. C1 only (-np 1). Engine timings.predicted_per_second median n=5 at p512/g128. c8 is context, not concurrency. Do not mix with the fused-F16 prefill recipe.",
+   "evidence_status": "official-lab",
+   "hardware": {
+    "gpu_model": "Intel Arc Pro B70",
+    "gpu_count": 2,
+    "vram_gib_per_gpu": 32,
+    "power_cap_w": 195
+   },
+   "engine": {
+    "name": "llama.cpp",
+    "version": "0.3.0-dev b492 9723942",
+    "ggml_sycl_f16": false
+   },
+   "model": {
+    "id": "AtomicChat/Qwen3.8-Flash-Next-GGUF",
+    "quantization": "AD-4.27bpw mixed IQ3_S/IQ4_NL",
+    "speculation": "none"
+   },
+   "workload": {
+    "concurrency": 1,
+    "prompt_tokens": 512,
+    "output_tokens": 128,
+    "context_limit_tokens": 8192,
+    "cache": "disabled-zero-hit"
+   },
+   "metrics": [
+    {
+     "name": "engine_predicted_output_tps",
+     "value": 23.38,
+     "unit": "token/s"
+    },
+    {
+     "name": "engine_predicted_output_tps_max",
+     "value": 23.73,
+     "unit": "token/s"
+    },
+    {
+     "name": "engine_prompt_tps",
+     "value": 183.98,
+     "unit": "token/s"
+    }
+   ],
+   "statistics": {
+    "statistic": "median",
+    "samples": 5
+   },
+   "evidence": {
+    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n5-fused-fp32-c8k-p512-g128/summary.json"
+   }
+  },
+  {
+   "id": "qwen38-flash-next-fused-f16-p9096-g128-c1",
+   "kind": "benchmark",
+   "title": "Qwen3.8-Flash-Next fused-F16 C1 cold input",
+   "summary": "Dual B70 llama.cpp SYCL, fused IQ3_S/IQ4_NL MMVQ, GGML_SYCL_F16=ON, 16K context, -b/-ub 3072. C1 only. Engine timings.prompt_per_second median n=5 at actual p9096/g128. c16 is context, not concurrency. Separate binary from the 23.38 decode recipe.",
+   "evidence_status": "official-lab",
+   "hardware": {
+    "gpu_model": "Intel Arc Pro B70",
+    "gpu_count": 2,
+    "vram_gib_per_gpu": 32,
+    "power_cap_w": 195
+   },
+   "engine": {
+    "name": "llama.cpp",
+    "version": "0.3.0-dev b492 9723942",
+    "ggml_sycl_f16": true
+   },
+   "model": {
+    "id": "AtomicChat/Qwen3.8-Flash-Next-GGUF",
+    "quantization": "AD-4.27bpw mixed IQ3_S/IQ4_NL",
+    "speculation": "none"
+   },
+   "workload": {
+    "concurrency": 1,
+    "prompt_tokens": 9096,
+    "output_tokens": 128,
+    "context_limit_tokens": 16384,
+    "cache": "disabled-zero-hit"
+   },
+   "metrics": [
+    {
+     "name": "engine_prompt_tps",
+     "value": 594.49,
+     "unit": "token/s"
+    },
+    {
+     "name": "engine_predicted_output_tps",
+     "value": 20.34,
+     "unit": "token/s"
+    }
+   ],
+   "statistics": {
+    "statistic": "median",
+    "samples": 5
+   },
+   "evidence": {
+    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n5-fused-f16-c16k-p9096-g128/summary.json"
+   }
+  },
+  {
+   "id": "qwen38-flash-next-128k-c1-v1",
+   "kind": "capability",
+   "title": "Qwen3.8-Flash-Next 128K C1 capacity",
+   "summary": "C1 llama.cpp SYCL completed p512/g128 and actual-p9096/g128 at -c 131072 -b/-ub 1024 (b1536+ rejected). n=3 only. p512 decode ~23.06-23.54 engine tok/s. c128 is context, not concurrency. Not a ranking cell.",
+   "evidence_status": "provisional",
+   "hardware": {
+    "gpu_model": "Intel Arc Pro B70",
+    "gpu_count": 2,
+    "vram_gib_per_gpu": 32,
+    "power_cap_w": 195
+   },
+   "engine": {
+    "name": "llama.cpp",
+    "version": "0.3.0-dev b492 9723942"
+   },
+   "model": {
+    "id": "AtomicChat/Qwen3.8-Flash-Next-GGUF",
+    "quantization": "AD-4.27bpw mixed IQ3_S/IQ4_NL",
+    "speculation": "none"
+   },
+   "evidence": {
+    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n3-context-map.json"
+   }
+  },
+  {
+   "id": "qwen38-flash-next-gpu-group-v1",
+   "kind": "capability",
+   "title": "Qwen3.8-Flash-Next GPU MUL_MAT_ID grouping",
+   "summary": "Matched C1 n=3 fused-F16 16K actual-p9096: GPU grouping 599.48 vs disable 594.67 cold-input (+0.81%). Decode unchanged. Occupancy D2H remains. Not a ranking cell.",
+   "evidence_status": "provisional",
+   "hardware": {
+    "gpu_model": "Intel Arc Pro B70",
+    "gpu_count": 2,
+    "vram_gib_per_gpu": 32,
+    "power_cap_w": 195
+   },
+   "engine": {
+    "name": "llama.cpp",
+    "version": "0.3.0-dev b492 9723942"
+   },
+   "model": {
+    "id": "AtomicChat/Qwen3.8-Flash-Next-GGUF",
+    "quantization": "AD-4.27bpw mixed IQ3_S/IQ4_NL",
+    "speculation": "none"
+   },
+   "evidence": {
+    "commit": "f78a8893794692b703b07b9e016b31c9784345e6",
+    "url": "https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/f78a8893794692b703b07b9e016b31c9784345e6/results/qwen38-flash-next-dual-b70-c1/n3-f16-gpu-group-c16k-p9096-g128/summary.json"
    }
   }
  ]

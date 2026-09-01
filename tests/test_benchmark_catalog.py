@@ -27,6 +27,10 @@ class BenchmarkCatalogTests(unittest.TestCase):
         ids = {record["id"] for record in self.catalog["records"]}
         self.assertIn("dual-b70-tp2-serving-v1", ids)
         self.assertIn("qwen38-fp8-w8a16-v1", ids)
+        self.assertIn("qwen38-flash-next-fused-fp32-p512-g128-c1", ids)
+        self.assertIn("qwen38-flash-next-fused-f16-p9096-g128-c1", ids)
+        self.assertIn("qwen38-flash-next-128k-c1-v1", ids)
+        self.assertIn("qwen38-flash-next-gpu-group-v1", ids)
 
     def test_every_numeric_benchmark_has_exact_workload_and_pinned_evidence(self):
         for record in self.catalog["records"]:
@@ -50,9 +54,11 @@ class BenchmarkCatalogTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertIn("Generated from `data/benchmarks.v1.json`", first)
         self.assertIn("Qwen3.8-27B FP8 W8A16", first)
+        self.assertIn("Qwen3.8-Flash-Next", first)
         self.assertIn("Provisional", first)
         self.assertNotIn("/home/", first)
         self.assertNotIn("192.168.", first)
+        self.assertNotIn("B70-DOCS", first)
 
 
 if __name__ == "__main__":

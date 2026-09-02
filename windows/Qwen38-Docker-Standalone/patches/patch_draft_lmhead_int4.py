@@ -10,7 +10,9 @@ El LM head fp16 compartido (5120x248320 = 2.54 GB) se lee 5x/paso MTP4
 Lossless: el draft MTP usa SU PROPIO lm_head (DraftModelProposer._maybe_share
 _lm_head es no-op — no comparte el del target). Cuantizar la copia del draft
 no toca el target de verificacion (fp16) y los tokens del draft se verifican
-contra el target: la secuencia emitida es identica a MTP4 baseline (greedy).
+contra el target: la secuencia emitida es identica SOLO en C1/TP1 (greedy).
+NO usar con TP>1: bajo `--tensor-parallel-size 2` la verificacion del target
+no protege la salida emitida (issue #9).
 
 Formato del peso INT4 = exactamente el que consume la op YA existente
 ``torch.ops._xpu_C.int4_gemm_w4a16`` (el que usan los layers INC/GPTQ del
@@ -106,6 +108,22 @@ def build_draft_lmhead_int4(model) -> None:
     hay env gate o si ya se construyo). Almacena en model._b70_lmhead_int4."""
     if os.environ.get("B70_DRAFT_LMHEAD_INT4") != "1":
         return
+    if getattr(model, "_b70_lmhead_int4_tp_blocked", False):
+        return
+    parallel_config = getattr(
+        getattr(model, "vllm_config", None), "parallel_config", None
+    )
+    tp_size = getattr(parallel_config, "tensor_parallel_size", None)
+    if tp_size is None:
+        model._b70_lmhead_int4_tp_blocked = True
+        print("[B70] draft LM head INT4: TP unknown; skipping "
+              "(fail-closed, issue #9)", flush=True)
+        return
+    if tp_size > 1:
+        model._b70_lmhead_int4_tp_blocked = True
+        print("[B70] draft LM head INT4: TP>1 (tp=%d) detected; skipping "
+              "(C1/TP1 only, issue #9)" % tp_size, flush=True)
+        return
     if getattr(model, "_b70_lmhead_int4", None) is not None:
         return
     head = getattr(model, "lm_head", None)
@@ -155,7 +173,7 @@ QWMTP_NEW = (
     "        hidden_states: torch.Tensor,\n"
     "        spec_step_idx: int = 0,\n"
     "    ) -> torch.Tensor | None:\n"
-    "        if os.environ.get(\"B70_DRAFT_LMHEAD_INT4\") == \"1\":\n"
+    "        if os.environ.get(\"B70_DRAFT_LMHEAD_INT4\") == \"1\" and not getattr(self, \"_b70_lmhead_int4_tp_blocked\", False):\n"
     "            from vllm.model_executor.models.b70_draft_lmhead_int4 import (\n"
     "                build_draft_lmhead_int4,\n"
     "                draft_lmhead_int4_logits,\n"

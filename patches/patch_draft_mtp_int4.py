@@ -147,6 +147,22 @@ def build_draft_mtp_int4(model) -> None:
     model._b70_mtp_int4_built."""
     if os.environ.get("B70_DRAFT_MTP_INT4") != "1":
         return
+    if getattr(model, "_b70_mtp_int4_tp_blocked", False):
+        return
+    parallel_config = getattr(
+        getattr(model, "vllm_config", None), "parallel_config", None
+    )
+    tp_size = getattr(parallel_config, "tensor_parallel_size", None)
+    if tp_size is None:
+        model._b70_mtp_int4_tp_blocked = True
+        print("[B70] draft MTP INT4: TP unknown; skipping "
+              "(fail-closed, issue #9)", flush=True)
+        return
+    if tp_size > 1:
+        model._b70_mtp_int4_tp_blocked = True
+        print("[B70] draft MTP INT4: TP>1 (tp=%d) detected; skipping "
+              "(C1/TP1 only, issue #9)" % tp_size, flush=True)
+        return
     if getattr(model, "_b70_mtp_int4_built", False):
         return
     predictor = getattr(model, "model", None)

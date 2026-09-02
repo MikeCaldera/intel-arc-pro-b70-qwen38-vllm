@@ -30,6 +30,21 @@ otherwise unchanged.
 Nemotron-3.5-Lightning DFlash is a **second generation**. It uses a newer
 public digest than the Qwen3.6 Pi matrix below. Do not mix patch lists.
 
+## Known limitation: Qwen3.6-35B-A3B FP8 TP2 graph capture
+
+The official `Qwen/Qwen3.6-35B-A3B-FP8` checkpoint loads and compiles on two
+B70 cards with image `…f01e24f6c7ff…`, but graph capture fails in
+`vllm_xpu_kernels.moe_utils.ref_fused_moe`:
+
+```text
+RuntimeError: wait method cannot be used for an event associated with a command graph.
+```
+
+`--enforce-eager` reaches a healthy server but was measured at about 3 token/s,
+so it is an isolation control, not a usable recipe. This is an FP8 MoE graph
+path limitation, not a weight-load or MTP-draft failure. Reproducer and full log:
+[issue #10](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/10).
+
 ## Dual-B70 multi-GPU (TP2 / PP2)
 
 Serving one model across both cards needs **both** pieces — the affinity
@@ -54,6 +69,13 @@ patch alone still crashes at `zeMemOpenIpcHandle` on other dual-B70 hosts
 
 Full launch, root cause, verification logs, and the 60-second isolation
 repro: [DUAL-B70-TP2.md](DUAL-B70-TP2.md).
+
+Independent validation on four B70 cards confirmed the same contract scales
+to TP4: TP2 and TP4 tool-calling both passed after applying the worker-affinity
+patch and all four oneCCL settings. The same launches crashed during warmup
+without that contract. PP4 tool-calling also passed without MTP; MTP with PP
+was rejected separately by vLLM's `SupportsPP` validation. Evidence:
+[issue #11](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/11#issuecomment-5507921002).
 
 ## Nemotron DFlash generation (2026-08-13)
 

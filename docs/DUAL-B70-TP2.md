@@ -125,6 +125,12 @@ refused for multi-GPU execution on the tested image generations, so TP2/PP2 uses
 compile-only execution. The model recipe remains authoritative for all other
 serve flags.
 
+The contract was independently validated on a four-B70 host: TP2 and TP4
+tool-calling both completed after the worker-affinity patch and all four oneCCL
+settings were applied; both topologies crashed during warmup without them.
+PP4 tool-calling also passed without MTP. See
+[issue #11](https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/issues/11#issuecomment-5507921002).
+
 ## Verification
 
 Expected worker lines:

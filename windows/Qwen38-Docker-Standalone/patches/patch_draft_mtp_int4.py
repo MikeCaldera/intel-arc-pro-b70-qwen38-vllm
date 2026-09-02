@@ -10,7 +10,9 @@ decoder layer) esta en BF16 (forzado por B70_MTP_BF16_DRAFT=1) y se lee
 ~2.6 GB/paso de lecturas de DRAM.
 
 Lossless: el target de verificacion no se toca; los tokens del draft se
-verifican contra el target (greedy) -> la secuencia emitida es identica.
+verifican contra el target (greedy) -> la secuencia emitida es identica
+SOLO en C1/TP1. NO usar con TP>1: bajo `--tensor-parallel-size 2` la
+verificacion no protege la salida emitida (issue #9).
 GATE de aceptacion: el draft INT4 puede proponer distinto; si la aceptacion
 baja >0.03 la ganancia de bytes puede perderse -> medir ANTES vs DESPUES.
 
@@ -144,6 +146,22 @@ def build_draft_mtp_int4(model) -> None:
     si no hay env gate o si ya se construyo). Almacena en
     model._b70_mtp_int4_built."""
     if os.environ.get("B70_DRAFT_MTP_INT4") != "1":
+        return
+    if getattr(model, "_b70_mtp_int4_tp_blocked", False):
+        return
+    parallel_config = getattr(
+        getattr(model, "vllm_config", None), "parallel_config", None
+    )
+    tp_size = getattr(parallel_config, "tensor_parallel_size", None)
+    if tp_size is None:
+        model._b70_mtp_int4_tp_blocked = True
+        print("[B70] draft MTP INT4: TP unknown; skipping "
+              "(fail-closed, issue #9)", flush=True)
+        return
+    if tp_size > 1:
+        model._b70_mtp_int4_tp_blocked = True
+        print("[B70] draft MTP INT4: TP>1 (tp=%d) detected; skipping "
+              "(C1/TP1 only, issue #9)" % tp_size, flush=True)
         return
     if getattr(model, "_b70_mtp_int4_built", False):
         return

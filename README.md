@@ -634,13 +634,11 @@ differences.
 
 # 15. Performance context from the validation host
 
-  ------------------------------------------------------------------------
 | Stack | Qwen3.8-27B format | Observed decode |
 |---|---|---:|
 | Ollama Vulkan | Q4_K_M | ~11–12 tok/s |
 | llama.cpp SYCL | Q4_K_M | ~27.4 tok/s |
 | **vLLM XPU + MTP4** | **GPTQ INT4 + BF16 draft** | **84.65 tok/s median** |
-  ------------------------------------------------------------------------
 
 These ratios are **not universal engine benchmarks**. They are
 measurements from one validation host and illustrate why the vLLM

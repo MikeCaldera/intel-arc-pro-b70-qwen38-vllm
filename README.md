@@ -112,9 +112,9 @@ You need:
 -   Adequate GPU cooling and power delivery.
 -   Enough local storage for the model, Docker image, and caches.
 
-> \[!IMPORTANT\] Device numbering is system-specific. **Do not blindly
-> copy `card2`, `renderD129`, or PCI address `04:00.0`.** Identify the
-> B70 on your own host first.
+> [!IMPORTANT]
+> Device numbering is system-specific. **Do not blindly copy `card2`, `renderD129`, or PCI address `04:00.0`.** Identify the B70 on your own host first.
+
 
 ------------------------------------------------------------------------
 
@@ -635,14 +635,11 @@ differences.
 # 15. Performance context from the validation host
 
   ------------------------------------------------------------------------
-  Stack                 Qwen3.8-27B format                 Observed decode
-  --------------------- --------------------- ----------------------------
-  Ollama Vulkan         Q4_K_M                              \~11--12 tok/s
-
-  llama.cpp SYCL        Q4_K_M                                \~27.4 tok/s
-
-  **vLLM XPU + MTP4**   **GPTQ INT4 + BF16          **84.65 tok/s median**
-                        draft**               
+| Stack | Qwen3.8-27B format | Observed decode |
+|---|---|---:|
+| Ollama Vulkan | Q4_K_M | ~11–12 tok/s |
+| llama.cpp SYCL | Q4_K_M | ~27.4 tok/s |
+| **vLLM XPU + MTP4** | **GPTQ INT4 + BF16 draft** | **84.65 tok/s median** |
   ------------------------------------------------------------------------
 
 These ratios are **not universal engine benchmarks**. They are
@@ -780,7 +777,7 @@ known-good baseline.
 4.  Confirm the pinned model revision is present.
 5.  Verify the two patch hashes.
 6.  Set `B70_RENDER_NODE` correctly.
-7.  Launch with the full `/dev/dri` + oneCCL Docker settings.
+7. Launch with the standard `/dev/dri` mapping. Add the oneCCL/XCCL workaround only if startup fails with `ze_fd_manager`, DRM device-directory, or similar errors.
 8.  Wait for `Application startup complete`.
 9.  Check `/health`.
 10. Check `/v1/models`.

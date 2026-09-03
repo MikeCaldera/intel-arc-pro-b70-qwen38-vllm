@@ -277,9 +277,6 @@ docker run -d \
   --device /dev/dri:/dev/dri \
   -v /dev/dri:/dev/dri:ro \
   --group-add "$RENDER_GID" \
-  --cap-add SYS_PTRACE \
-  --security-opt seccomp=unconfined \
-  --ipc=host \
   -v "$MODEL_DIR:/model:ro" \
   -v "$PWD/patches/patch_mtp_nightly.py:/patch_mtp.py:ro" \
   -v "$PWD/patches/patch_mtp_boundary.py:/patch_boundary.py:ro" \
@@ -312,6 +309,28 @@ exec vllm serve /model \
 > \[!WARNING\] `ZE_AFFINITY_MASK=0` selected the B70 on the validation
 > host. On a system with multiple Intel GPUs, Level Zero device ordering
 > may differ. Verify that device 0 is actually the B70.
+
+### If oneCCL/XCCL fails during startup
+
+If the server fails with `ze_fd_manager`, DRM device-directory, or similar oneCCL/XCCL errors, stop and remove the container:
+
+```bash
+docker rm -f qw38speed
+```
+
+Then rerun the same Docker command with these three additional options inserted after `--group-add "$RENDER_GID"`:
+
+```bash
+--cap-add SYS_PTRACE \
+--security-opt seccomp=unconfined \
+--ipc=host \
+```
+
+This workaround was required on the validation system and successfully resolved the oneCCL/XCCL startup failure.
+
+
+
+
 
 ------------------------------------------------------------------------
 

@@ -221,28 +221,30 @@ and call it the same reproduction.
 
 ------------------------------------------------------------------------
 
-# 7. Critical Docker / oneCCL fix
+# 7. Docker device mapping and oneCCL/XCCL troubleshooting
 
-A major issue during validation was oneCCL/XCCL failing inside Docker.
+Start with the normal Intel GPU device mapping:
 
-Passing only an individual render device was not enough on the
-validation host. The working configuration used:
-
-``` bash
+```bash
 --device /dev/dri:/dev/dri
 -v /dev/dri:/dev/dri:ro
 --group-add "$RENDER_GID"
+```
+
+On the validation system, oneCCL/XCCL initially failed with errors involving `ze_fd_manager` and an inability to open the DRM device directory.
+
+If you encounter similar oneCCL/XCCL initialization errors, add this validated workaround:
+
+```bash
 --cap-add SYS_PTRACE
 --security-opt seccomp=unconfined
 --ipc=host
 ```
 
-Without these settings, oneCCL fell back to a DRM file-descriptor path
-and failed around `ze_fd_manager.cpp` while trying to open the device
-directory.
+These extra permissions were required on the validation host, but they should be treated as a troubleshooting workaround rather than assumed to be necessary on every Intel Arc Pro B70 system.
 
-With the full DRI mapping and the permissions above, XCCL initialized
-normally.
+If the server initializes correctly without them, use the simpler device mapping.
+
 
 ------------------------------------------------------------------------
 

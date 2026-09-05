@@ -1,0 +1,10 @@
+*.log
+__pycache__/
+*.pyc
+/tmp/
+results/private/
+.env
+.env.*
+**/.hf_token*
+**/hf_token*
+**/*hf_*token*

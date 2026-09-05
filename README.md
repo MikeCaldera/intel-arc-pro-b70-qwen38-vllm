@@ -1,6 +1,8 @@
-# Intel Arc Pro B70 Inference Cookbook
+# Intel Arc Pro B70 + Qwen3.8-27B --- vLLM XPU Replication Guide
 
-Repeatable vLLM XPU and llama.cpp SYCL recipes for Intel Arc Pro B60/B70 GPUs.
+A reproducible community guide for running **Qwen3.8-27B GPTQ INT4 with
+BF16 MTP4 speculative decoding** on a single **Intel Arc Pro B70 32 GB**
+GPU using vLLM XPU.
 
 ## Verified MTP4 Context Scaling
 
@@ -59,266 +61,817 @@ It should not be substituted for the 512-token point in the context-scaling seri
 
 The two results use different benchmark procedures and are intentionally reported separately.
 
-## Agent control plane
 
-Agents should begin with [`data/system-map.v1.json`](data/system-map.v1.json),
-choose the closest task intent, and load only that route's authorities. Routes
-cover reading, setup, reproduction, client connection, operation, submission,
-publication, and triage. The design and change-routing model is
-[`docs/AGENT-SYSTEM.md`](docs/AGENT-SYSTEM.md). Add or change a family route
-through [`docs/ADDING-A-RECIPE.md`](docs/ADDING-A-RECIPE.md).
+## Validated result
 
-The repository is a five-layer system: control -> contracts -> family recipes
--> evidence -> generated reader views. Edit the owning authority, then render
-and validate downstream views. Do not maintain copied benchmark or patch tables.
+On the validation system, the final `p512/g128`, concurrency-1 benchmark
+produced:
 
-Run all GPU-free repository gates with `python3 scripts/check-repo.py`.
+  Metric                                         Result
+  --------------------- -------------------------------
+  Median decode                         **84.65 tok/s**
+  Mean decode                           **84.49 tok/s**
+  Min / Max                     **83.73 / 84.78 tok/s**
+  Median TTFT                              **0.3557 s**
+  Prompt / generation              **512 / 128 tokens**
+  Measured runs           **5 after same-shape warmup**
 
-This is **one cookbook with one page per model family**. Do not start a second
-repo when a new architecture lands: add `docs/<family>/` + `benchmarks/<family>/`
-and pin that family's image digest. **Do not mix patch lists or numbers across
-families.** The image that serves Qwen3.6 Pi is not the image that served
-Nemotron DFlash.
+This closely reproduces the approximately **83.7 tok/s** BF16-draft MTP4
+reference result documented by the Intel Arc Pro B70 inference cookbook.
 
-## Model family hub
+> \[!NOTE\] This is a known-good reference, not a guarantee that every
+> B70 system will produce exactly 84.65 tok/s. PCIe topology, CPU,
+> kernel/driver versions, GPU power limits, thermals, and software
+> revisions can affect results.
 
-| Family | Engine | What is proven | Headline | Page |
-|---|---|---|---|---|
-| **Qwen3.6-35B-A3B** | vLLM XPU (Pi digest) | Native MTP 1/2/4, 128K | MTP4 p512/g128 **170.91** client post-first n=5 | [QWEN36-MOE-VLLM-XPU](docs/qwen36-35a3/QWEN36-MOE-VLLM-XPU.md) |
-| **Qwen3.8-27B** | vLLM XPU (nightly digest) | Dense GPTQ-INT4 + MTP4; optional draft-INT4; concurrent serving via mixed-split v5; separate dual-B70 FP8 TP2 research route | C1 **106.7** n=5 current GPTQ stack (LMX `cmt03mj040eh8ms01trjvhm75`); cache-off 112.65 (`cmszpqy000e8fms014ty6i5x3`), BF16-draft 83.7 (`cmsur82fz06svms01ga1f0z83`). Concurrent (v5 + draft-INT4, prefix on): **C5 realistic 127.4** Σ-streams / 25.5 per-user (`cmt03mjo60ehbms0117c5i745`), short-prompt **C5 203.8 / C32 224.2** (lmx harness), C32 Σ-streams 903. **Prefix reuse largely fails at C5 on this build** (0–38% hits vs 91% at C1) — warm-session TTFT at Cn is an open issue. FP8 TP2 values remain on their dedicated E2 page/catalog records. | [Family hub](docs/qwen38-27/README.md) · [GPTQ recipe](docs/qwen38-27/QWEN38-VLLM-XPU.md) · [FP8 TP2](docs/qwen38-27/FP8-TP2-W8A16.md) · [Windows 11](docs/qwen38-27/WINDOWS-STANDALONE.md) |
-| **Qwen3.6-27B** | vLLM XPU (same Pi digest) | Dense GPTQ-INT4 + MTP, fp8 KV | MTP4 p512/g128 **69.30** n=5 | [QWEN36-DENSE-VLLM-XPU](docs/qwen36-27/QWEN36-DENSE-VLLM-XPU.md) |
-| **Nemotron-3.5-Lightning-30B-A3B** | vLLM XPU (**newer** digest) | DFlash n=7; native MTP **0%** | **186.61** C1 client post-first at p2048/g128 n=5; **cold input 7160** (prompt/TTFT) at p8192/g1 | [NEMOTRON-DFLASH-B70](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md) |
-| **Muse-Glimmer-30B** | llama.cpp SYCL | Vision + DFlash n2; vLLM still experimental | **26.8** engine t/s at p512/g128 **128K** n=5 | [MUSE-GLIMMER-B70](docs/muse-glimmer/MUSE-GLIMMER-B70.md) |
-| **Qwen3.8-Flash-Next** | llama.cpp SYCL (two B70s, C1) | Community M64 GGUF, fused IQ3_S/IQ4_NL MMVQ. 8K/16K/128K are context windows. FP32 and F16 are separate compile-time binaries. | C1 n=5: FP32 **23.38** tok/s p512/g128 at 8K; F16 cold input **594.49** at p9096/g128, 16K. | [Recipe](docs/qwen38-flash-next/QWEN38-FLASH-NEXT-LLAMACPP.md) |
-| **Ornith-1.5-35B-A3B** | vLLM XPU (Qwen3.8 nightly digest) | Local GPTQ-INT4 MixedCal-v2, **MTP1 + DraftINT4 default**; 262K C1; 150↔230 W prefill A/B | Self-reported E2: combined 230 W LMX `tokSOut` **108.4** / `tokSPrefill` **9073** (`cmt2tdx5q0hy0mv01koh4xwpw`); host p512/g128 **106.64**. BF16-draft MTP1 150 W **96.43**. No-spec 230 W prefill **9780** (`cmt2sr6gq0himmv01ogieh0c8`) | [ORNITH-VLLM-XPU](docs/ornith15-35a3/ORNITH-VLLM-XPU.md) |
-| **Ornith-1.5-35B-A3B** (converters) | vLLM XPU (nightly digest) | GPTQ→AutoRound converter head-to-head; MTP1; **reference logprob parity vs BF16** | MTP1 96.4 t/s n=5 @150 W; AutoRound equal-or-best parity (self-report, E2) | [AUTOROUND-VS-GPTQ](docs/ornith15-35a3/AUTOROUND-VS-GPTQ.md) |
+## Extended Qwen3.8-27B benchmark and long-context reproduction
 
-Image + patch pin: [IMAGE-AND-PATCH-MATRIX.md](docs/IMAGE-AND-PATCH-MATRIX.md).
+Detailed reproduction instructions, long-context results, Intel runtime comparison, and benchmark methodology:
 
-**Reliability map (what breaks and which layer owns it):** [RELIABILITY-REPORT.md](docs/RELIABILITY-REPORT.md) — single-card baseline, multi-GPU failure modes, Linux bring-up, ranked fix list. Evidence-linked as of 2026-08-31.
+[Qwen3.8-27B Intel Arc Pro B70 Reproduction](benchmarks/QWEN38_B70_REPRODUCTION.md)
 
-Issue/PR checks: [MAINTAINER-PRECHECKS.md](docs/MAINTAINER-PRECHECKS.md).
+Key measured results:
 
-Every speed cell is C1 unless a table says otherwise. LocalMaxxing `APPROVED`
-means the payload was accepted into the public leaderboard.
+- 84.65 tok/s short-context MTP4 benchmark
+- 80K cold-context MTP2: 6/6 PASS, ~51.5 tok/s typical decode
+- 160K MTP2 on Intel compute-runtime 26.31: 3 consecutive 160K requests PASS
+- The Xe failure seen under runtime 26.27 was not reproduced during the 26.31 retest
 
-### One benchmark source for the cookbook and XeCores
+## Why this setup is useful
 
-Public summary records live in [`data/benchmarks.v1.json`](data/benchmarks.v1.json).
-XeCores reads that file directly and keeps a vendored fallback. To add or change
-a public result, edit the JSON once, then run:
+-   Runs a 27B-class model on one 32 GB B70.
+-   GPTQ INT4 keeps model memory practical.
+-   MTP4 speculative decoding substantially improves serial decode
+    speed.
+-   FP8 KV cache leaves useful context capacity.
+-   vLLM exposes an OpenAI-compatible API.
+-   The 131,072-token configured context makes the stack attractive for
+    long-context and RAG workloads.
+-   Local inference can keep prompts and retrieved documents on
+    infrastructure you control.
+
+## Why it is RAG-friendly
+
+This configuration is particularly useful for **retrieval-augmented
+generation (RAG)**.
+
+A typical RAG pipeline retrieves relevant passages or records first,
+inserts that evidence into the model prompt, and asks the model to
+answer from the supplied context. This stack helps because:
+
+-   **131K configured context** provides room for retrieved passages,
+    instructions, conversation history, and citations.
+-   **Fast prompt processing** matters because RAG often adds
+    substantial evidence before generation begins.
+-   **\~84.65 tok/s serial decode** keeps answer generation responsive
+    after prefill.
+-   **OpenAI-compatible endpoints** make integration straightforward
+    with many RAG frameworks and custom applications.
+-   **Local execution** can keep retrieved documents and prompts on the
+    local system.
+-   Applications can use compact evidence for low latency or larger
+    evidence sets when a task requires them.
+
+For reliable RAG, retrieval should remain authoritative: retrieve good
+evidence first, keep it concise, instruct the model to stay grounded in
+that evidence, and measure retrieval latency separately from model TTFT
+and decode speed.
+
+------------------------------------------------------------------------
+
+# 1. Known-good software stack
+
+  Component                Known-good value
+  ------------------------ ----------------------------------------------------
+  GPU                      Intel Arc Pro B70 32 GB
+  Model                    `SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16`
+  Model revision           `9d189a60e4c0ad7f9f47cd94bfa393ca10b3924e`
+  vLLM                     `0.27.2rc1.dev77+gac7509e2b.xpu`
+  XPU kernels              `vllm-xpu-kernels 0.1.12.3`
+  Quantization             GPTQ INT4, symmetric, group size 128
+  MTP                      4 speculative tokens, BF16 draft
+  KV cache                 FP8
+  Context                  131072
+  Max sequences            64
+  Max batched tokens       8192
+  Prefix caching           Disabled for this reproduced baseline
+  GPU memory utilization   0.88
+
+### Pinned container image
+
+``` text
+vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f
+```
+
+### Upstream cookbook
+
+-   https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook
+-   https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/master/docs/qwen38-27/QWEN38-VLLM-XPU.md
+-   https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook/blob/master/docs/FULL-SETUP-COMMANDS.md
+
+------------------------------------------------------------------------
+
+# 2. Host prerequisites
+
+You need:
+
+-   Linux with a working Intel `xe` driver for the Arc Pro B70.
+-   Docker with permission to pass `/dev/dri` devices into containers.
+-   A B70 visible through a render node such as `/dev/dri/renderD128` or
+    `/dev/dri/renderD129`.
+-   A healthy PCIe link.
+-   Adequate GPU cooling and power delivery.
+-   Enough local storage for the model, Docker image, and caches.
+
+> [!IMPORTANT]
+> Device numbering is system-specific. **Do not blindly copy `card2`, `renderD129`, or PCI address `04:00.0`.** Identify the B70 on your own host first.
+
+
+------------------------------------------------------------------------
+
+# 3. Identify your B70
+
+Run:
+
+``` bash
+lspci -nn | grep -Ei 'VGA|Display|Intel'
+
+ls -l /dev/dri
+ls -l /dev/dri/by-path 2>/dev/null || true
+
+for d in /sys/class/drm/card*/device; do
+    echo "=== $d ==="
+    readlink -f "$d"
+    cat "$d/vendor" 2>/dev/null
+    cat "$d/device" 2>/dev/null
+done
+```
+
+Record:
+
+1.  B70 PCI address.
+2.  `/dev/dri/cardX`.
+3.  `/dev/dri/renderDXXX`.
+4.  Render-node group GID.
+
+------------------------------------------------------------------------
+
+# 4. Verify PCIe link health
+
+Replace `04:00.0` with your B70 PCI address:
+
+``` bash
+sudo lspci -vv -s 04:00.0 | grep -E 'LnkCap|LnkSta|LnkCap2|LnkCtl2'
+```
+
+The validation machine used for this guide was operating at **PCIe Gen3
+x16**.
+
+A badly downgraded link such as x1 should be investigated before using
+inference performance as a comparison.
+
+------------------------------------------------------------------------
+
+# 5. Get the cookbook and model
+
+Clone the cookbook if you do not already have it:
+
+``` bash
+cd ~
+git clone https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook.git
+cd ~/intel-arc-pro-b70-inference-cookbook
+```
+
+The model used for this reproduction is:
+
+``` text
+SergiioB/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16
+```
+
+Pinned revision:
+
+``` text
+9d189a60e4c0ad7f9f47cd94bfa393ca10b3924e
+```
+
+Expected local directory in the commands below:
+
+``` text
+$HOME/models/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16
+```
+
+Follow the upstream cookbook's model-download procedure so the exact
+revision is preserved.
+
+------------------------------------------------------------------------
+
+# 6. Verify required patches
+
+This baseline uses:
+
+``` text
+patches/patch_mtp_nightly.py
+SHA256: 4d7a02c4ea10ca7c00dc89ad927fa3dafa747dbf0553d2adf24e30a3c53e9c14
+
+patches/patch_mtp_boundary.py
+SHA256: 41d2f74e5fef1f074b76b5a90dd1016de437228431802cfb1fa7bd7ce4cc9b50
+```
+
+Verify:
+
+``` bash
+cd ~/intel-arc-pro-b70-inference-cookbook
+
+sha256sum patches/patch_mtp_nightly.py
+sha256sum patches/patch_mtp_boundary.py
+```
+
+If the hashes do not match, stop and determine whether the upstream
+cookbook changed. Do not silently mix a newer patch with this baseline
+and call it the same reproduction.
+
+------------------------------------------------------------------------
+
+# 7. Docker device mapping and oneCCL/XCCL troubleshooting
+
+Start with the normal Intel GPU device mapping:
 
 ```bash
-python3 scripts/render-benchmark-catalog.py
-python3 scripts/render-benchmark-catalog.py --check
+--device /dev/dri:/dev/dri
+-v /dev/dri:/dev/dri:ro
+--group-add "$RENDER_GID"
 ```
 
-The command regenerates [`docs/BENCHMARK-CATALOG.md`](docs/BENCHMARK-CATALOG.md).
-Complete numeric rows require an exact workload, sample count, metric definition,
-and commit-pinned evidence. Working recipes without those coordinates stay as
-capability records and do not enter benchmark rankings.
+On the validation system, oneCCL/XCCL initially failed with errors involving `ze_fd_manager` and an inability to open the DRM device directory.
 
-## Quick Start (3-Step Setup)
-
-### Step 1: Pull the image
-```bash
-export IMAGE='vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97'
-docker pull "$IMAGE"
-```
-
-### Step 2: Download the model
-**MoE (Qwen3.6-35B-A3B):**
-```bash
-export MODEL_DIR="$HOME/models/Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4"
-huggingface-cli download llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4 \
-  --local-dir "$MODEL_DIR"
-```
-
-**Dense (Qwen3.6-27B):**
-```bash
-export DENSE_DIR="$HOME/models/Qwen3.6-27B-MTP-Preserved-GPTQ-Int4"
-huggingface-cli download llmfan46/Qwen3.6-27B-uncensored-heretic-v2-Native-MTP-Preserved-GPTQ-Int4 \
-  --local-dir "$DENSE_DIR"
-```
-
-### Step 3: Launch server & verify health
-**MoE (128K context, MTP2, FP16 KV):**
-```bash
-bash benchmarks/qwen36-35a3/launch-vllm-128k-mode.sh "$MODEL_DIR" mtp2 on 8000
-curl -f http://127.0.0.1:8000/health
-```
-
-**Dense (128K context, MTP4, FP8 KV required):**
-```bash
-bash benchmarks/qwen36-27/launch-dense27-128k-mode.sh "$DENSE_DIR" mtp4 on 8000
-curl -f http://127.0.0.1:8000/health
-```
-
-Both launchers include tool-calling flags (`--enable-auto-tool-choice --tool-call-parser qwen3_coder`) out of the box for Pi, omp, and OpenAI agent clients.
-
-**Serving with Pi / omp / agents:** point the client at `http://127.0.0.1:8000/v1`
-and use the served model name (`Qwen3.6-35B-A3B-MTP-Preserved-GPTQ-Int4` or
-`Qwen3.6-27B-MTP-Preserved-GPTQ-Int4`). Tool calling is enabled by the
-launchers, so `tool_choice: "auto"` works out of the box. For a persistent
-server, wrap either launcher in your own systemd unit or process supervisor —
-the scripts are self-contained and portable (no host-specific paths).
-
-### Windows 11 hosts (WSLC / Docker Desktop)
-
-<img src="docs/assets/windows-11-logo.svg" alt="Windows 11" width="22" align="top"> Qwen3.8-27B also runs on **Windows 11** with the same image digest.
-Two standalone PowerShell kits (Docker Desktop — proven, ~70 tok/s class on
-the 2026.08.18 BF16-draft measure; Microsoft WSLC — experimental, 2.4–2.8×
-slower) devised and tested by Ian Hudson (aitesthive.com). They reserve GPU
-memory for the Windows desktop (`gpu-memory-utilization 0.75` + explicit
-4.25 GiB fp8 KV) because a single-B70 Windows machine drives its display
-from the same 32 GB card. Image **2026.08.19** adds draft-INT4 S+M1 and
-turns **prefix cache on** for real sessions. If you already have the
-18 August kit: `.\Upgrade-Qwen38-Docker.ps1` — do not re-download the
-model. Guide:
-**[docs/qwen38-27/WINDOWS-STANDALONE.md](docs/qwen38-27/WINDOWS-STANDALONE.md)** (kits in [`windows/`](windows/)).
-
-### Connecting Pi / omp / Hermes
-
-See **[CONNECTING-CLIENTS.md](docs/CONNECTING-CLIENTS.md)** for the full
-client quick start: Hermes `config.yaml` provider block, omp base URL,
-Pi client settings, the port table (8000 launcher / 8765 bridge), the `active`
-model alias, API key setup, and a copy-paste tool-call smoke test.
-
-**Exact software versions (do not substitute):**
-
-| Component | Exact tested value |
-|---|---|
-| Image | `vllm/vllm-openai-xpu@sha256:2c427ef477da092eb6f2cdbbbd24950b5fa171565b916db69d4c7bb10e68ca97` |
-| vLLM | `0.26.1rc1.dev457+gc810e5ee9.xpu` |
-| `vllm-xpu-kernels` | `0.1.12` |
-| Tool-call parser | `qwen3_coder` (`Qwen3EngineToolParser`) |
-
-Use [Full setup commands](docs/FULL-SETUP-COMMANDS.md) for the render-device check, model download and verification, package check, patch hashes, endpoint checks, and full matrix.
-
-Benchmark graphics are rendered from the canonical `summary.json` with the public renderer [`benchmarks/render-prefill-decode-svg.py`](benchmarks/render-prefill-decode-svg.py) (dashboard + method diagram).
-
-## Serve reliably: Xe2 wedge watchdog (production)
-
-Under sustained Level-Zero load the `xe` driver can reset a compute/copy engine
-and wedge the userspace context permanently - the server stops responding until
-the container is restarted (intel/compute-runtime#948, vllm-project/vllm#41663).
-The watchdog detects the wedge (health poll + kernel engine-reset signatures)
-and restarts the serving container for you:
+If you encounter similar oneCCL/XCCL initialization errors, add this validated workaround:
 
 ```bash
-sudo bash watchdog/install-watchdog.sh --container vllm-serve
+--cap-add SYS_PTRACE
+--security-opt seccomp=unconfined
+--ipc=host
 ```
 
-(adjust `--container` to the name your launcher uses - the launch scripts read
-it from `$CONTAINER`; for non-docker deploys pass
-`--recovery-cmd "systemctl restart <your-unit>"`). Container launchers now set
-`--restart unless-stopped`, so a clean engine exit is recovered automatically
-and the watchdog covers the GPU-wedge case where that exit never happens. Full docs:
-[watchdog/README.md](watchdog/README.md).
+These extra permissions were required on the validation host, but they should be treated as a troubleshooting workaround rather than assumed to be necessary on every Intel Arc Pro B70 system.
 
-## Model Architecture Guides
+If the server initializes correctly without them, use the simpler device mapping.
 
-Every model has its own dedicated recipe and benchmarks in `docs/<family>/`:
 
-1. **[Qwen3.6-35B-A3B (MoE)](docs/qwen36-35a3/QWEN36-MOE-VLLM-XPU.md):** Native MTP 1/2/4, 128K context, 170.9 tok/s peak decode.
-2. **[Qwen3.6-27B (Dense)](docs/qwen36-27/QWEN36-DENSE-VLLM-XPU.md):** Dense GPTQ-INT4 + MTP4, FP8 KV cache required, 69.3 tok/s decode.
-3. **[Qwen3.8-27B family hub](docs/qwen38-27/README.md):** choose the single-B70 GPTQ/MTP route, the separate dual-B70 FP8 TP2 research route, Windows packaging, or Pi agent integration without mixing their patch lists or numeric authorities.
-4. **[Nemotron-3.5-Lightning-30B-A3B](docs/nemotron35-30a3/NEMOTRON-DFLASH-B70.md):** DFlash $n=7$ speculative decoding, 186.6 tok/s decode, 7160 tok/s cold prefill.
-5. **[Ornith-1.5-35B-A3B](docs/ornith15-35a3/ORNITH-VLLM-XPU.md):** MixedCal-v2 local GPTQ-INT4, default MTP1 + DraftINT4, 108.4 tok/s decode.
-6. **[Muse-Glimmer-30B](docs/muse-glimmer/MUSE-GLIMMER-B70.md):** llama.cpp SYCL vision + reasoning, DFlash $n=2$, 26.8 tok/s decode.
+------------------------------------------------------------------------
 
-## Reproduce the matrix
+# 8. Launch the known-good server
 
-The runner does not change host power. `CONFIGURED_CAP_W` records the cap selected by the operator.
+First set **your** B70 render node.
+
+Example:
+
+``` bash
+export B70_RENDER_NODE="/dev/dri/renderD129"
+```
+
+Then launch:
+
+``` bash
+cd ~/intel-arc-pro-b70-inference-cookbook
+
+export IMAGE='vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f'
+export MODEL_DIR="$HOME/models/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16"
+export B70_RENDER_NODE="/dev/dri/renderD129"
+export RENDER_GID="$(stat -c '%g' "$B70_RENDER_NODE")"
+
+docker rm -f qw38speed 2>/dev/null || true
+
+docker run -d \
+  --name qw38speed \
+  --restart unless-stopped \
+  -p 11436:8000 \
+  --device /dev/dri:/dev/dri \
+  -v /dev/dri:/dev/dri:ro \
+  --group-add "$RENDER_GID" \
+  -v "$MODEL_DIR:/model:ro" \
+  -v "$PWD/patches/patch_mtp_nightly.py:/patch_mtp.py:ro" \
+  -v "$PWD/patches/patch_mtp_boundary.py:/patch_boundary.py:ro" \
+  -e VLLM_TARGET_DEVICE=xpu \
+  -e ZE_FLAT_DEVICE_HIERARCHY=COMPOSITE \
+  -e ZE_AFFINITY_MASK=0 \
+  -e B70_MTP_BF16_DRAFT=1 \
+  -e VLLM_XPU_ENABLE_XPU_GRAPH=1 \
+  -e PYTORCH_ALLOC_CONF=expandable_segments:True \
+  --entrypoint bash \
+  "$IMAGE" \
+  -lc 'set -e
+python /patch_mtp.py
+python /patch_boundary.py
+exec vllm serve /model \
+  --quantization gptq \
+  --dtype float16 \
+  --max-model-len 131072 \
+  --gpu-memory-utilization 0.88 \
+  --kv-cache-dtype fp8 \
+  --port 8000 \
+  --max-num-seqs 64 \
+  --max-num-batched-tokens 8192 \
+  --no-enable-prefix-caching \
+  --served-model-name qwen38 \
+  --language-model-only \
+  --speculative-config "{\"method\":\"mtp\",\"num_speculative_tokens\":4}"'
+```
+
+> \[!WARNING\] `ZE_AFFINITY_MASK=0` selected the B70 on the validation
+> host. On a system with multiple Intel GPUs, Level Zero device ordering
+> may differ. Verify that device 0 is actually the B70.
+
+### If oneCCL/XCCL fails during startup
+
+If the server fails with `ze_fd_manager`, DRM device-directory, or similar oneCCL/XCCL errors, stop and remove the container:
 
 ```bash
-CONFIGURED_CAP_W=165 \
-  bash benchmarks/b70-pi-prefill-decode-matrix.sh "$MODEL_DIR"
+docker rm -f qw38speed
 ```
 
-Dense 27B (same matrix contract, fp8 KV, 230 W, GPU util 0.88 for MTP4):
+Then rerun the same Docker command with these three additional options inserted after `--group-add "$RENDER_GID"`:
 
 ```bash
-CONFIGURED_CAP_W=230 \
-  bash benchmarks/qwen36-27/launch-dense27-128k-mode.sh "$DENSE_DIR" mtp4 on 8000
+--cap-add SYS_PTRACE \
+--security-opt seccomp=unconfined \
+--ipc=host \
 ```
 
-Evidence and format:
+This workaround was required on the validation system and successfully resolved the oneCCL/XCCL startup failure.
 
-- [Machine-readable phase-separated result](results/prefill-decode-matrix-20260809-summary.json)
-- [Dense 27B machine-readable result](results/qwen36-27/prefill-decode-matrix-20260809-dense27-summary.json)
-- [Dense 27B dashboard SVG](docs/assets/b70-dense27-4mode-dashboard.svg)
-- [Stable cross-model benchmark format](docs/BENCHMARK-FORMAT.md)
-- [Current result plus prior Pi campaigns](docs/REAL-WORLD-PI-BENCHMARKS.md)
-- [Image and patch compatibility](docs/IMAGE-AND-PATCH-MATRIX.md)
-- [Dual-B70 multi-GPU serving (TP2 / PP2)](docs/DUAL-B70-TP2.md)
-- [Connecting Pi / omp / Hermes clients](docs/CONNECTING-CLIENTS.md)
-- [Historical campaign log](docs/CAMPAIGN-LOG.md)
 
-## vLLM runtime decisions — what this stack uses (both MoE and dense)
 
-The pinned image runs vLLM V1 (0.26.1rc1.dev457+gc810e5ee9.xpu) on a single-socket single-GPU host. Of the five
-runtime decisions commonly discussed, here is exactly where this stack stands
-(verified from the running server's own config log, 2026-08-10):
 
-| Decision | This stack | Evidence |
-|---|---|---|
-| **NUMA binding** | **N/A — single socket.** `Socket(s): 1`, `NUMA node(s): 1`. There is no inter-socket link to cross; the "wrong socket" problem cannot occur on one NUMA node. vLLM's `--numa-memory-tracking` / node pinning is irrelevant here and would change nothing. | `lscpu` |
-| **Chunked prefill** | **Already ON (V1 default).** Server config: `enable_chunked_prefill=True`. `--max-num-batched-tokens 8192` is the chunk cap; large prompts are sliced and decode interleaves between chunks. Scheduler-budget probes on the MoE (+17.6% at 16,384) and dense (flat) show the cap also shapes throughput — see the scheduler findings above. | server config log |
-| **Recompute instead of swap** | **Already the V1 behavior.** vLLM V1 has no KV swap path — evicted/recomputed requests rebuild from the prompt (recompute) rather than moving KV to CPU. `swap_space` is a V0 concept; on this V1 build there is nothing to set to 0. The `vllm:prefix_cache_*` counters confirm hits are served from GPU KV, not CPU. | V1 source + metrics |
-| **Skip memory profiling** | **Not used — and not worth it here.** We pass `--gpu-memory-utilization 0.88` (dense) / `0.85` (MoE); the memory-profile/warmup phase costs **0.40 s + 0.03 s** of a **139.77 s** engine init (compilation 106.37 s). `--kv-cache-memory` would skip ~0.4 s of a 140 s boot — 0.3%. Startup is dominated by Triton JIT + CUDA graph capture, not profiling. | server log |
-| **Eager mode** | **Not used — correct for serving.** `enforce_eager=False`, `cudagraph_mode: FULL_AND_PIECEWISE` with capture sizes 1-256. Graph capture is the 106 s of the 140 s boot, and it is what makes steady-state decode fast (MTP4 69.3 t/s dense, 170.9 MoE). `--enforce-eager` would cut boot but trade away most decode throughput — only sensible for throwaway dev loops, not the production profile. | server config log |
 
-**Tool calling (Pi / omp / OpenAI clients):** both model paths must run with
-`--enable-auto-tool-choice --tool-call-parser qwen3_coder` (the
-`Qwen3EngineToolParser` in this build). Without them, clients that send
-`tool_choice: "auto"` (Pi, omp, most agents) get
-`400: "auto" tool choice requires --enable-auto-tool-choice and
---tool-call-parser to be set`. The launcher profiles for both models include
-these flags; the raw launcher scripts in `benchmarks/` include them for the
-serve command.
+------------------------------------------------------------------------
 
-**Bottom line:** of the five levers, this stack already uses chunked prefill
-and V1 recompute (both defaults), does not need NUMA (single socket), and
-correctly skips eager mode and `--kv-cache-memory` — the profiling saving is
-0.3% of boot while the eager trade would cost most decode throughput. The
-actionable runtime lever measured here was the scheduler budget (see MoE
-scheduler findings) and prefix caching (see the resident-session section).
+# 9. Verify startup
 
-## Correctness limitation
+Follow the logs:
 
-Prompt hashes match across no-spec, MTP1, MTP2, and MTP4. Output parity does not. Depending on the longer-decode cell, only 0 to 4 of 5 repetitions matched exact output text across all four modes. The campaign shows speed and completed exact token shapes, not token, logit, KL, or task-quality parity. Do not use speed as correctness proof.
-
-## Repository map
-
-```text
-benchmarks/
-  qwen36-35a3/       MoE Qwen3.6-35B-A3B launchers and model-specific campaigns
-  qwen36-27/         Dense Qwen3.6-27B launchers (launch-dense27-128k-mode.sh)
-  nemotron35-30a3/   Nemotron DFlash + no-spec graph launchers
-  ornith15-35a3/     Ornith-1.5 MixedCal-v2 MTP1 launcher
-  <root>             shared: matrix runner, harness, monitor, prompt generation, compiler, renderers
-windows/             Windows 11 standalone kits (WSLC + Docker Desktop) — see docs/qwen38-27/WINDOWS-STANDALONE.md
-patches/             family-tagged patches — see IMAGE-AND-PATCH-MATRIX.md
-docs/
-  qwen36-35a3/       MoE-specific reference (QUANTIZATION-QUALITY.md)
-  qwen36-27/         Dense-specific reference (DENSE-FP8-GAP.md)
-  nemotron35-30a3/   Nemotron DFlash + no-spec recipes
-  ornith15-35a3/     Ornith MixedCal-v2 recipe + measured tables
-  muse-glimmer/      Muse llama.cpp recipe
-  qwen38-flash-next/ Flash-Next llama.cpp dual-B70 C1 recipe (not Qwen3.8-27B)
-  <root>             shared: setup, benchmark contract, methodology, compatibility, history
-results/
-  qwen36-35a3/       MoE machine-readable summaries and engine grids
-  qwen36-27/         Dense summaries (dense27 model card, llama.cpp grids)
-  <root>             shared cross-model summaries
-research/            kernel and quantization investigations
-submissions/         historical LocalMaxxing payloads
-watchdog/            production reliability: Xe2 wedge detection + auto-recovery
+``` bash
+docker logs -f qw38speed
 ```
 
-Model-specific files live under the family directory; cross-model contracts
-(benchmark format, setup, image/patch matrix) stay at the shared root. A new
-architecture gets a new family folder, not a new cookbook repo.
+Do not benchmark until you see:
 
-Code is MIT licensed. Measurement reports and prose are CC BY 4.0. See [LICENSE](LICENSE).
+``` text
+Application startup complete.
+```
+
+Then, from another terminal:
+
+``` bash
+curl -fsS http://127.0.0.1:11436/health && echo "HEALTH OK"
+
+curl -fsS http://127.0.0.1:11436/v1/models | jq
+```
+
+The model list should contain:
+
+``` text
+qwen38
+```
+
+Useful successful-startup signs include:
+
+-   XCCL initializes without a fatal error.
+-   AutoGPTQ uses the XPU path.
+-   MTP drafter initialization occurs.
+-   XPU graph capture succeeds.
+-   Device memory is consistent with the 32 GB B70.
+
+The validation host showed approximately **30.3 GiB** total device
+memory inside vLLM.
+
+------------------------------------------------------------------------
+
+# 10. First inference is a warmup
+
+The first request can trigger Triton JIT compilation for EAGLE/MTP
+kernels.
+
+Example warnings:
+
+``` text
+Triton kernel JIT compilation during inference:
+eagle_prepare_next_token_padded_kernel
+eagle_step_slot_mapping_metadata_kernel
+eagle_prepare_inputs_padded_kernel
+```
+
+This can cause a large one-time latency spike.
+
+**Do not use that cold request as your benchmark result.**
+
+Repeat the same shape once before recording measurements.
+
+------------------------------------------------------------------------
+
+# 11. Verify MTP is actually working
+
+After a request:
+
+``` bash
+docker logs qw38speed 2>&1 | tail -40
+```
+
+Look for `SpecDecoding metrics`.
+
+A working MTP path should report values such as:
+
+-   drafted tokens
+-   accepted tokens
+-   mean acceptance length
+-   per-position acceptance rate
+-   average draft acceptance rate
+
+During validation, early requests showed mean acceptance length around
+**2.7** and average draft acceptance around **42--43%**.
+
+------------------------------------------------------------------------
+
+# 12. Do not trust the wrong throughput numbers
+
+Two traps were discovered during validation.
+
+## vLLM periodic logger
+
+For a short 128-token request, the vLLM log reported:
+
+``` text
+Avg generation throughput: 12.8 tokens/s
+```
+
+That was **not** the actual post-first-token decode rate. It was
+affected by the logger's reporting interval.
+
+## SSE chunks are not tokens
+
+One 128-token response arrived in only **27 SSE chunks**.
+
+Counting chunks produced a bogus result of roughly:
+
+``` text
+16.99 chunks/s
+```
+
+Multiple generated tokens can be coalesced into one streaming event.
+
+### Correct method
+
+Use:
+
+``` text
+(completion_tokens - 1) / (request_end - first_generated_token)
+```
+
+where `completion_tokens` comes from the API usage block and timing uses
+a monotonic client clock.
+
+------------------------------------------------------------------------
+
+# 13. Reproduce the p512/g128 benchmark
+
+This test:
+
+1.  Creates an exact 512-token prompt.
+2.  Runs one same-shape warmup.
+3.  Runs five measured requests.
+4.  Generates exactly 128 tokens.
+5.  Uses concurrency 1.
+6.  Reports median/mean decode and median TTFT.
+
+``` bash
+python3 - <<'PY'
+import json
+import statistics
+import time
+import urllib.request
+
+BASE = "http://127.0.0.1:11436"
+
+seed = (
+    "A retrieval augmented generation system retrieves relevant source passages, "
+    "constructs a grounded context, sends the evidence to a language model, and "
+    "generates a concise answer based on the supplied information. "
+)
+
+text = seed
+
+while True:
+    req = urllib.request.Request(
+        BASE + "/tokenize",
+        data=json.dumps({"model": "qwen38", "prompt": text}).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+
+    with urllib.request.urlopen(req) as r:
+        tok = json.load(r)
+
+    if len(tok["tokens"]) >= 512:
+        break
+
+    text += seed
+
+ids = tok["tokens"][:512]
+
+req = urllib.request.Request(
+    BASE + "/detokenize",
+    data=json.dumps({"model": "qwen38", "tokens": ids}).encode(),
+    headers={"Content-Type": "application/json"},
+)
+
+with urllib.request.urlopen(req) as r:
+    text = json.load(r)["prompt"]
+
+
+def run():
+    payload = {
+        "model": "qwen38",
+        "prompt": text,
+        "max_tokens": 128,
+        "temperature": 0,
+        "ignore_eos": True,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+
+    req = urllib.request.Request(
+        BASE + "/v1/completions",
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+
+    start = time.perf_counter()
+    first = None
+    end = None
+    usage = None
+
+    with urllib.request.urlopen(req, timeout=300) as r:
+        for raw in r:
+            line = raw.decode().strip()
+
+            if not line.startswith("data: "):
+                continue
+
+            data = line[6:]
+
+            if data == "[DONE]":
+                end = time.perf_counter()
+                break
+
+            obj = json.loads(data)
+
+            if obj.get("usage"):
+                usage = obj["usage"]
+
+            choices = obj.get("choices", [])
+
+            if choices and choices[0].get("text") and first is None:
+                first = time.perf_counter()
+
+    if end is None:
+        end = time.perf_counter()
+
+    ct = usage["completion_tokens"]
+    pt = usage["prompt_tokens"]
+
+    return {
+        "prompt": pt,
+        "completion": ct,
+        "ttft": first - start,
+        "post": end - first,
+        "rate": (ct - 1) / (end - first),
+    }
+
+
+print("Warmup...")
+w = run()
+print(f"warmup: {w['rate']:.2f} tok/s  TTFT={w['ttft']:.4f}s")
+
+rates = []
+ttfts = []
+
+for i in range(1, 6):
+    r = run()
+    rates.append(r["rate"])
+    ttfts.append(r["ttft"])
+
+    print(
+        f"run {i}: {r['rate']:.2f} tok/s  "
+        f"TTFT={r['ttft']:.4f}s  "
+        f"prompt={r['prompt']} completion={r['completion']}"
+    )
+
+print()
+print(f"MEDIAN DECODE: {statistics.median(rates):.2f} tok/s")
+print(f"MEAN DECODE:   {statistics.mean(rates):.2f} tok/s")
+print(f"MIN/MAX:       {min(rates):.2f} / {max(rates):.2f} tok/s")
+print(f"MEDIAN TTFT:   {statistics.median(ttfts):.4f} s")
+PY
+```
+
+------------------------------------------------------------------------
+
+# 14. Validated benchmark result
+
+The known-good validation run produced:
+
+``` text
+Warmup...
+warmup: 83.82 tok/s  TTFT=1.1475s
+
+run 1: 83.73 tok/s  TTFT=0.3662s  prompt=512 completion=128
+run 2: 84.65 tok/s  TTFT=0.3573s  prompt=512 completion=128
+run 3: 84.70 tok/s  TTFT=0.3557s  prompt=512 completion=128
+run 4: 84.61 tok/s  TTFT=0.3531s  prompt=512 completion=128
+run 5: 84.78 tok/s  TTFT=0.3553s  prompt=512 completion=128
+
+MEDIAN DECODE: 84.65 tok/s
+MEAN DECODE:   84.49 tok/s
+MIN/MAX:       83.73 / 84.78 tok/s
+MEDIAN TTFT:   0.3557 s
+```
+
+The measured spread was only about **1.05 tok/s** from minimum to
+maximum.
+
+A different B70 host does not need to land on exactly 84.65 tok/s to be
+healthy. Compare the whole environment before interpreting small
+differences.
+
+------------------------------------------------------------------------
+
+# 15. Performance context from the validation host
+
+| Stack | Qwen3.8-27B format | Observed decode |
+|---|---|---:|
+| Ollama Vulkan | Q4_K_M | ~11–12 tok/s |
+| llama.cpp SYCL | Q4_K_M | ~27.4 tok/s |
+| **vLLM XPU + MTP4** | **GPTQ INT4 + BF16 draft** | **84.65 tok/s median** |
+
+These ratios are **not universal engine benchmarks**. They are
+measurements from one validation host and illustrate why the vLLM
+XPU/MTP path was investigated.
+
+------------------------------------------------------------------------
+
+# 16. Check GPU power limits
+
+Do not blindly copy a sysfs path or write a new power limit.
+
+First inspect the B70's hwmon entries.
+
+Replace `card2` with your actual B70 card:
+
+``` bash
+for h in /sys/class/drm/card2/device/hwmon/hwmon*; do
+    echo "=== $h ==="
+    cat "$h/name" 2>/dev/null
+    cat "$h/power1_cap" 2>/dev/null
+    cat "$h/power1_cap_max" 2>/dev/null
+done
+```
+
+The reference campaign used a **230 W configured cap**.
+
+Also check temperatures, clocks, and throttling while the benchmark is
+running.
+
+------------------------------------------------------------------------
+
+# 17. Troubleshooting
+
+  -----------------------------------------------------------------------
+  Symptom                             Check
+  ----------------------------------- -----------------------------------
+  `ze_fd_manager` / oneCCL / XCCL     Use full `/dev/dri`, read-only DRI
+  failure                             bind, render GID, `SYS_PTRACE`,
+                                      `seccomp=unconfined`, and
+                                      `--ipc=host`
+
+  Wrong Intel GPU selected            Verify Level Zero affinity and
+                                      check that detected memory matches
+                                      a 32 GB B70
+
+  First request is unusually slow     Check for Triton JIT compilation;
+                                      repeat the same shape
+
+  vLLM says \~12.8 tok/s              Do not use periodic logger for this
+                                      short C1 benchmark
+
+  Streaming test counts very few      SSE chunks are not tokens; use
+  "tokens"                            `completion_tokens`
+
+  MTP appears inactive                Check `SpecDecoding metrics` for
+                                      drafted and accepted tokens
+
+  Throughput is unexpectedly poor     Check PCIe width/speed, clocks,
+                                      power, thermals, throttling, and
+                                      software versions
+
+  Port 11436 is occupied              Change only the host side of
+                                      `-p 11436:8000`
+  -----------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+# 18. Reproducibility checklist
+
+When posting your own B70 result, include:
+
+-   [ ] Linux distribution
+-   [ ] Kernel version
+-   [ ] Intel `xe` driver status
+-   [ ] B70 PCI address
+-   [ ] Negotiated PCIe generation and width
+-   [ ] B70 card/render node
+-   [ ] Level Zero affinity selection
+-   [ ] Docker version
+-   [ ] vLLM image digest
+-   [ ] vLLM version
+-   [ ] XPU kernel version
+-   [ ] Exact model revision
+-   [ ] Patch SHA256 hashes
+-   [ ] vLLM command-line arguments
+-   [ ] Relevant environment variables
+-   [ ] GPU power cap
+-   [ ] GPU clocks/temperature/throttling state
+-   [ ] Prompt-token count
+-   [ ] Output-token count
+-   [ ] Concurrency
+-   [ ] Warmup procedure
+-   [ ] Number of measured repetitions
+-   [ ] Timing formula
+-   [ ] Median rather than only the best run
+
+------------------------------------------------------------------------
+
+# 19. Preserve the baseline before optimizing
+
+Once this baseline works, save the configuration before applying newer
+optimization overlays.
+
+Newer cookbook revisions may contain changes such as:
+
+-   draft INT4
+-   MTP INT4
+-   GDN mixed-split changes
+-   newer vLLM images
+-   different memory-utilization settings
+-   different prefix-cache settings
+
+Those may be faster, but they are **different benchmark
+configurations**.
+
+For each experiment, record a new:
+
+-   image digest
+-   model revision
+-   patch set/hashes
+-   launch command
+-   benchmark result
+
+That makes comparisons meaningful and makes it possible to return to the
+known-good baseline.
+
+------------------------------------------------------------------------
+
+# 20. Quick recovery sequence
+
+1.  Identify the B70 PCI address and render node.
+2.  Verify the PCIe link.
+3.  Open/clone the cookbook.
+4.  Confirm the pinned model revision is present.
+5.  Verify the two patch hashes.
+6.  Set `B70_RENDER_NODE` correctly.
+7. Launch with the standard `/dev/dri` mapping. Add the oneCCL/XCCL workaround only if startup fails with `ze_fd_manager`, DRM device-directory, or similar errors.
+8.  Wait for `Application startup complete`.
+9.  Check `/health`.
+10. Check `/v1/models`.
+11. Confirm the correct 32 GB B70 was selected.
+12. Run one same-shape warmup.
+13. Run five p512/g128 measured requests.
+14. Compare the median with the known-good \~84 tok/s result.
+15. If substantially different, investigate PCIe, GPU selection, JIT
+    warmup, MTP metrics, power/thermals, and software revisions before
+    changing tuning parameters.
+
+------------------------------------------------------------------------
+
+## Credits and upstream work
+
+This reproduction builds on the work published in:
+
+**SergiioB / intel-arc-pro-b70-inference-cookbook**\
+https://github.com/SergiioB/intel-arc-pro-b70-inference-cookbook
+
+The goal of this README is to document a successfully reproduced B70
+configuration, including the Docker/oneCCL details and benchmark
+pitfalls encountered while reproducing it, so other B70 owners can
+validate their own systems.
+
+If you reproduce the result on another B70, consider posting your
+hardware/software details and measured median so the community can
+compare configurations.

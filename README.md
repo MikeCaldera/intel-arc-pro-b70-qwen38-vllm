@@ -4,6 +4,64 @@ A reproducible community guide for running **Qwen3.8-27B GPTQ INT4 with
 BF16 MTP4 speculative decoding** on a single **Intel Arc Pro B70 32 GB**
 GPU using vLLM XPU.
 
+## Verified MTP4 Context Scaling
+
+Single-GPU context-scaling results for **Qwen3.8-27B GPTQ INT4 + BF16 MTP4** on an **Intel Arc Pro B70 32 GB** using vLLM XPU.
+
+| Prompt tokens | Median decode throughput |
+| ------------: | -----------------------: |
+|           512 |          **81.24 tok/s** |
+|         8,192 |          **73.30 tok/s** |
+|        16,384 |          **74.76 tok/s** |
+|        32,768 |          **68.34 tok/s** |
+|        65,536 |          **66.11 tok/s** |
+|       120,000 |          **50.31 tok/s** |
+
+### Verification
+
+All six datasets were independently checked from the saved benchmark results.
+
+Each dataset confirms:
+
+* MTP accepted-token positions: `[0, 1, 2, 3]`
+* Exact target prompt length
+* 128 generated tokens
+* Prefix-cache hits: `0`
+* Cold-context benchmarking
+* Median decode throughput reproduced directly from the saved per-run measurements
+
+The verification script reports:
+
+```text
+VERDICT: ALL SIX DATASETS CONFIRMED MTP4
+Exact prompt lengths, 128 output tokens, zero prefix-cache hits.
+```
+
+Public verification artifacts, sanitized metric-only result files, SHA256 checksums, and the verification script are available here:
+
+[`evidence/mtp4-context-scaling/`](evidence/mtp4-context-scaling/)
+
+To verify locally:
+
+```bash
+python3 evidence/mtp4-context-scaling/verify_results.py
+
+cd evidence/mtp4-context-scaling
+sha256sum -c SHA256SUMS
+```
+
+### Separate MTP4 reference result
+
+The previously reproduced **84.65 tok/s** result is also MTP4, but it comes from the separate `p512/g128` short-context validation benchmark.
+
+It should not be substituted for the 512-token point in the context-scaling series above.
+
+* **Reference validation:** 84.65 tok/s median
+* **Exact-context scaling 512-token point:** 81.24 tok/s median
+
+The two results use different benchmark procedures and are intentionally reported separately.
+
+
 ## Validated result
 
 On the validation system, the final `p512/g128`, concurrency-1 benchmark

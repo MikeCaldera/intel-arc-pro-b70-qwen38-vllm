@@ -1,0 +1,7 @@
+FROM vllm/vllm-openai-xpu@sha256:f01e24f6c7ff01f1e0662234255a1372297d1dbd89d003cf13c8fad3eab1ba4f
+
+COPY intel-runtime-26.31/*.deb /tmp/intel-runtime/
+
+RUN dpkg -i /tmp/intel-runtime/*.deb || apt-get -f install -y && \
+    dpkg -i /tmp/intel-runtime/*.deb && \
+    rm -rf /tmp/intel-runtime

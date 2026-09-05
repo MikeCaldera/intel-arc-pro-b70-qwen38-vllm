@@ -26,6 +26,19 @@ reference result documented by the Intel Arc Pro B70 inference cookbook.
 > kernel/driver versions, GPU power limits, thermals, and software
 > revisions can affect results.
 
+## Extended Qwen3.8-27B benchmark and long-context reproduction
+
+Detailed reproduction instructions, long-context results, Intel runtime comparison, and benchmark methodology:
+
+[Qwen3.8-27B Intel Arc Pro B70 Reproduction](benchmarks/QWEN38_B70_REPRODUCTION.md)
+
+Key measured results:
+
+- 84.65 tok/s short-context MTP4 benchmark
+- 80K cold-context MTP2: 6/6 PASS, ~51.5 tok/s typical decode
+- 160K MTP2 on Intel compute-runtime 26.31: 3 consecutive 160K requests PASS
+- The Xe failure seen under runtime 26.27 was not reproduced during the 26.31 retest
+
 ## Why this setup is useful
 
 -   Runs a 27B-class model on one 32 GB B70.

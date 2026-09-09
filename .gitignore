@@ -8,3 +8,18 @@ results/private/
 **/.hf_token*
 **/hf_token*
 **/*hf_*token*
+
+# Local benchmark working data.
+# Curated public results belong in benchmarks/quality/results/published/
+benchmarks/quality/results/mtp0/
+benchmarks/quality/results/mtp2/
+benchmarks/quality/results/mtp3/
+benchmarks/quality/results/mtp4/
+
+# Python cache
+**/__pycache__/
+
+# Temporary GPTQ logs / scratch
+logs/gptq_log_*.log
+!benchmarks/quality/results/published/
+!benchmarks/quality/results/published/*.json

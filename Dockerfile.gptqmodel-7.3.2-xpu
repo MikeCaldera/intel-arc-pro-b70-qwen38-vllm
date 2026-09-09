@@ -1,0 +1,4 @@
+FROM vllm-xpu-b70:26.31-test
+
+RUN python -m pip install --no-cache-dir \
+    "gptqmodel==7.3.2"

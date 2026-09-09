@@ -1,0 +1,8 @@
+FROM gptqmodel-xpu-b70:7.3.2-xpu-fallback
+
+COPY patch-gptqmodel-xpu-fallback-v2fixed.py /tmp/patch.py
+
+RUN python /tmp/patch.py && \
+    python -m py_compile \
+      /opt/venv/lib/python3.12/site-packages/gptqmodel/quantization/gptq.py && \
+    rm /tmp/patch.py

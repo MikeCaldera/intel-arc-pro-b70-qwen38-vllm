@@ -25,6 +25,12 @@ This repository now documents two related tracks:
 
 ---
 
+## End-to-end guide
+
+For the complete workflow — from BF16 source model and frozen GPTQ calibration through G128 quantization, vLLM XPU deployment, Hugging Face download, Open WebUI integration, Portainer networking, and multi-model deployment — see:
+
+[**End-to-End Guide: Qwen3.8-27B GPTQ INT4 G128 on Intel Arc Pro B70 with vLLM XPU and Open WebUI**](docs/END-TO-END-GUIDE.md)
+
 ## Current recommended single-B70 quality configuration
 
 | Setting | Value |

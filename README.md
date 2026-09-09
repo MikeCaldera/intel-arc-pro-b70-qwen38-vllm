@@ -50,7 +50,17 @@ This is the best quality-focused configuration tested so far on one B70.
 It is **not** claimed to be perfect or universally optimal.
 
 ---
+## Ready-to-download model
 
+Don't want to quantize the model yourself?
+
+The tested fresh G128 GPTQ INT4 checkpoint is available directly on Hugging Face:
+
+https://huggingface.co/mikeinnyc/Qwen3.8-27B-GPTQ-Int4-sym-G128-MTP-BF16
+
+No GPTQ quantization step is required.
+
+This GitHub repository contains the full reproduction procedure, B70/vLLM XPU patches, calibration methodology, G128 vs G32 comparison, benchmarks, and deployment instructions.
 ## Performance reference
 
 The earlier short-context MTP4 validation remains part of this project.

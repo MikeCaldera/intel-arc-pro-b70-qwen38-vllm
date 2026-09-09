@@ -2,6 +2,10 @@
 
 Reproducible community work for running **Qwen3.8-27B** on a single **Intel Arc Pro B70 32 GB** with vLLM XPU.
 
+### **This is one of the best quality-focused configurations tested so far on a single B70.**
+
+It is **not** claimed to be perfect or universally optimal.
+
 This repository now documents two related tracks:
 
 1. **Performance reproduction**
@@ -45,9 +49,6 @@ This repository now documents two related tracks:
 | Top-k | `-1` |
 | Max generation | `4096` |
 
-This is the best quality-focused configuration tested so far on one B70.
-
-It is **not** claimed to be perfect or universally optimal.
 
 ---
 ## Ready-to-download model
